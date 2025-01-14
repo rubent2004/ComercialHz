@@ -1,0 +1,56 @@
+# Comandos básicos de Git
+
+## Trabajando con el repositorio
+
+- Clonar un repositorio:
+  git clone https://github.com/usuario/repositorio.git
+
+- Ver el estado del repositorio:
+  git status
+
+- Añadir archivos al área de preparación (staging area):
+  git add .
+
+- Realizar un commit con un mensaje descriptivo:
+  git commit -m "Descripción de los cambios"
+
+- Subir los cambios al repositorio remoto:
+  git push origin main
+
+- Bajar los cambios del repositorio remoto:
+  git pull origin main
+
+- Ver el historial de commits:
+  git log
+
+- Crear una nueva rama:
+  git checkout -b nombre-de-la-rama
+
+- Cambiar a una rama existente:
+  git checkout nombre-de-la-rama
+
+- Fusionar una rama con la rama actual:
+  git merge nombre-de-la-rama
+
+- Eliminar una rama:
+  git branch -d nombre-de-la-rama
+
+## Sincronización y colaboración
+
+- Ver las ramas remotas:
+  git branch -r
+
+- Sincronizar tu repositorio local con el remoto:
+  git fetch
+
+- Rebase de la rama actual con la rama remota:
+  git rebase origin/main
+
+- Resolver conflictos de fusión:
+  git mergetool
+
+- Guardar cambios temporales (stashing):
+  git stash
+
+- Aplicar cambios guardados:
+  git stash apply
