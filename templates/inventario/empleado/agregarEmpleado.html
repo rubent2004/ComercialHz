@@ -5,7 +5,7 @@
 
 <script>
 	
-function clienteCamposOcultos(esto)
+function empleadoCamposOcultos(esto)
 {
 	let check = esto.checked
 
@@ -41,11 +41,11 @@ function clienteCamposOcultos(esto)
 <article class="content forms-page">
 	    <div class="title-block">
 	    	{% if editar %}
-	      <h3 class="title">Editar cliente</h3>
-          <p class="title-description">Cambie los datos del cliente</p>
+	      <h3 class="title">Editar empleado</h3>
+          <p class="title-description">Cambie los datos del empleado</p>
 	    	{% else %}
-          <h3 class="title">Agregar cliente</h3>
-          <p class="title-description">Introduzca los datos del cliente</p>
+          <h3 class="title">Agregar empleado</h3>
+          <p class="title-description">Introduzca los datos del empleado</p>
           {% endif %}
         </div>
 <section class="section">
@@ -91,9 +91,9 @@ function clienteCamposOcultos(esto)
 		{%endif%}
 		{%endif%}
 
-<!-------------------   FORMULARIO PARA AGREGAR CLIENTE ---------------------------------->
+<!-------------------   FORMULARIO PARA AGREGAR empleado ---------------------------------->
 		<div class="card card-block sameheight-item">
-			<form role="form" method="POST" onsubmit="return validarTodo('cliente')">
+			<form role="form" method="POST" onsubmit="return validarTodo('empleado')">
 			{% csrf_token %}
 
 <!----------------   CAMPOS DE TIPO DE CEDULA Y CEDULA  ---------------------->
@@ -113,7 +113,7 @@ function clienteCamposOcultos(esto)
 <!------------------   FIN DE CAMPOS  ------------------------------------------>
 
 
-<!-----------------   CAMPO DEL NOMBRE DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL NOMBRE DEL empleado ------------------>
 
 			<div class="form-group">
 				<label for="{{ form.nombre.name }}">
@@ -125,7 +125,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL APELLIDO DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL APELLIDO DEL empleado ------------------>
 
 			<div class="form-group">
 				<label for="{{ form.apellido.name }}">
@@ -137,7 +137,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DE LA DIRECCION DEL CLIENTE ------------------>
+<!-----------------   CAMPO DE LA DIRECCION DEL empleado ------------------>
 
 			<div class="form-group">
 				<label for="{{ form.direccion.name }}">
@@ -149,7 +149,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL NACIMIENTO DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL NACIMIENTO DEL empleado ------------------>
 
 			<div class="form-group">
 				<label for="{{ form.nacimiento.name }}">
@@ -161,7 +161,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL TELEFONO DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL TELEFONO DEL empleado ------------------>
 
 			<div class="form-group">
 				<label for="{{ form.telefono.name }}">
@@ -173,7 +173,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL CORREO DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL CORREO DEL empleado ------------------>
 
 			<div class="form-group">
 				<label for="{{ form.correo.name }}">
@@ -185,7 +185,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL CORREO ALTERNATIVO DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL CORREO ALTERNATIVO DEL empleado ------------------>
 
 			<div class="form-group" id="div_correo2">
 				<label for="{{ form.correo2.name }}">
@@ -197,7 +197,7 @@ function clienteCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL TELEFONO ALTERNATIVO DEL CLIENTE ------------------>
+<!-----------------   CAMPO DEL TELEFONO ALTERNATIVO DEL empleado ------------------>
 
 			<div class="form-group" id="div_telefono2">
 				<label for="{{ form.telefono2.name }}">
@@ -213,7 +213,7 @@ function clienteCamposOcultos(esto)
 				<div class="form-group">
 					<label>
 						<input class="checkbox rounded" type="checkbox"
-						onchange="clienteCamposOcultos(this)">
+						onchange="empleadoCamposOcultos(this)">
 						<span>
 						Mostrar campos opcionales
 						</span>
