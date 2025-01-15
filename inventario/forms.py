@@ -23,7 +23,7 @@ class LoginFormulario(forms.Form):
     password = forms.CharField(label="Contraseña",widget=forms.PasswordInput(attrs={'placeholder': 'Contraseña',
         'class': 'form-control underlined', 'type':'password','id':'password'}))
 
-class ProductoForm(forms.ModelForm):
+class ProductoFormulario(forms.ModelForm):
     class Meta:
         model = Producto
         fields = ['descripcion', 'precio_unitario', 'precio_cash', 'codigo', 'disponible', 'imagen', 'proveedor', 'marca', 'estado']

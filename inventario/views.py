@@ -1,4 +1,5 @@
 #renderiza las vistas al usuario
+import datetime
 from django.shortcuts import render
 # para redirigir a otras paginas
 from django.http import HttpResponseRedirect, HttpResponse,FileResponse
@@ -81,12 +82,12 @@ class Panel(LoginRequiredMixin, View):
                    'correo': request.user.email,
                    'fecha':  date.today(),
                    'productosRegistrados' : Producto.numeroRegistrados(),
-                   'productosVendidos' :  DetalleFactura.productosVendidos(),
-                   'clientesRegistrados' : Cliente.numeroRegistrados(),
+                   #'productosVendidos' :  DetalleFactura.productosVendidos(),
+                   'empleadosRegistrados' : Empleado.numeroRegistrados(),
                    'usuariosRegistrados' : Usuario.numeroRegistrados(),
-                   'facturasEmitidas' : Factura.numeroRegistrados(),
-                   'ingresoTotal' : Factura.ingresoTotal(),
-                   'ultimasVentas': DetalleFactura.ultimasVentas(),
+                   #'facturasEmitidas' : Factura.numeroRegistrados(),
+                   #'ingresoTotal' : Factura.ingresoTotal(),
+                   #'ultimasVentas': DetalleFactura.ultimasVentas(),
                    'administradores': Usuario.numeroUsuarios('administrador'),
                    'usuarios': Usuario.numeroUsuarios('usuario')
 
@@ -286,7 +287,7 @@ class Perfil(LoginRequiredMixin, View):
 #----------------------------------------------------------------------------------#   
 
 
-#Elimina usuarios, productos, clientes o proveedores----------------------------
+#Elimina usuarios, productos, empleados o proveedores----------------------------
 class Eliminar(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -299,11 +300,11 @@ class Eliminar(LoginRequiredMixin, View):
             messages.success(request, 'Producto de ID %s borrado exitosamente.' % p)
             return HttpResponseRedirect("/inventario/listarProductos")         
            
-        elif modo == 'cliente':
-            cliente = Cliente.objects.get(id=p)
-            cliente.delete()
-            messages.success(request, 'Cliente de ID %s borrado exitosamente.' % p)
-            return HttpResponseRedirect("/inventario/listarClientes")            
+        elif modo == 'empleado':
+            empleado = Empleado.objects.get(id=p)
+            empleado.delete()
+            messages.success(request, 'Empleado de ID %s borrado exitosamente.' % p)
+            return HttpResponseRedirect("/inventario/listarEmpleados")            
 
 
         elif modo == 'proveedor':
@@ -335,156 +336,219 @@ class Eliminar(LoginRequiredMixin, View):
 #Fin de vista-------------------------------------------------------------------   
 
 
-#Crea una lista de los clientes, 10 por pagina----------------------------------------#
-class ListarClientes(LoginRequiredMixin, View):
+
+#Muestra una lista de 10 productos por pagina----------------------------------------#
+class ListarProductos(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def get(self, request):
         from django.db import models
-        #Saca una lista de todos los clientes de la BDD
-        clientes = Cliente.objects.all()                
-        contexto = {'tabla': clientes}
-        contexto = complementarContexto(contexto,request.user)         
 
-        return render(request, 'inventario/cliente/listarClientes.html',contexto) 
-#Fin de vista--------------------------------------------------------------------------#
+        #Lista de productos de la BDD
+        productos = Producto.objects.all()
+                               
+        contexto = {'tabla':productos}
+
+        contexto = complementarContexto(contexto,request.user)  
+
+        return render(request, 'inventario/producto/listarProductos.html',contexto)
+#Fin de vista-------------------------------------------------------------------------#
 
 
 
 
-#Crea y procesa un formulario para agregar a un cliente---------------------------------#
-class AgregarCliente(LoginRequiredMixin, View):
+#Maneja y visualiza un formulario--------------------------------------------------#
+class AgregarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
-        form = ClienteFormulario(request.POST)
+        form = ProductoFormulario(request.POST)
         # Revisa si es valido:
-
         if form.is_valid():
             # Procesa y asigna los datos con form.cleaned_data como se requiere
+            descripcion = form.cleaned_data['descripcion']
+            precio_unitario = form.cleaned_data['precio_unitario']
+            precio_cash = form.cleaned_data['precio_cash']
+            codigo = form.cleaned_data['codigo']
+            categoria = form.cleaned_data['categoria']
+            imagen = form.cleaned_data['imagen']
+            Proveedor = form.cleaned_data['Proveedor']
+            marca = form.cleaned_data['marca']
+            estado = form.cleaned_data['estado']
+            fecha_registro = datetime.now()
+            disponible = 0
 
-            cedula = form.cleaned_data['cedula']
-            nombre = form.cleaned_data['nombre']
-            apellido = form.cleaned_data['apellido']
-            direccion = form.cleaned_data['direccion']
-            nacimiento = form.cleaned_data['nacimiento']
-            telefono = form.cleaned_data['telefono']
-            correo = form.cleaned_data['correo']
-            telefono2 = form.cleaned_data['telefono2']
-            correo2 = form.cleaned_data['correo2']
-
-            cliente = Cliente(cedula=cedula,nombre=nombre,apellido=apellido,
-                direccion=direccion,nacimiento=nacimiento,telefono=telefono,
-                correo=correo,telefono2=telefono2,correo2=correo2)
-            cliente.save()
-            form = ClienteFormulario()
-
-            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % cliente.id)
-            request.session['clienteProcesado'] = 'agregado'
-            return HttpResponseRedirect("/inventario/agregarCliente")
+            prod = Producto(descripcion=descripcion, precio_unitario=precio_unitario, precio_cash=precio_cash, codigo=codigo, categoria=categoria, imagen=imagen, Proveedor=Proveedor, marca=marca, estado=estado, fecha_registro=fecha_registro, disponible=disponible)
+            prod.save()
+            
+            form = ProductoFormulario()
+            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % prod.id)
+            request.session['productoProcesado'] = 'agregado'
+            return HttpResponseRedirect("/inventario/producto/agregarProducto")
         else:
             #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/cliente/agregarCliente.html', {'form': form})        
+            return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
 
+    # Si se llega por GET crearemos un formulario en blanco
     def get(self,request):
-        form = ClienteFormulario()
+        form = ProductoFormulario()
         #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('clienteProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
-        return render(request, 'inventario/cliente/agregarCliente.html', contexto)
-#Fin de vista-----------------------------------------------------------------------------#        
+        contexto = {'form':form , 'modo':request.session.get('productoProcesado')}   
+        contexto = complementarContexto(contexto,request.user)  
+        return render(request, 'inventario/producto/agregarProducto.html', contexto)
+# #Fin de vista------------------------------------------------------------------------# 
 
 
 
 
-#Formulario simple que procesa un script para importar los clientes-----------------#
-class ImportarClientes(LoginRequiredMixin, View):
+
+#Formulario simple que procesa un script para importar los productos-----------------#
+class ImportarProductos(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self,request):
-        form = ImportarClientesFormulario(request.POST)
+        form = ImportarProductosFormulario(request.POST)
         if form.is_valid():
-            request.session['clientesImportados'] = True
-            return HttpResponseRedirect("/inventario/importarClientes")
+            request.session['productosImportados'] = True
+            return HttpResponseRedirect("/inventario/importarProductos")
 
     def get(self,request):
-        form = ImportarClientesFormulario()
+        form = ImportarProductosFormulario()
 
-        if request.session.get('clientesImportados') == True:
-            importado = request.session.get('clientesImportados')
-            contexto = { 'form':form,'clientesImportados': importado  }
-            request.session['clientesImportados'] = False
+        if request.session.get('productosImportados') == True:
+            importado = request.session.get('productoImportados')
+            contexto = { 'form':form,'productosImportados': importado  }
+            request.session['productosImportados'] = False
 
         else:
             contexto = {'form':form}
-            contexto = complementarContexto(contexto,request.user)             
-        return render(request, 'inventario/cliente/importarClientes.html',contexto)
+            contexto = complementarContexto(contexto,request.user) 
+        return render(request, 'inventario/producto/importarProductos.html',contexto)        
+
 #Fin de vista-------------------------------------------------------------------------#
 
 
 
 
-#Formulario simple que crea un archivo y respalda los clientes-----------------------#
-class ExportarClientes(LoginRequiredMixin, View):
+#Formulario simple que crea un archivo y respalda los productos-----------------------#
+class ExportarProductos(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self,request):
-        form = ExportarClientesFormulario(request.POST)
+        form = ExportarProductosFormulario(request.POST)
         if form.is_valid():
-            request.session['clientesExportados'] = True
+            request.session['productosExportados'] = True
 
             #Se obtienen las entradas de producto en formato JSON
-            data = serializers.serialize("json", Cliente.objects.all())
+            data = serializers.serialize("json", Producto.objects.all())
             fs = FileSystemStorage('inventario/tmp/')
 
             #Se utiliza la variable fs para acceder a la carpeta con mas facilidad
-            with fs.open("clientes.json", "w") as out:
+            with fs.open("productos.json", "w") as out:
                 out.write(data)
                 out.close()  
 
-            with fs.open("clientes.json", "r") as out:                 
+            with fs.open("productos.json", "r") as out:                 
                 response = HttpResponse(out.read(), content_type="application/force-download")
-                response['Content-Disposition'] = 'attachment; filename="clientes.json"'
+                response['Content-Disposition'] = 'attachment; filename="productos.json"'
                 out.close() 
             #------------------------------------------------------------
             return response
 
     def get(self,request):
-        form = ExportarClientesFormulario()
+        form = ExportarProductosFormulario()
 
-        if request.session.get('clientesExportados') == True:
-            exportado = request.session.get('clientesExportados')
-            contexto = { 'form':form,'clientesExportados': exportado  }
-            request.session['clientesExportados'] = False
+        if request.session.get('productosExportados') == True:
+            exportado = request.session.get('productoExportados')
+            contexto = { 'form':form,'productosExportados': exportado  }
+            request.session['productosExportados'] = False
 
         else:
             contexto = {'form':form}
             contexto = complementarContexto(contexto,request.user) 
-        return render(request, 'inventario/cliente/exportarClientes.html',contexto)
+        return render(request, 'inventario/producto/exportarProductos.html',contexto)
 #Fin de vista-------------------------------------------------------------------------#
 
 
 
 
-#Muestra el mismo formulario del cliente pero con los datos a editar----------------------#
-class EditarCliente(LoginRequiredMixin, View):
+#Muestra el formulario de un producto especifico para editarlo----------------------------------#
+class EditarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self,request,p):
         # Crea una instancia del formulario y la llena con los datos:
-        cliente = Cliente.objects.get(id=p)
-        form = ClienteFormulario(request.POST, instance=cliente)
+        form = ProductoFormulario(request.POST)
         # Revisa si es valido:
-    
-        if form.is_valid():           
+        if form.is_valid():
             # Procesa y asigna los datos con form.cleaned_data como se requiere
-            cedula = form.cleaned_data['cedula']
+            descripcion = form.cleaned_data['descripcion']
+            precio = form.cleaned_data['precio']
+            categoria = form.cleaned_data['categoria']
+            tiene_iva = form.cleaned_data['tiene_iva']
+
+            prod = Producto.objects.get(id=p)
+            prod.descripcion = descripcion
+            prod.precio = precio
+            prod.categoria = categoria
+            prod.tiene_iva = tiene_iva
+            prod.save()
+            form = ProductoFormulario(instance=prod)
+            messages.success(request, 'Actualizado exitosamente el producto de ID %s.' % p)
+            request.session['productoProcesado'] = 'editado'            
+            return HttpResponseRedirect("/inventario/editarProducto/%s" % prod.id)
+        else:
+            #De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
+
+    def get(self, request,p): 
+        prod = Producto.objects.get(id=p)
+        form = ProductoFormulario(instance=prod)
+        #Envia al usuario el formulario para que lo llene
+        contexto = {'form':form , 'modo':request.session.get('productoProcesado'),'editar':True}    
+        contexto = complementarContexto(contexto,request.user) 
+        return render(request, 'inventario/producto/agregarProducto.html', contexto)
+#Fin de vista------------------------------------------------------------------------------------#      
+
+
+#Crea una lista de los empleados, 10 por pagina----------------------------------------#
+class ListarEmpleados(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def get(self, request):
+        from django.db import models
+        #Saca una lista de todos los empleados de la BDD
+        empleados = Empleado.objects.all()                
+        contexto = {'tabla': empleados}
+        contexto = complementarContexto(contexto,request.user)         
+
+        return render(request, 'inventario/empleado/listarEmpleados.html',contexto) 
+#Fin de vista--------------------------------------------------------------------------#
+
+
+
+
+#Crea y procesa un formulario para agregar a un empleado---------------------------------#
+class AgregarEmpleado(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        # Crea una instancia del formulario y la llena con los datos:
+        form = EmpleadoFormulario(request.POST)
+        # Revisa si es valido:
+
+        if form.is_valid():
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
+
+            dui = form.cleaned_data['dui']
             nombre = form.cleaned_data['nombre']
             apellido = form.cleaned_data['apellido']
             direccion = form.cleaned_data['direccion']
@@ -494,32 +558,150 @@ class EditarCliente(LoginRequiredMixin, View):
             telefono2 = form.cleaned_data['telefono2']
             correo2 = form.cleaned_data['correo2']
 
-            cliente.cedula = cedula
-            cliente.nombre = nombre
-            cliente.apellido = apellido
-            cliente.direccion = direccion
-            cliente.nacimiento = nacimiento
-            cliente.telefono = telefono
-            cliente.correo = correo
-            cliente.telefono2 = telefono2
-            cliente.correo2 = correo2
-            cliente.save()
-            form = ClienteFormulario(instance=cliente)
+            empleado = Empleado(dui=dui,nombre=nombre,apellido=apellido,
+                direccion=direccion,nacimiento=nacimiento,telefono=telefono,
+                correo=correo,telefono2=telefono2,correo2=correo2)
+            empleado.save()
+            form = EmpleadoFormulario()
 
-            messages.success(request, 'Actualizado exitosamente el cliente de ID %s.' % p)
-            request.session['clienteProcesado'] = 'editado'            
-            return HttpResponseRedirect("/inventario/editarCliente/%s" % cliente.id)
+            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % empleado.id)
+            request.session['empleadoProcesado'] = 'agregado'
+            return HttpResponseRedirect("/inventario/agregarEmpleado")
         else:
             #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/cliente/agregarCliente.html', {'form': form})
+            return render(request, 'inventario/empleado/agregarEmpleado.html', {'form': form})        
+
+    def get(self,request):
+        form = EmpleadoFormulario()
+        #Envia al usuario el formulario para que lo llene
+        contexto = {'form':form , 'modo':request.session.get('empleadoProcesado')} 
+        contexto = complementarContexto(contexto,request.user)         
+        return render(request, 'inventario/empleado/agregarEmpleado.html', contexto)
+#Fin de vista-----------------------------------------------------------------------------#        
+
+
+
+
+#Formulario simple que procesa un script para importar los empleados-----------------#
+class ImportarEmpleados(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request):
+        form = ImportarEmpleadosFormulario(request.POST)
+        if form.is_valid():
+            request.session['empleadosImportados'] = True
+            return HttpResponseRedirect("/inventario/importarEmpleados")
+
+    def get(self,request):
+        form = ImportarEmpleadosFormulario()
+
+        if request.session.get('empleadosImportados') == True:
+            importado = request.session.get('empleadosImportados')
+            contexto = { 'form':form,'empleadosImportados': importado  }
+            request.session['empleadosImportados'] = False
+
+        else:
+            contexto = {'form':form}
+            contexto = complementarContexto(contexto,request.user)             
+        return render(request, 'inventario/empleado/importarEmpleados.html',contexto)
+#Fin de vista-------------------------------------------------------------------------#
+
+
+
+
+#Formulario simple que crea un archivo y respalda los empleados-----------------------#
+class ExportarEmpleados(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request):
+        form = ExportarEmpleadosFormulario(request.POST)
+        if form.is_valid():
+            request.session['empleadosExportados'] = True
+
+            #Se obtienen las entradas de producto en formato JSON
+            data = serializers.serialize("json", Empleado.objects.all())
+            fs = FileSystemStorage('inventario/tmp/')
+
+            #Se utiliza la variable fs para acceder a la carpeta con mas facilidad
+            with fs.open("empleados.json", "w") as out:
+                out.write(data)
+                out.close()  
+
+            with fs.open("empleados.json", "r") as out:                 
+                response = HttpResponse(out.read(), content_type="application/force-download")
+                response['Content-Disposition'] = 'attachment; filename="empleados.json"'
+                out.close() 
+            #------------------------------------------------------------
+            return response
+
+    def get(self,request):
+        form = ExportarEmpleadosFormulario()
+
+        if request.session.get('empleadosExportados') == True:
+            exportado = request.session.get('empleadosExportados')
+            contexto = { 'form':form,'empleadosExportados': exportado  }
+            request.session['empleadosExportados'] = False
+
+        else:
+            contexto = {'form':form}
+            contexto = complementarContexto(contexto,request.user) 
+        return render(request, 'inventario/empleado/exportarEmpleados.html',contexto)
+#Fin de vista-------------------------------------------------------------------------#
+
+
+
+
+#Muestra el mismo formulario del empleado pero con los datos a editar----------------------#
+class EditarEmpleado(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request,p):
+        # Crea una instancia del formulario y la llena con los datos:
+        empleado = Empleado.objects.get(id=p)
+        form = EmpleadoFormulario(request.POST, instance=empleado)
+        # Revisa si es valido:
+    
+        if form.is_valid():           
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
+            dui = form.cleaned_data['dui']
+            nombre = form.cleaned_data['nombre']
+            apellido = form.cleaned_data['apellido']
+            direccion = form.cleaned_data['direccion']
+            nacimiento = form.cleaned_data['nacimiento']
+            telefono = form.cleaned_data['telefono']
+            correo = form.cleaned_data['correo']
+            telefono2 = form.cleaned_data['telefono2']
+            correo2 = form.cleaned_data['correo2']
+
+            empleado.dui = dui
+            empleado.nombre = nombre
+            empleado.apellido = apellido
+            empleado.direccion = direccion
+            empleado.nacimiento = nacimiento
+            empleado.telefono = telefono
+            empleado.correo = correo
+            empleado.telefono2 = telefono2
+            empleado.correo2 = correo2
+            empleado.save()
+            form = EmpleadoFormulario(instance=empleado)
+
+            messages.success(request, 'Actualizado exitosamente el empleado de ID %s.' % p)
+            request.session['empleadoProcesado'] = 'editado'            
+            return HttpResponseRedirect("/inventario/editarEmpleado/%s" % empleado.id)
+        else:
+            #De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/empleado/agregarEmpleado.html', {'form': form})
 
     def get(self, request,p): 
-        cliente = Cliente.objects.get(id=p)
-        form = ClienteFormulario(instance=cliente)
+        empleado = Empleado.objects.get(id=p)
+        form = EmpleadoFormulario(instance=empleado)
         #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('clienteProcesado'),'editar':True} 
+        contexto = {'form':form , 'modo':request.session.get('empleadoProcesado'),'editar':True} 
         contexto = complementarContexto(contexto,request.user)     
-        return render(request, 'inventario/cliente/agregarCliente.html', contexto)  
+        return render(request, 'inventario/empleado/agregarEmpleado.html', contexto)  
 #Fin de vista--------------------------------------------------------------------------------# 
 
 
@@ -530,21 +712,21 @@ class EmitirFactura(LoginRequiredMixin, View):
 
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
-        cedulas = Cliente.cedulasRegistradas()
-        form = EmitirFacturaFormulario(request.POST,cedulas=cedulas)
+        duis = Empleado.duisRegistradas()
+        form = EmitirFacturaFormulario(request.POST,duis=duis)
         # Revisa si es valido:
         if form.is_valid():
             # Procesa y asigna los datos con form.cleaned_data como se requiere
             request.session['form_details'] = form.cleaned_data['productos']
-            request.session['id_client'] = form.cleaned_data['cliente']
+            request.session['id_client'] = form.cleaned_data['empleado']
             return HttpResponseRedirect("detallesDeFactura")
         else:
             #De lo contrario lanzara el mismo formulario
             return render(request, 'inventario/factura/emitirFactura.html', {'form': form})
 
     def get(self, request):
-        cedulas = Cliente.cedulasRegistradas()   
-        form = EmitirFacturaFormulario(cedulas=cedulas)
+        duis = Empleado.duisRegistradas()   
+        form = EmitirFacturaFormulario(duis=duis)
         contexto = {'form':form}
         contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/factura/emitirFactura.html', contexto)
@@ -558,7 +740,7 @@ class DetallesFactura(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def get(self, request):
-        cedula = request.session.get('id_client')
+        dui = request.session.get('id_client')
         productos = request.session.get('form_details')
         FacturaFormulario = formset_factory(DetallesFacturaFormulario, extra=productos)
         formset = FacturaFormulario()
@@ -568,7 +750,7 @@ class DetallesFactura(LoginRequiredMixin, View):
         return render(request, 'inventario/factura/detallesFactura.html', contexto)        
 
     def post(self, request):
-        cedula = request.session.get('id_client')
+        dui = request.session.get('id_client')
         productos = request.session.get('form_details')
 
         FacturaFormulario = formset_factory(DetallesFacturaFormulario, extra=productos)
@@ -622,9 +804,9 @@ class DetallesFactura(LoginRequiredMixin, View):
 
             from datetime import date
 
-            cliente = Cliente.objects.get(cedula=cedula)
+            empleado = Empleado.objects.get(dui=dui)
             iva = ivaActual('objeto')
-            factura = Factura(cliente=cliente,fecha=date.today(),sub_monto=sub_monto,monto_general=monto_general,iva=iva)
+            factura = Factura(empleado=empleado,fecha=date.today(),sub_monto=sub_monto,monto_general=monto_general,iva=iva)
 
             factura.save()
             id_factura = factura
@@ -728,8 +910,8 @@ class GenerarFacturaPDF(LoginRequiredMixin, View):
         data = {
              'fecha': factura.fecha, 
              'monto_general': factura.monto_general,
-            'nombre_cliente': factura.cliente.nombre + " " + factura.cliente.apellido,
-            'cedula_cliente': factura.cliente.cedula,
+            'nombre_empleado': factura.empleado.nombre + " " + factura.empleado.apellido,
+            'dui_empleado': factura.empleado.dui,
             'id_reporte': factura.id,
             'iva': factura.iva.valor_iva,
             'detalles': detalles,
@@ -748,7 +930,191 @@ class GenerarFacturaPDF(LoginRequiredMixin, View):
         #Fin de vista--------------------------------------------------------------------------------------#
 
 
-#Crea una lista de los clientes, 10 por pagina----------------------------------------#
+#Crea una lista de los empleados, 10 por pagina----------------------------------------#
+class ListarProveedores(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def get(self, request):
+        from django.db import models
+        #Saca una lista de todos los empleados de la BDD
+        proveedores = Proveedor.objects.all()                
+        contexto = {'tabla': proveedores}
+        contexto = complementarContexto(contexto,request.user)         
+
+        return render(request, 'inventario/proveedor/listarProveedores.html',contexto) 
+#Fin de vista--------------------------------------------------------------------------#
+
+
+
+
+#Crea y procesa un formulario para agregar a un proveedor---------------------------------#
+class AgregarProveedor(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        # Crea una instancia del formulario y la llena con los datos:
+        form = ProveedorFormulario(request.POST)
+        # Revisa si es valido:
+
+        if form.is_valid():
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
+
+            dui = form.cleaned_data['dui']
+            nombre = form.cleaned_data['nombre']
+            apellido = form.cleaned_data['apellido']
+            direccion = form.cleaned_data['direccion']
+            nacimiento = form.cleaned_data['nacimiento']
+            telefono = form.cleaned_data['telefono']
+            correo = form.cleaned_data['correo']
+            telefono2 = form.cleaned_data['telefono2']
+            correo2 = form.cleaned_data['correo2']
+
+            proveedor = Proveedor(dui=dui,nombre=nombre,apellido=apellido,
+                direccion=direccion,nacimiento=nacimiento,telefono=telefono,
+                correo=correo,telefono2=telefono2,correo2=correo2)
+            proveedor.save()
+            form = ProveedorFormulario()
+
+            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % proveedor.id)
+            request.session['proveedorProcesado'] = 'agregado'
+            return HttpResponseRedirect("/inventario/agregarProveedor")
+        else:
+            #De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/proveedor/agregarProveedor.html', {'form': form})        
+
+    def get(self,request):
+        form = ProveedorFormulario()
+        #Envia al usuario el formulario para que lo llene
+        contexto = {'form':form , 'modo':request.session.get('proveedorProcesado')} 
+        contexto = complementarContexto(contexto,request.user)         
+        return render(request, 'inventario/proveedor/agregarProveedor.html', contexto)
+#Fin de vista-----------------------------------------------------------------------------#
+
+#Formulario simple que procesa un script para importar los proveedores-----------------#
+class ImportarProveedores(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request):
+        form = ImportarEmpleadosFormulario(request.POST)
+        if form.is_valid():
+            request.session['empleadosImportados'] = True
+            return HttpResponseRedirect("/inventario/importarEmpleados")
+
+    def get(self,request):
+        form = ImportarEmpleadosFormulario()
+
+        if request.session.get('empleadosImportados') == True:
+            importado = request.session.get('empleadosImportados')
+            contexto = { 'form':form,'empleadosImportados': importado  }
+            request.session['empleadosImportados'] = False
+
+        else:
+            contexto = {'form':form}
+            contexto = complementarContexto(contexto,request.user)             
+        return render(request, 'inventario/importarEmpleados.html',contexto)
+#Fin de vista-------------------------------------------------------------------------#
+
+
+
+
+#Formulario simple que crea un archivo y respalda los proveedores-----------------------#
+class ExportarProveedores(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request):
+        form = ExportarEmpleadosFormulario(request.POST)
+        if form.is_valid():
+            request.session['empleadosExportados'] = True
+
+
+            #Se obtienen las entradas de producto en formato JSON
+            data = serializers.serialize("json", Empleado.objects.all())
+            fs = FileSystemStorage('inventario/tmp/')
+
+            #Se utiliza la variable fs para acceder a la carpeta con mas facilidad
+            with fs.open("empleados.json", "w") as out:
+                out.write(data)
+                out.close()  
+
+            with fs.open("empleados.json", "r") as out:                 
+                response = HttpResponse(out.read(), content_type="application/force-download")
+                response['Content-Disposition'] = 'attachment; filename="empleados.json"'
+                out.close() 
+            #------------------------------------------------------------
+            return response
+
+    def get(self,request):
+        form = ExportarEmpleadosFormulario()
+
+        if request.session.get('empleadosExportados') == True:
+            exportado = request.session.get('empleadosExportados')
+            contexto = { 'form':form,'empleadosExportados': exportado  }
+            request.session['empleadosExportados'] = False
+
+        else:
+            contexto = {'form':form}
+            contexto = complementarContexto(contexto,request.user) 
+        return render(request, 'inventario/exportarEmpleados.html',contexto)
+#Fin de vista-------------------------------------------------------------------------#
+
+
+
+
+#Muestra el mismo formulario del empleado pero con los datos a editar----------------------#
+class EditarProveedor(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request,p):
+        # Crea una instancia del formulario y la llena con los datos:
+        proveedor = Proveedor.objects.get(id=p)
+        form = ProveedorFormulario(request.POST, instance=proveedor)
+        # Revisa si es valido:
+      
+        if form.is_valid():           
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
+            dui = form.cleaned_data['dui']
+            nombre = form.cleaned_data['nombre']
+            apellido = form.cleaned_data['apellido']
+            direccion = form.cleaned_data['direccion']
+            nacimiento = form.cleaned_data['nacimiento']
+            telefono = form.cleaned_data['telefono']
+            correo = form.cleaned_data['correo']
+            telefono2 = form.cleaned_data['telefono2']
+            correo2 = form.cleaned_data['correo2']
+
+            proveedor.dui = dui
+            proveedor.nombre = nombre
+            proveedor.apellido = apellido
+            proveedor.direccion = direccion
+            proveedor.nacimiento = nacimiento
+            proveedor.telefono = telefono
+            proveedor.correo = correo
+            proveedor.telefono2 = telefono2
+            proveedor.correo2 = correo2
+            proveedor.save()
+            form = ProveedorFormulario(instance=proveedor)
+
+            messages.success(request, 'Actualizado exitosamente el proveedor de ID %s.' % p)
+            request.session['proveedorProcesado'] = 'editado'            
+            return HttpResponseRedirect("/inventario/editarProveedor/%s" % proveedor.id)
+        else:
+            #De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/proveedor/agregarProveedor.html', {'form': form})
+
+    def get(self, request,p): 
+        proveedor = Proveedor.objects.get(id=p)
+        form = ProveedorFormulario(instance=proveedor)
+        #Envia al usuario el formulario para que lo llene
+        contexto = {'form':form , 'modo':request.session.get('proveedorProcesado'),'editar':True} 
+        contexto = complementarContexto(contexto,request.user)     
+        return render(request, 'inventario/proveedor/agregarProveedor.html', contexto)  
+#Fin de vista--------------------------------------------------------------------------------#
+
 
 #Agrega un pedido-----------------------------------------------------------------------------------#      
 class AgregarPedido(LoginRequiredMixin, View):
@@ -756,16 +1122,16 @@ class AgregarPedido(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def get(self, request):
-        cedulas = Proveedor.cedulasRegistradas()
-        form = EmitirPedidoFormulario(cedulas=cedulas)
+        duis = Proveedor.duisRegistradas()
+        form = EmitirPedidoFormulario(duis=duis)
         contexto = {'form':form}
         contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/pedido/emitirPedido.html', contexto)
 
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
-        cedulas = Proveedor.cedulasRegistradas()
-        form = EmitirPedidoFormulario(request.POST,cedulas=cedulas)
+        duis = Proveedor.duisRegistradas()
+        form = EmitirPedidoFormulario(request.POST,duis=duis)
         # Revisa si es valido:
         if form.is_valid():
             # Procesa y asigna los datos con form.cleaned_data como se requiere
@@ -787,7 +1153,7 @@ class ListarPedidos(LoginRequiredMixin, View):
 
     def get(self, request):
         from django.db import models
-        #Saca una lista de todos los clientes de la BDD
+        #Saca una lista de todos los empleados de la BDD
         pedidos = Pedido.objects.all()                
         contexto = {'tabla': pedidos}
         contexto = complementarContexto(contexto,request.user)         
@@ -803,7 +1169,7 @@ class DetallesPedido(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def get(self, request):
-        cedula = request.session.get('id_proveedor')
+        dui = request.session.get('id_proveedor')
         productos = request.session.get('form_details')
         PedidoFormulario = formset_factory(DetallesPedidoFormulario, extra=productos)
         formset = PedidoFormulario()
@@ -813,7 +1179,7 @@ class DetallesPedido(LoginRequiredMixin, View):
         return render(request, 'inventario/pedido/detallesPedido.html', contexto)        
 
     def post(self, request):
-        cedula = request.session.get('id_proveedor')
+        dui = request.session.get('id_proveedor')
         productos = request.session.get('form_details')
 
         PedidoFormulario = formset_factory(DetallesPedidoFormulario, extra=productos)
@@ -868,7 +1234,7 @@ class DetallesPedido(LoginRequiredMixin, View):
 
             from datetime import date
 
-            proveedor = Proveedor.objects.get(cedula=cedula)
+            proveedor = Proveedor.objects.get(dui=dui)
             iva = ivaActual('objeto')
             presente = False
             pedido = Pedido(proveedor=proveedor,fecha=date.today(),sub_monto=sub_monto,monto_general=monto_general,iva=iva,
@@ -977,7 +1343,7 @@ class GenerarPedidoPDF(LoginRequiredMixin, View):
              'fecha': pedido.fecha, 
              'monto_general': pedido.monto_general,
             'nombre_proveedor': pedido.proveedor.nombre + " " + pedido.proveedor.apellido,
-            'cedula_proveedor': pedido.proveedor.cedula,
+            'dui_proveedor': pedido.proveedor.dui,
             'id_reporte': pedido.id,
             'iva': pedido.iva.valor_iva,
             'detalles': detalles,
@@ -1235,8 +1601,8 @@ class VerManualDeUsuario(LoginRequiredMixin, View):
         if pagina == 'pedido':
             return render(request, 'inventario/manual/pedido.html') 
 
-        if pagina == 'clientes':
-            return render(request, 'inventario/manual/clientes.html') 
+        if pagina == 'empleados':
+            return render(request, 'inventario/manual/empleados.html') 
 
         if pagina == 'factura':
             return render(request, 'inventario/manual/factura.html') 

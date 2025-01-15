@@ -96,7 +96,6 @@ class Proveedor(models.Model):
 class Opciones(models.Model):
     #id
     moneda = models.CharField(max_length=20, null=True)
-    valor_iva = models.IntegerField(unique=True)   
     nombre_negocio = models.CharField(max_length=25,null=True)
     mensaje_factura = models.TextField(null=True)
 
@@ -212,53 +211,52 @@ class Empleado(models.Model):
 
 
 # #-------------------------------------FACTURA---------------------------------------------
-# class Factura(models.Model):
-#     #id
-#     empleado = models.ForeignKey(Empleado,to_field='dui', on_delete=models.CASCADE)
-#     fecha = models.DateField()
-#     sub_monto = models.DecimalField(max_digits=20,decimal_places=2)
-#     monto_general = models.DecimalField(max_digits=20,decimal_places=2)
-#     iva = models.ForeignKey(Opciones,to_field='valor_iva', on_delete=models.CASCADE)
+class Factura(models.Model):
+    #id
+    empleado = models.ForeignKey(Empleado,to_field='dui', on_delete=models.CASCADE)
+    fecha = models.DateField()
+    sub_monto = models.DecimalField(max_digits=20,decimal_places=2)
+    monto_general = models.DecimalField(max_digits=20,decimal_places=2)
 
-#     @classmethod
-#     def numeroRegistrados(self):
-#         return int(self.objects.all().count() )
+    @classmethod
+    def numeroRegistrados(self):
+        return int(self.objects.all().count() )
 
-#     @classmethod
-#     def ingresoTotal(self):
-#         facturas = self.objects.all()
-#         total = 0
+    @classmethod
+    def ingresoTotal(self):
+        facturas = self.objects.all()
+        total = 0
 
-#         for factura in facturas:
-#             total += factura.monto_general
+        for factura in facturas:
+            total += factura.monto_general
 
-#         return total
+        return total
 # #-----------------------------------------------------------------------------------------
 
 
 # #-------------------------------------DETALLES DE FACTURA---------------------------------
-# class DetalleFactura(models.Model):
-#     #id
-#     id_factura = models.ForeignKey(Factura, on_delete=models.CASCADE)
-#     id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-#     cantidad = models.IntegerField()
-#     sub_total = models.DecimalField(max_digits=20,decimal_places=2)
-#     total = models.DecimalField(max_digits=20,decimal_places=2)
+class DetalleFactura(models.Model):
+    #id
+    id_factura = models.ForeignKey(Factura, on_delete=models.CASCADE)
+    id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+    sub_total = models.DecimalField(max_digits=20,decimal_places=2)
+    total = models.DecimalField(max_digits=20,decimal_places=2)
 
-#     @classmethod
-#     def productosVendidos(self):
-#         vendidos = self.objects.all()
-#         totalVendidos = 0
-#         for producto in vendidos:
-#             totalVendidos += producto.cantidad
+    @classmethod
+    def productosVendidos(self):
+        vendidos = self.objects.all()
+        totalVendidos = 0
+        for producto in vendidos:
+            totalVendidos += producto.cantidad
 
-#         return totalVendidos  
+        return totalVendidos  
 
-#     @classmethod
-#     def ultimasVentas(self):
-#         objetos = self.objects.all().order_by('-id')[:10]
+    @classmethod
+    def ultimasVentas(self):
+        objetos = self.objects.all().order_by('-id')[:10]
 
-#         return objetos
+        return objetos
 # #---------------------------------------------------------------------------------------
 # Modelo Estado
 

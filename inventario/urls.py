@@ -10,12 +10,31 @@ path('salir', views.Salir.as_view(), name='salir'),
 path('perfil/<str:modo>/<int:p>', views.Perfil.as_view(), name='perfil'),
 path('eliminar/<str:modo>/<int:p>', views.Eliminar.as_view(), name='eliminar'),
 
+path('listarProductos', views.ListarProductos.as_view(), name='listarProductos'),
+path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto'),
+path('importarProductos', views.ImportarProductos.as_view(), name='importarProductos'),
+path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
+path('editarProducto/<int:p>', views.EditarProducto.as_view(), name='editarProducto'),
 
-path('listarClientes', views.ListarClientes.as_view(), name='listarClientes'),
-path('agregarCliente', views.AgregarCliente.as_view(), name='agregarCliente'),
-path('importarClientes', views.ImportarClientes.as_view(), name='importarClientes'),
-path('exportarClientes', views.ExportarClientes.as_view(), name='exportarClientes'),
-path('editarCliente/<int:p>', views.EditarCliente.as_view(), name='editarCliente'),
+path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
+path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),
+path('importarProveedores', views.ImportarProveedores.as_view(), name='importarProveedores'),
+path('exportarProveedores', views.ExportarProveedores.as_view(), name='exportarProveedores'),
+path('editarProveedor/<int:p>', views.EditarProveedor.as_view(), name='editarProveedor'),
+
+path('agregarPedido', views.AgregarPedido.as_view(), name='agregarPedido'),
+path('listarPedidos', views.ListarPedidos.as_view(), name='listarPedidos'),
+path('detallesPedido', views.DetallesPedido.as_view(), name='detallesPedido'),
+path('verPedido/<int:p>',views.VerPedido.as_view(), name='verPedido'),
+path('validarPedido/<int:p>',views.ValidarPedido.as_view(), name='validarPedido'),
+path('generarPedido/<int:p>',views.GenerarPedido.as_view(), name='generarPedido'),
+path('generarPedidoPDF/<int:p>',views.GenerarPedidoPDF.as_view(), name='generarPedidoPDF'),
+
+path('listarEmpleados', views.ListarEmpleados.as_view(), name='listarEmpleados'),
+path('agregarEmpleado', views.AgregarEmpleado.as_view(), name='agregarEmpleado'),
+path('importarEmpleados', views.ImportarEmpleados.as_view(), name='importarEmpleados'),
+path('exportarEmpleados', views.ExportarEmpleados.as_view(), name='exportarEmpleados'),
+path('editarEmpleado/<int:p>', views.EditarEmpleado.as_view(), name='editarEmpleado'),
 
 path('emitirFactura', views.EmitirFactura.as_view(), name='emitirFactura'),
 path('detallesDeFactura', views.DetallesFactura.as_view(), name='detallesDeFactura'),
@@ -33,4 +52,3 @@ path('configuracionGeneral', views.ConfiguracionGeneral.as_view(), name='configu
 
 path('verManualDeUsuario/<str:pagina>/',views.VerManualDeUsuario.as_view(), name='verManualDeUsuario')
 ]
-
