@@ -1,5 +1,5 @@
 from django import forms
-from .models import DetallePedido, Pedido, PedidoItem, Producto,Empleado, Proveedor, Usuario
+from .models import DetallePedido, Entrega, Inventario, Pedido, PedidoItem, Producto,Empleado, Proveedor, Recepcion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -213,7 +213,6 @@ class DetallePedidoFormulario(forms.ModelForm):
             'sub_total': 'Sub Total',
             'total': 'Total',
         }
-
 class ProveedorFormulario(forms.ModelForm):
     tipoC =  [ ('1','V'),('2','E') ]
 
@@ -226,14 +225,13 @@ class ProveedorFormulario(forms.ModelForm):
         )
 
     class Meta:
-        model = Empleado
-        fields = ['tipoDui','dui','nombre','apellido','direccion','nacimiento','telefono','correo']
+        model = Proveedor
+        fields = ['tipoDui','dui','nombre','apellido','direccion','telefono','correo']
         labels = {
         'dui': 'DUI del proveedor',
         'nombre': 'Nombre del proveedor',
         'apellido': 'Apellido del proveedor',
         'direccion': 'Direccion del proveedor',
-        'nacimiento': 'Fecha de nacimiento del proveedor',
         'telefono': 'Numero telefonico del proveedor',
         'correo': 'Correo electronico del proveedor'
         }
@@ -244,7 +242,6 @@ class ProveedorFormulario(forms.ModelForm):
         'id':'nombre','class':'form-control'}),
         'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del proveedor'}),
         'direccion': forms.TextInput(attrs={'class':'form-control','id':'direccion','placeholder':'Direccion del proveedor'}), 
-        'nacimiento':forms.DateInput(format=('%d-%m-%Y'),attrs={'id':'hasta','class':'form-control','type':'date'} ),
         'telefono':forms.TextInput(attrs={'id':'telefono','class':'form-control',
         'placeholder':'El telefono del proveedor'} ),
         'correo':forms.TextInput(attrs={'placeholder': 'Correo del proveedor',
@@ -404,3 +401,89 @@ class OpcionesFormulario(forms.Form):
 
     imagen = forms.FileField(required=False,widget = forms.FileInput(
         attrs={'class':'custom-file-input','id':'customFile'}))
+
+#Formulario Estado
+class EstadoFormulario(forms.Form):
+    estado = forms.CharField(
+        label = 'Nombre del estado',
+        max_length=50,
+        widget = forms.TextInput(
+        attrs={'class':'form-control','id':'estado',
+            'placeholder':'Coloque el nombre del estado'}),
+        )
+
+#Estado Producto Formulario
+class EstadoProductoFormulario(forms.Form):
+    estado_producto = forms.CharField(
+        label = 'Nombre del estado del producto',
+        max_length=50,
+        widget = forms.TextInput(
+        attrs={'class':'form-control','id':'estado_producto',
+            'placeholder':'Coloque el nombre del estado del producto'}),
+        )
+
+#Formulario Bodega
+class BodegaFormulario(forms.Form):
+    bodega = forms.CharField(
+        label = 'Nombre de la bodega',
+        max_length=50,
+        widget = forms.TextInput(
+        attrs={'class':'form-control','id':'bodega',
+            'placeholder':'Coloque el nombre de la bodega'}),
+        )
+    
+
+#Formulario Marca
+class MarcaFormulario(forms.Form):
+    marca = forms.CharField(
+        label = 'Nombre de la marca',
+        max_length=50,
+        widget = forms.TextInput(
+        attrs={'class':'form-control','id':'marca',
+            'placeholder':'Coloque el nombre de la marca'}),
+        )
+
+
+class InventarioFormulario(forms.ModelForm):
+    class Meta:
+        model = Inventario
+        fields = ['idbodega', 'idproducto', 'stock']
+        labels = {
+            'idbodega': 'Bodega',
+            'idproducto': 'Producto',
+            'stock': 'Stock',
+        }
+
+#Formulario Reparacion
+class ReparacionFormulario(forms.Form):
+    reparacion = forms.CharField(
+        label = 'Nombre de la reparacion',
+        max_length=50,
+        widget = forms.TextInput(
+        attrs={'class':'form-control','id':'reparacion',
+            'placeholder':'Coloque el nombre de la reparacion'}),
+        )
+#Formulario Entrega
+class EntregaFormulario(forms.ModelForm):
+    class Meta:
+        model = Entrega
+        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_recibio', 'cantidad']
+        labels = {
+            'idproducto': 'Producto',
+            'idbodega': 'Bodega',
+            'id_empleado_autorizo': 'Empleado que Autoriza',
+            'id_empleado_recibio': 'Empleado que Recibe',
+            'cantidad': 'Cantidad',
+        }
+class RecepcionFormulario(forms.ModelForm):
+    class Meta:
+        model = Recepcion
+        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_devolvio', 'cantidad', 'tipo_recepcion']
+        labels = {
+            'idproducto': 'Producto',
+            'idbodega': 'Bodega',
+            'id_empleado_autorizo': 'Empleado que Autoriza',
+            'id_empleado_devolvio': 'Empleado que Devolvió',
+            'cantidad': 'Cantidad',
+            'tipo_recepcion': 'Tipo de Recepción',
+        }

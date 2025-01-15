@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.forms import ValidationError
 
 
 # MODELOS
@@ -56,17 +57,6 @@ class Bodega(models.Model):
         return self.nombre
 
 
-class Proveedor(models.Model):
-    #id
-    nombre = models.CharField(max_length=40, unique=True)
-    apellido = models.CharField(max_length=40)
-    direccion = models.CharField(max_length=200)
-    telefono = models.CharField(max_length=20, null=True)
-    correo = models.CharField(max_length=100, null=True)
-    def __str__(self):
-            return self.nombre
-
-
 #------------------------------------------PROVEEDOR-----------------------------------
 class Proveedor(models.Model):
     #id
@@ -92,6 +82,7 @@ class Proveedor(models.Model):
     @staticmethod
     def formateardui(dui):
         return format(int(dui), ',d')  
+    
 #---------------------------------------------------------------------------------------    
 class Opciones(models.Model):
     #id
@@ -331,3 +322,110 @@ class Notificaciones(models.Model):
     autor = models.ForeignKey(Usuario,to_field='username', on_delete=models.CASCADE)
     mensaje = models.TextField()
 #---------------------------------------------------------------------------------------
+
+class MovimientoProducto(models.Model):
+    TIPO_MOVIMIENTO_CHOICES = [
+        ('entrada', 'Entrada'),
+        ('salida', 'Salida'),
+        ('reparacion', 'Reparacion'),
+        ('devolucion', 'Devolucion'),
+        ('entrega', 'Entrega'),
+        ('pendiente', 'Pendiente'),
+    ]
+    bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    tipo_movimiento = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
+    cantidad = models.IntegerField()
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    fecha_movimiento = models.DateTimeField(auto_now_add=True)
+    estado_producto = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
+
+class Reparacion(models.Model):
+    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    descripcion_problema = models.TextField()
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    fecha_retorno = models.DateTimeField(null=True, blank=True)
+    estado = models.CharField(max_length=9, choices=[('pendiente', 'Pendiente'), ('reparado', 'Reparado')], default='pendiente')
+
+class Devolucion(models.Model):
+    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    idempleado = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    motivo = models.TextField()
+    fecha_devolucion = models.DateTimeField(auto_now_add=True)
+
+class Entrega(models.Model):
+    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    id_empleado_autorizo = models.ForeignKey(Usuario, related_name='autorizo_entregas', on_delete=models.CASCADE)
+    id_empleado_recibio = models.ForeignKey(Usuario, related_name='recibio_entregas', on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+    fecha_entrega = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Validar que la cantidad no sea negativa
+        if self.cantidad <= 0:
+            raise ValidationError("La cantidad debe ser mayor que cero.")
+
+        # Reducir el stock en la bodega
+        inventario = Inventario.objects.get(bodega=self.bodega, producto=self.producto)
+        if inventario.stock < self.cantidad:
+            raise ValidationError("No hay suficiente stock en la bodega.")
+        inventario.reducir_stock(self.cantidad)
+
+        # Actualizar el estado del producto a "pendiente"
+        estado_pendiente = EstadoProducto.objects.get(nombre='pendiente')
+        # Crear un movimiento de producto
+        MovimientoProducto.objects.create(
+            bodega=self.idbodega,
+            producto=self.idproducto,
+            tipo_movimiento='salida',
+            cantidad=self.cantidad,
+            usuario=self.id_empleado_autorizo,
+            estado_producto=self.idproducto.estado
+        )
+        self.producto.estado = estado_pendiente
+        self.producto.save()
+
+        super().save(*args, **kwargs)
+
+class Recepcion(models.Model):
+    TIPO_RECEPCION_CHOICES = [
+        ('vendido', 'Vendido'),
+        ('devuelto', 'Devuelto'),
+    ]
+    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    id_empleado_autorizo = models.ForeignKey(Usuario, related_name='autorizo_recepciones', on_delete=models.CASCADE)
+    id_empleado_devolvio = models.ForeignKey(Usuario, related_name='devolvio_recepciones', on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+    tipo_recepcion = models.CharField(max_length=8, choices=TIPO_RECEPCION_CHOICES)
+    fecha_recepcion = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Validar que la cantidad no sea negativa
+        if self.cantidad <= 0:
+            raise ValidationError("La cantidad debe ser mayor que cero.")
+
+        # Actualizar el estado del producto según el tipo de recepción
+        if self.tipo_recepcion == 'vendido':
+            estado_vendido = EstadoProducto.objects.get(nombre='vendido')
+            self.producto.estado = estado_vendido
+        elif self.tipo_recepcion == 'devuelto':
+            estado_bodega = EstadoProducto.objects.get(nombre='en_bodega')
+            self.producto.estado = estado_bodega
+
+            # Aumentar el stock en la bodega
+            inventario = Inventario.objects.get_or_create(bodega=self.bodega, producto=self.producto, defaults={'stock': 0})
+            # Crear un movimiento de producto
+            MovimientoProducto.objects.create(
+                bodega=self.idbodega,
+                producto=self.idproducto,
+                tipo_movimiento=self.tipo_recepcion,
+                cantidad=self.cantidad,
+                usuario=self.id_empleado_autorizo,
+                estado_producto=self.idproducto.estado
+            )
+            inventario.aumentar_stock(self.cantidad)
+
+        self.producto.save()
+        super().save(*args, **kwargs)
