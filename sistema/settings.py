@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bootstrap4',
+    'control'
 ]
 
 MIDDLEWARE = [
@@ -77,11 +78,21 @@ WSGI_APPLICATION = 'sistema.wsgi.application'
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
+     'default':{
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'BDD.sqlite3'),
     }
 }
+# = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'ComercialHz',
+#         'USER': 'root',
+#         'PASSWORD': '123456',
+#         'HOST': 'localhost',
+#         'PORT': '3305',
+#     }
+# }
 
 
 # Password validation
@@ -126,7 +137,8 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',  # Carpeta para tus archivos estáticos personalizados
 ]
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 #STATIC_ROOT = BASE_DIR / 'staticfiles'  # Carpeta donde se recopilan los archivos estáticos al usar collectstatic
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

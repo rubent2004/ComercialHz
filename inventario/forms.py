@@ -1,5 +1,5 @@
 from django import forms
-from .models import Producto,Cliente, Proveedor, Usuario, Opciones
+from .models import DetallePedido, Pedido, PedidoItem, Producto,Empleado, Proveedor, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -23,26 +23,33 @@ class LoginFormulario(forms.Form):
     password = forms.CharField(label="Contraseña",widget=forms.PasswordInput(attrs={'placeholder': 'Contraseña',
         'class': 'form-control underlined', 'type':'password','id':'password'}))
 
-class ProductoFormulario(forms.ModelForm):
-    precio = forms.DecimalField(
-        min_value = 0,
-        label = 'Precio',
-        widget = forms.NumberInput(
-        attrs={'placeholder': 'Precio del producto',
-        'id':'precio','class':'form-control'}),
-        )
+class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['descripcion','precio','categoria','tiene_iva']
+        fields = ['descripcion', 'precio_unitario', 'precio_cash', 'codigo', 'disponible', 'imagen', 'proveedor', 'marca', 'estado']
         labels = {
-        'descripcion': 'Nombre',
-        'tiene_iva': 'Incluye IVA?'
+            'codigo': 'Código',
+            'descripcion': 'Descripción',
+            'precio_unitario': 'Precio Unitario',
+            'precio_cash': 'Precio Cash',
+            'disponible': 'Disponible',
+            'imagen': 'Imagen',
+            'categoria': 'Categoría',
+            'proveedor': 'Proveedor',
+            'marca': 'Marca',
+            'estado': 'Estado'
         }
         widgets = {
-        'descripcion': forms.TextInput(attrs={'placeholder': 'Nombre del producto',
-        'id':'descripcion','class':'form-control'} ),
-        'categoria': forms.Select(attrs={'class':'form-control','id':'categoria'}),
-        'tiene_iva': forms.CheckboxInput(attrs={'class':'checkbox rounded','id':'tiene_iva'}) 
+            'codigo': forms.TextInput(attrs={'placeholder': 'Código del producto', 'class': 'form-control'}),
+            'descripcion': forms.TextInput(attrs={'placeholder': 'Descripción del producto', 'class': 'form-control'}),
+            'precio_unitario': forms.NumberInput(attrs={'placeholder': 'Precio Unitario', 'class': 'form-control'}),
+            'precio_cash': forms.NumberInput(attrs={'placeholder': 'Precio Cash', 'class': 'form-control'}),
+            'disponible': forms.NumberInput(attrs={'placeholder': 'Cantidad disponible', 'class': 'form-control'}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'proveedor': forms.Select(attrs={'class': 'form-control'}),
+            'marca': forms.Select(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'})
         }
 
 class ImportarProductosFormulario(forms.Form):
@@ -53,7 +60,7 @@ class ImportarProductosFormulario(forms.Form):
         attrs={'id':'importar','class':'form-control'}),
         )
 
-class ImportarClientesFormulario(forms.Form):
+class ImportarEmpleadosFormulario(forms.Form):
     importar = forms.FileField(
         max_length = 100000000000,
         label = 'Escoger archivo',
@@ -74,7 +81,7 @@ class ExportarProductosFormulario(forms.Form):
         attrs={'id':'hasta','class':'form-control','type':'date'}),
         )   
 
-class ExportarClientesFormulario(forms.Form):
+class ExportarEmpleadoFormulario(forms.Form):
     desde = forms.DateField(
         label = 'Desde',
         widget = forms.DateInput(format=('%d-%m-%Y'),
@@ -88,73 +95,55 @@ class ExportarClientesFormulario(forms.Form):
         )   
 
 
-class ClienteFormulario(forms.ModelForm):
+class EmpleadoFormulario(forms.ModelForm):
     tipoC =  [ ('1','V'),('2','E') ]
 
-    telefono2 = forms.CharField(
-        required = False,
-        label = 'Segundo numero telefonico',
-        widget = forms.TextInput(
-        attrs={'placeholder': 'Inserte el telefono alternativo del cliente',
-        'id':'telefono2','class':'form-control'}),
-        )
-
-    correo2 = forms.CharField(
-        required=False,
-        label = 'Segundo correo electronico',
-        widget = forms.TextInput(
-        attrs={'placeholder': 'Inserte el correo alternativo del cliente',
-        'id':'correo2','class':'form-control'}),
-        )
-
-    tipoCedula = forms.CharField(
-        label="Tipo de cedula",
+    tipoDui = forms.CharField(
+        label="Tipo de DUI",
         max_length=2,
-        widget=forms.Select(choices=tipoC,attrs={'placeholder': 'Tipo de cedula',
-        'id':'tipoCedula','class':'form-control'}
+        widget=forms.Select(choices=tipoC,attrs={'placeholder': 'Tipo de DUI',
+        'id':'tipoDui','class':'form-control'}
         )
         )
 
 
     class Meta:
-        model = Cliente
-        fields = ['tipoCedula','cedula','nombre','apellido','direccion','nacimiento','telefono','correo','telefono2','correo2']
+        model = Empleado
+        fields = ['tipoDui','dui','nombre','apellido','direccion','nacimiento','telefono','correo']
         labels = {
-        'cedula': 'Cedula del cliente',
-        'nombre': 'Nombre del cliente',
-        'apellido': 'Apellido del cliente',
-        'direccion': 'Direccion del cliente',
-        'nacimiento': 'Fecha de nacimiento del cliente',
-        'telefono': 'Numero telefonico del cliente',
-        'correo': 'Correo electronico del cliente',
-        'telefono2': 'Segundo numero telefonico',
-        'correo2': 'Segundo correo electronico'
+        'DUI': 'Dui del empleado',
+        'nombre': 'Nombre del empleado',
+        'apellido': 'Apellido del empleado',
+        'direccion': 'Direccion del empleado',
+        'nacimiento': 'Fecha de nacimiento del empleado',
+        'telefono': 'Numero telefonico del empleado',
+        'correo': 'Correo electronico del empleado'
         }
         widgets = {
-        'cedula': forms.TextInput(attrs={'placeholder': 'Inserte la cedula de identidad del cliente',
-        'id':'cedula','class':'form-control'} ),
-        'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del cliente',
+        'DUI': forms.TextInput(attrs={'placeholder': 'Inserte DUI de identidad del empleado',
+        'id':'dui','class':'form-control'} ),
+        'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del empleado',
         'id':'nombre','class':'form-control'}),
-        'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del cliente'}),
-        'direccion': forms.TextInput(attrs={'class':'form-control','id':'direccion','placeholder':'Direccion del cliente'}), 
+        'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del empleado'}),
+        'direccion': forms.TextInput(attrs={'class':'form-control','id':'direccion','placeholder':'Direccion del empleado'}), 
         'nacimiento':forms.DateInput(format=('%d-%m-%Y'),attrs={'id':'hasta','class':'form-control','type':'date'} ),
         'telefono':forms.TextInput(attrs={'id':'telefono','class':'form-control',
-        'placeholder':'El telefono del cliente'} ),
-        'correo':forms.TextInput(attrs={'placeholder': 'Correo del cliente',
+        'placeholder':'El telefono del empleado'} ),
+        'correo':forms.TextInput(attrs={'placeholder': 'Correo del empleado',
         'id':'correo','class':'form-control'} )
         }
 
 
 class EmitirFacturaFormulario(forms.Form):
-    def __init__(self, *args, **kwargs):
-       elecciones = kwargs.pop('cedulas')
-       super(EmitirFacturaFormulario, self).__init__(*args, **kwargs)
+    def _init_(self, *args, **kwargs):
+       elecciones = kwargs.pop('duis')
+       super(EmitirFacturaFormulario, self)._init_(*args, **kwargs)
 
        if(elecciones):
-            self.fields["cliente"] = forms.CharField(label="Cliente a facturar",max_length=50,
+            self.fields["empleado"] = forms.CharField(label="empleado a facturar",max_length=50,
             widget=forms.Select(choices=elecciones,
-            attrs={'placeholder': 'La cedula del cliente a facturar',
-            'id':'cliente','class':'form-control'}))
+            attrs={'placeholder': 'el dui del empleado a facturar',
+            'id':'empleado','class':'form-control'}))
     
     productos = forms.IntegerField(label="Numero de productos",widget=forms.NumberInput(attrs={'placeholder': 'Numero de productos a facturar',
         'id':'productos','class':'form-control'}))
@@ -178,81 +167,79 @@ class DetallesFacturaFormulario(forms.Form):
 
 
 class EmitirPedidoFormulario(forms.Form):
-    def __init__(self, *args, **kwargs):
-       elecciones = kwargs.pop('cedulas')
-       super(EmitirPedidoFormulario, self).__init__(*args, **kwargs)
+    def _init_(self, *args, **kwargs):
+       elecciones = kwargs.pop('duis')
+       super(EmitirPedidoFormulario, self)._init_(*args, **kwargs)
 
        if(elecciones):
             self.fields["proveedor"] = forms.CharField(label="Proveedor",max_length=50,
-            widget=forms.Select(choices=elecciones,attrs={'placeholder': 'La cedula del proveedor que vende el producto',
+            widget=forms.Select(choices=elecciones,attrs={'placeholder': 'El dui del proveedor que vende el producto',
             'id':'proveedor','class':'form-control'}))
 
     productos = forms.IntegerField(label="Numero de productos",widget=forms.NumberInput(attrs={'placeholder': 'Numero de productos a comprar',
         'id':'productos','class':'form-control'}))
 
+class PedidoFormulario(forms.ModelForm):
+    class Meta:
+        model = Pedido
+        fields = ['proveedor', 'fecha', 'sub_monto', 'monto_general', 'presente']
+        labels = {
+            'proveedor': 'Proveedor',
+            'fecha': 'Fecha',
+            'sub_monto': 'Sub Monto',
+            'monto_general': 'Monto General',
+            'presente': 'Presente',
+        }
 
-class DetallesPedidoFormulario(forms.Form):
-    productos = Producto.productosRegistrados()
-    precios = Producto.preciosProductos()
+class PedidoItemFormulario(forms.ModelForm):
+    class Meta:
+        model = PedidoItem
+        fields = ['pedido', 'producto', 'bodega', 'cantidad']
+        labels = {
+            'pedido': 'Pedido',
+            'producto': 'Producto',
+            'bodega': 'Bodega',
+            'cantidad': 'Cantidad',
+        }
 
-    descripcion = MisProductos(queryset=productos,widget=forms.Select(attrs={'placeholder': 'El producto a debitar','class':'form-control','onchange':'establecerPrecio(this)'}))
-
-    vista_precio = MisPrecios(required=False,queryset=productos,label="Precio del producto",widget=forms.Select(attrs={'placeholder': 'El precio del producto','class':'form-control','disabled':'true'}))
-
-    cantidad = forms.IntegerField(label="Cantidad",min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Introduzca la cantidad del producto','class':'form-control','value':'0','onchange':'calculoPrecio(this)'}))
-
-    subtotal = forms.DecimalField(required=False,label="Sub-total",min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total','class':'form-control','disabled':'true','value':'0'}))
-
-    valor_subtotal = forms.DecimalField(min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total','class':'form-control','hidden':'true','value':'0'}))      
-
-
-
+class DetallePedidoFormulario(forms.ModelForm):
+    class Meta:
+        model = DetallePedido
+        fields = ['id_pedido', 'id_producto', 'cantidad', 'sub_total', 'total']
+        labels = {
+            'id_pedido': 'Pedido',
+            'id_producto': 'Producto',
+            'cantidad': 'Cantidad',
+            'sub_total': 'Sub Total',
+            'total': 'Total',
+        }
 
 class ProveedorFormulario(forms.ModelForm):
     tipoC =  [ ('1','V'),('2','E') ]
 
-    telefono2 = forms.CharField(
-        required = False,
-        label = 'Segundo numero telefonico( Opcional )',
-        widget = forms.TextInput(
-        attrs={'placeholder': 'Inserte el telefono alternativo del proveedor',
-        'id':'telefono2','class':'form-control'}),
-        )
-
-    correo2 = forms.CharField(
-        required=False,
-        label = 'Segundo correo electronico( Opcional )',
-        widget = forms.TextInput(
-        attrs={'placeholder': 'Inserte el correo alternativo del proveedor',
-        'id':'correo2','class':'form-control'}),
-        )
-
-    tipoCedula = forms.CharField(
-        label="Tipo de cedula",
+    tipoDui = forms.CharField(
+        label="Tipo de dui",
         max_length=2,
-        widget=forms.Select(choices=tipoC,attrs={'placeholder': 'Tipo de cedula',
-        'id':'tipoCedula','class':'form-control'}
+        widget=forms.Select(choices=tipoC,attrs={'placeholder': 'Tipo de dui',
+        'id':'tipoDui','class':'form-control'}
         )
         )
-
 
     class Meta:
-        model = Cliente
-        fields = ['tipoCedula','cedula','nombre','apellido','direccion','nacimiento','telefono','correo','telefono2','correo2']
+        model = Empleado
+        fields = ['tipoDui','dui','nombre','apellido','direccion','nacimiento','telefono','correo']
         labels = {
-        'cedula': 'Cedula del proveedor',
+        'dui': 'DUI del proveedor',
         'nombre': 'Nombre del proveedor',
         'apellido': 'Apellido del proveedor',
         'direccion': 'Direccion del proveedor',
         'nacimiento': 'Fecha de nacimiento del proveedor',
         'telefono': 'Numero telefonico del proveedor',
-        'correo': 'Correo electronico del proveedor',
-        'telefono2': 'Segundo numero telefonico',
-        'correo2': 'Segundo correo electronico'
+        'correo': 'Correo electronico del proveedor'
         }
         widgets = {
-        'cedula': forms.TextInput(attrs={'placeholder': 'Inserte la cedula de identidad del proveedor',
-        'id':'cedula','class':'form-control'} ),
+        'dui': forms.TextInput(attrs={'placeholder': 'Inserte la dui de identidad del proveedor',
+        'id':'dui','class':'form-control'} ),
         'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del proveedor',
         'id':'nombre','class':'form-control'}),
         'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del proveedor'}),
@@ -266,7 +253,7 @@ class ProveedorFormulario(forms.ModelForm):
 
 
 class UsuarioFormulario(forms.Form):
-    niveles =  [ ('1','Administrador'),('0','Usuario') ]
+    niveles =  [ ('1','Administrador'),('0','Usuario'),('2','Empleado') ]
 
     username = forms.CharField(
         label = "Nombre de usuario",
@@ -305,7 +292,7 @@ class UsuarioFormulario(forms.Form):
         )
 
 class NuevoUsuarioFormulario(forms.Form):
-    niveles =  [ ('1','Administrador'),('0','Usuario') ]
+    niveles =  [ ('1','Administrador'),('0','Usuario'),('2','Empleado') ]
 
     username = forms.CharField(
         label = "Nombre de usuario",
@@ -358,13 +345,13 @@ class NuevoUsuarioFormulario(forms.Form):
 
 
 class ClaveFormulario(forms.Form):
-    #clave = forms.CharField(
-        #label = 'Ingrese su clave actual',
-        #max_length=50,
-        #widget = forms.TextInput(
-        #attrs={'placeholder': 'Inserte la clave actual para verificar su identidad',
-        #'id':'clave','class':'form-control', 'type': 'password'}),
-        #)
+    clave = forms.CharField(
+        label = 'Ingrese su clave actual',
+        max_length=50,
+        widget = forms.TextInput(
+        attrs={'placeholder': 'Inserte la clave actual para verificar su identidad',
+        'id':'clave','class':'form-control', 'type': 'password'}),
+        )
 
     clave_nueva = forms.CharField(
         label = 'Ingrese la clave nueva',
@@ -398,12 +385,6 @@ class OpcionesFormulario(forms.Form):
         attrs={'placeholder': 'Inserte la abreviatura de la moneda que quiere usar (Ejemplo: $)',
         'id':'moneda','class':'form-control'}),
         )
-
-    valor_iva = forms.DecimalField(
-        label="Valor del IVA",
-        min_value=0,widget=forms.NumberInput(
-            attrs={'placeholder': 'Introduzca el IVA actual',
-            'class':'form-control','id':'valor_iva'}))
 
     mensaje_factura = forms.CharField(
         label = 'Mensaje personal que va en las facturas',

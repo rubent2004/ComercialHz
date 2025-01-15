@@ -24,8 +24,75 @@ class Usuario(AbstractUser):
             return int(self.objects.filter(is_superuser = True).count() )
         elif tipo == 'usuario':
             return int(self.objects.filter(is_superuser = False).count() )
+        elif tipo == 'encargado_bodega':
+            return int(self.objects.filter(is_superuser = False).count() )
+
+class Estado(models.Model):
+    estado = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.estado
 
 
+class EstadoProducto(models.Model):
+    nombre = models.CharField(max_length=255)
+    def __str__(self):
+        return self.nombre
+
+class Marca(models.Model):
+    marca = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.nombre
+
+# Modelo Bodega
+class Bodega(models.Model):
+    nombre = models.CharField(max_length=50)
+    ubicacion = models.CharField(max_length=50)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    estado = models.ForeignKey(Estado, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Proveedor(models.Model):
+    #id
+    nombre = models.CharField(max_length=40, unique=True)
+    apellido = models.CharField(max_length=40)
+    direccion = models.CharField(max_length=200)
+    telefono = models.CharField(max_length=20, null=True)
+    correo = models.CharField(max_length=100, null=True)
+    def __str__(self):
+            return self.nombre
+
+
+#------------------------------------------PROVEEDOR-----------------------------------
+class Proveedor(models.Model):
+    #id
+    dui = models.CharField(max_length=12, unique=True)
+    nombre = models.CharField(max_length=40)
+    apellido = models.CharField(max_length=40)
+    direccion = models.CharField(max_length=200)
+    telefono = models.CharField(max_length=20)
+    correo = models.CharField(max_length=100)
+
+    @classmethod
+    def duisRegistradas(self):
+        objetos = self.objects.all().order_by('nombre')
+        arreglo = []
+        for indice,objeto in enumerate(objetos):
+            arreglo.append([])
+            arreglo[indice].append(objeto.dui)
+            nombre_empleado = objeto.nombre + " " + objeto.empleado
+            arreglo[indice].append("%s. C.I: %s" % (nombre_empleado,self.formateardui(objeto.dui)) )
+ 
+        return arreglo 
+
+    @staticmethod
+    def formateardui(dui):
+        return format(int(dui), ',d')  
+#---------------------------------------------------------------------------------------    
 class Opciones(models.Model):
     #id
     moneda = models.CharField(max_length=20, null=True)
@@ -37,34 +104,41 @@ class Opciones(models.Model):
 
  
 #-------------------------------PRODUCTO------------------------------------------------
+
+   # Modelo Producto
 class Producto(models.Model):
-    #id
-    decisiones =  [('1','Unidad'),('2','Kilo'),('3','Litro'),('4','Otros')]
-    descripcion = models.CharField(max_length=40)
-    precio = models.DecimalField(max_digits=9,decimal_places=2)
-    disponible = models.IntegerField(null=True)
-    categoria = models.CharField(max_length=20,choices=decisiones)
-    tiene_iva = models.BooleanField(null=True)
+    descripcion = models.CharField(max_length=40)  # Equivale a 'nombre'
+    precio_unitario = models.DecimalField(max_digits=9, decimal_places=2)
+    precio_cash = models.DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
+    codigo = models.CharField(max_length=50, unique=True, null= True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    disponible = models.IntegerField(null=True, default=0)  # Calculado a partir de Inventario
+    imagen = models.ImageField(upload_to='productos/', blank=True, null=True)
+
+    # Relaciones
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
+    marca = models.ForeignKey(Marca, on_delete=models.CASCADE)
+    estado = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE,null= True)  # Estado del producto
+
+    def __str__(self):
+        return self.descripcion
 
     @classmethod
-    def numeroRegistrados(self):
-        return int(self.objects.all().count() )
-   
+    def numeroRegistrados(cls):
+        return cls.objects.all().count()
 
     @classmethod
-    def productosRegistrados(self):
-        objetos = self.objects.all().order_by('descripcion')
-        return objetos
-
+    def productosRegistrados(cls):
+        return cls.objects.all().order_by('descripcion')
 
     @classmethod
-    def preciosProductos(self):
-        objetos = self.objects.all().order_by('id')
+    def preciosProductos(cls):
+        objetos = cls.objects.all().order_by('id')
         arreglo = []
         etiqueta = True
         extra = 1
 
-        for indice,objeto in enumerate(objetos):
+        for indice, objeto in enumerate(objetos):
             arreglo.append([])
             if etiqueta:
                 arreglo[indice].append(0)
@@ -73,11 +147,10 @@ class Producto(models.Model):
                 arreglo.append([])
 
             arreglo[indice + extra].append(objeto.id)
-            precio_producto = objeto.precio
-            arreglo[indice + extra].append("%d" % (precio_producto) )  
+            precio_producto = objeto.precio_unitario
+            arreglo[indice + extra].append("%d" % (precio_producto))
 
-        return arreglo 
-
+        return arreglo
     @classmethod
     def productosDisponibles(self):
         objetos = self.objects.all().order_by('id')
@@ -100,139 +173,145 @@ class Producto(models.Model):
         return arreglo 
 #---------------------------------------------------------------------------------------
 
+#---------------------------------------------------------------------------------------
+
 
 #------------------------------------------CLIENTE--------------------------------------
-class Cliente(models.Model):
+class Empleado(models.Model):
     #id
-    cedula = models.CharField(max_length=12, unique=True)
+    dui = models.CharField(max_length=12, unique=True)
     nombre = models.CharField(max_length=40)
     apellido = models.CharField(max_length=40)
     direccion = models.CharField(max_length=200)
     nacimiento = models.DateField()
     telefono = models.CharField(max_length=20)
-    telefono2 = models.CharField(max_length=20,null=True)
     correo = models.CharField(max_length=100)
-    correo2 = models.CharField(max_length=100,null=True)
 
     @classmethod
     def numeroRegistrados(self):
         return int(self.objects.all().count() )
 
     @classmethod
-    def cedulasRegistradas(self):
+    def duisRegistradas(self):
         objetos = self.objects.all().order_by('nombre')
         arreglo = []
         for indice,objeto in enumerate(objetos):
             arreglo.append([])
-            arreglo[indice].append(objeto.cedula)
-            nombre_cliente = objeto.nombre + " " + objeto.apellido
-            arreglo[indice].append("%s. C.I: %s" % (nombre_cliente,self.formatearCedula(objeto.cedula)) )
+            arreglo[indice].append(objeto.dui)
+            nombre_empleado = objeto.nombre + " " + objeto.apellido
+            arreglo[indice].append("%s. C.I: %s" % (nombre_empleado,self.formateardui(objeto.dui)) )
  
         return arreglo   
 
 
     @staticmethod
-    def formatearCedula(cedula):
-        return format(int(cedula), ',d')        
+    def formateardui(dui):
+        return format(int(dui), ',d')        
 #-----------------------------------------------------------------------------------------        
 
 
 
-#-------------------------------------FACTURA---------------------------------------------
-class Factura(models.Model):
-    #id
-    cliente = models.ForeignKey(Cliente,to_field='cedula', on_delete=models.CASCADE)
-    fecha = models.DateField()
-    sub_monto = models.DecimalField(max_digits=20,decimal_places=2)
-    monto_general = models.DecimalField(max_digits=20,decimal_places=2)
-    iva = models.ForeignKey(Opciones,to_field='valor_iva', on_delete=models.CASCADE)
+# #-------------------------------------FACTURA---------------------------------------------
+# class Factura(models.Model):
+#     #id
+#     empleado = models.ForeignKey(Empleado,to_field='dui', on_delete=models.CASCADE)
+#     fecha = models.DateField()
+#     sub_monto = models.DecimalField(max_digits=20,decimal_places=2)
+#     monto_general = models.DecimalField(max_digits=20,decimal_places=2)
+#     iva = models.ForeignKey(Opciones,to_field='valor_iva', on_delete=models.CASCADE)
 
-    @classmethod
-    def numeroRegistrados(self):
-        return int(self.objects.all().count() )
+#     @classmethod
+#     def numeroRegistrados(self):
+#         return int(self.objects.all().count() )
 
-    @classmethod
-    def ingresoTotal(self):
-        facturas = self.objects.all()
-        total = 0
+#     @classmethod
+#     def ingresoTotal(self):
+#         facturas = self.objects.all()
+#         total = 0
 
-        for factura in facturas:
-            total += factura.monto_general
+#         for factura in facturas:
+#             total += factura.monto_general
 
-        return total
-#-----------------------------------------------------------------------------------------
-
-
-#-------------------------------------DETALLES DE FACTURA---------------------------------
-class DetalleFactura(models.Model):
-    #id
-    id_factura = models.ForeignKey(Factura, on_delete=models.CASCADE)
-    id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    cantidad = models.IntegerField()
-    sub_total = models.DecimalField(max_digits=20,decimal_places=2)
-    total = models.DecimalField(max_digits=20,decimal_places=2)
-
-    @classmethod
-    def productosVendidos(self):
-        vendidos = self.objects.all()
-        totalVendidos = 0
-        for producto in vendidos:
-            totalVendidos += producto.cantidad
-
-        return totalVendidos  
-
-    @classmethod
-    def ultimasVentas(self):
-        objetos = self.objects.all().order_by('-id')[:10]
-
-        return objetos
-#---------------------------------------------------------------------------------------
+#         return total
+# #-----------------------------------------------------------------------------------------
 
 
-#------------------------------------------PROVEEDOR-----------------------------------
-class Proveedor(models.Model):
-    #id
-    cedula = models.CharField(max_length=12, unique=True)
-    nombre = models.CharField(max_length=40)
-    apellido = models.CharField(max_length=40)
-    direccion = models.CharField(max_length=200)
-    nacimiento = models.DateField()
-    telefono = models.CharField(max_length=20)
-    telefono2 = models.CharField(max_length=20,null=True)
-    correo = models.CharField(max_length=100)
-    correo2 = models.CharField(max_length=100,null=True)
+# #-------------------------------------DETALLES DE FACTURA---------------------------------
+# class DetalleFactura(models.Model):
+#     #id
+#     id_factura = models.ForeignKey(Factura, on_delete=models.CASCADE)
+#     id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+#     cantidad = models.IntegerField()
+#     sub_total = models.DecimalField(max_digits=20,decimal_places=2)
+#     total = models.DecimalField(max_digits=20,decimal_places=2)
 
-    @classmethod
-    def cedulasRegistradas(self):
-        objetos = self.objects.all().order_by('nombre')
-        arreglo = []
-        for indice,objeto in enumerate(objetos):
-            arreglo.append([])
-            arreglo[indice].append(objeto.cedula)
-            nombre_cliente = objeto.nombre + " " + objeto.apellido
-            arreglo[indice].append("%s. C.I: %s" % (nombre_cliente,self.formatearCedula(objeto.cedula)) )
- 
-        return arreglo 
+#     @classmethod
+#     def productosVendidos(self):
+#         vendidos = self.objects.all()
+#         totalVendidos = 0
+#         for producto in vendidos:
+#             totalVendidos += producto.cantidad
 
-    @staticmethod
-    def formatearCedula(cedula):
-        return format(int(cedula), ',d')  
-#---------------------------------------------------------------------------------------    
+#         return totalVendidos  
+
+#     @classmethod
+#     def ultimasVentas(self):
+#         objetos = self.objects.all().order_by('-id')[:10]
+
+#         return objetos
+# #---------------------------------------------------------------------------------------
+# Modelo Estado
+
 
 
 #----------------------------------------PEDIDO-----------------------------------------
+
 class Pedido(models.Model):
-    #id
-    proveedor = models.ForeignKey(Proveedor,to_field='cedula', on_delete=models.CASCADE)    
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
     fecha = models.DateField()
-    sub_monto = models.DecimalField(max_digits=20,decimal_places=2)
-    monto_general = models.DecimalField(max_digits=20,decimal_places=2)
-    iva = models.ForeignKey(Opciones,to_field='valor_iva', on_delete=models.CASCADE)
+    sub_monto = models.DecimalField(max_digits=20, decimal_places=2)
+    monto_general = models.DecimalField(max_digits=20, decimal_places=2)
     presente = models.BooleanField(null=True)
 
+    def procesar_pedido(self):
+        # Asumiendo que tienes una relación de muchos a muchos entre Pedido y Producto
+        for item in self.items.all():
+            inventario, created = Inventario.objects.get_or_create(
+                bodega=item.bodega,
+                producto=item.producto,
+                defaults={'stock': 0}
+            )
+            inventario.aumentar_stock(item.cantidad)
+
+class PedidoItem(models.Model):
+    pedido = models.ForeignKey(Pedido, related_name='items', on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+
+class Inventario(models.Model):
+    idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    stock = models.IntegerField()
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    
     @classmethod
-    def recibido(self,pedido):
-        return self.objects.get(id=pedido).presente
+    def productosEnBodega(cls):
+        return cls.objects.filter(producto__estado__nombre='en_bodega').order_by('producto__descripcion')
+
+    def actualizar_stock(self, cantidad, operacion='reducir'):
+        if operacion == 'reducir':
+            self.stock -= cantidad
+        elif operacion == 'aumentar':
+            self.stock += cantidad
+        self.save()
+
+    def reducir_stock(self, cantidad):
+        self.actualizar_stock(cantidad, operacion='reducir')
+
+    def aumentar_stock(self, cantidad):
+        self.actualizar_stock(cantidad, operacion='aumentar')
+
 
 #---------------------------------------------------------------------------------------    
 
@@ -253,4 +332,4 @@ class Notificaciones(models.Model):
     #id
     autor = models.ForeignKey(Usuario,to_field='username', on_delete=models.CASCADE)
     mensaje = models.TextField()
-#---------------------------------------------------------------------------------------    
+#---------------------------------------------------------------------------------------

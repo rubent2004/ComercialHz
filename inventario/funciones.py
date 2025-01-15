@@ -10,27 +10,6 @@ def obtenerIdProducto(descripcion):
 
     return resultado
 
-def productoTieneIva(idProducto):
-    iva = Producto.objects.get(id=idProducto)
-    resultado = iva.tiene_iva
-    
-    return resultado
-
-def sacarIva(elemento):
-    iva = Opciones.objects.get(id=1)
-    ivaSacado =  iva.valor_iva/100
-    resultado = elemento + (elemento * Decimal(ivaSacado))  
-    return resultado    
-
-def ivaActual(modo):
-    if modo == 'valor':
-        iva = Opciones.objects.get(id=1)    
-        return iva.valor_iva
-
-    elif modo == 'objeto':
-        iva = Opciones.objects.get(id=1)    
-        return iva
-
 def obtenerProducto(idProducto):
     producto = Producto.objects.get(id=idProducto)      
     return producto
