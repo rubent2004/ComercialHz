@@ -10061,7 +10061,7 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
 }
 
 .was-validated .form-check-input:valid ~ .form-check-label, .form-check-input.is-valid ~ .form-check-label {
-  color: #28a745;
+  color: #28a745; 
 }
 
 .was-validated .form-check-input:valid ~ .valid-feedback,

@@ -45,7 +45,7 @@ header {
 
 .menu-lateral li > a:hover:not(.activo) {
     background: #24422c;
-    border-left: 5px solid #6bdb34;
+    border-left: 5px solid #005c64;
 }
 
 /********* Menú Lateral Fin ***********/
@@ -59,11 +59,11 @@ header {
 }
 
 .btn-menu:hover {
-    background: #289220;
+    background: #005c64;
 }
 
 .btn-menu:active {
-    background: #125426;
+    background: #005c64;
 }
 
 
@@ -211,7 +211,7 @@ html, body {
     right: 0;
     bottom: 0;
     left: 0;
-    background: #40db34;
+    background: #005c64;
     color: white;
     font-weight: bold;
     text-align: center;
@@ -267,7 +267,7 @@ html, body {
 div.tab {
     overflow: hidden;
     border: 1px solid #ccc;
-    background-color: #51d643;
+    background-color: #40f5ff;
 }
 
 div.tab button {
@@ -283,7 +283,7 @@ div.tab button {
 }
 
 div.tab button:hover, div.tab button.active {
-    background-color: #30b929;
+    background-color: #40f5ff;
 }
 
 .tabcontent {
