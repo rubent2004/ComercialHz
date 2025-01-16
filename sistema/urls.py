@@ -22,7 +22,6 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('inventario/', include('inventario.urls')),
-    #path('control/', include('control.urls')),
     path('', RedirectView.as_view(url='/inventario/login'))
     
 ]
