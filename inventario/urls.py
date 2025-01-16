@@ -19,7 +19,7 @@ path('editarProducto/<int:pk>', views.EditarProducto.as_view(), name='editarProd
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
 path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),
 path('importarProveedores', views.ImportarProveedores.as_view(), name='importarProveedores'),
-path('exportarProveedores', views.ExportarProveedores.as_view(), name='exportarProveedores'),
+#path('exportarProveedores', views.ExportarProveedores.as_view(), name='exportarProveedores'),
 path('editarProveedor/<int:pk>', views.EditarProveedor.as_view(), name='editarProveedor'),
 
 path('agregarCompra', views.AgregarCompra.as_view(), name='agregarCompra'),

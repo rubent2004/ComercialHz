@@ -972,8 +972,6 @@ class ListarProveedores(LoginRequiredMixin, View):
 #Fin de vista--------------------------------------------------------------------------#
 
 
-
-
 #Crea y procesa un formulario para agregar a un proveedor---------------------------------#
 class AgregarProveedor(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -983,42 +981,23 @@ class AgregarProveedor(LoginRequiredMixin, View):
         # Crea una instancia del formulario y la llena con los datos:
         form = ProveedorFormulario(request.POST)
         # Revisa si es valido:
-
         if form.is_valid():
             # Procesa y asigna los datos con form.cleaned_data como se requiere
-
-            dui = form.cleaned_data['dui']
-            nombre = form.cleaned_data['nombre']
-            apellido = form.cleaned_data['apellido']
-            direccion = form.cleaned_data['direccion']
-            nacimiento = form.cleaned_data['nacimiento']
-            telefono = form.cleaned_data['telefono']
-            correo = form.cleaned_data['correo']
-            telefono2 = form.cleaned_data['telefono2']
-            correo2 = form.cleaned_data['correo2']
-
-            proveedor = Proveedor(dui=dui,nombre=nombre,apellido=apellido,
-                direccion=direccion,nacimiento=nacimiento,telefono=telefono,
-                correo=correo,telefono2=telefono2,correo2=correo2)
-            proveedor.save()
-            form = ProveedorFormulario()
-
+            proveedor = form.save()
+            
             messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % proveedor.id)
             request.session['proveedorProcesado'] = 'agregado'
             return HttpResponseRedirect("/inventario/agregarProveedor")
         else:
-            #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/proveedor/agregarProveedor.html', {'form': form})        
+            # De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/proveedor/agregarProveedor.html', {'form': form})
 
-    def get(self,request):
+    def get(self, request):
         form = ProveedorFormulario()
-        #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('proveedorProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
-        return render(request, 'inventario/proveedor/agregarProveedor.html', contexto)
-#Fin de vista-----------------------------------------------------------------------------#
+        # Envia al usuario el formulario para que lo llene
+        contexto = {'form': form, 'modo': request.session.get('proveedorProcesado')}
+        return render(request, 'inventario/proveedor/agregarProveedor.html', contexto)#Formulario simple que procesa un script para importar los proveedores-----------------#
 
-#Formulario simple que procesa un script para importar los proveedores-----------------#
 class ImportarProveedores(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -1046,46 +1025,46 @@ class ImportarProveedores(LoginRequiredMixin, View):
 
 
 
-#Formulario simple que crea un archivo y respalda los proveedores-----------------------#
-class ExportarProveedores(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
+# #Formulario simple que crea un archivo y respalda los proveedores-----------------------#
+# class ExportarProveedores(LoginRequiredMixin, View):
+#     login_url = '/inventario/login'
+#     redirect_field_name = None
 
-    def post(self,request):
-        form = ExportarEmpleadosFormulario(request.POST)
-        if form.is_valid():
-            request.session['empleadosExportados'] = True
+#     def post(self,request):
+#         form = ExportarEmpleadosFormulario(request.POST)
+#         if form.is_valid():
+#             request.session['empleadosExportados'] = True
 
 
-            #Se obtienen las entradas de producto en formato JSON
-            data = serializers.serialize("json", Empleado.objects.all())
-            fs = FileSystemStorage('inventario/tmp/')
+#             #Se obtienen las entradas de producto en formato JSON
+#             data = serializers.serialize("json", Empleado.objects.all())
+#             fs = FileSystemStorage('inventario/tmp/')
 
-            #Se utiliza la variable fs para acceder a la carpeta con mas facilidad
-            with fs.open("empleados.json", "w") as out:
-                out.write(data)
-                out.close()  
+#             #Se utiliza la variable fs para acceder a la carpeta con mas facilidad
+#             with fs.open("empleados.json", "w") as out:
+#                 out.write(data)
+#                 out.close()  
 
-            with fs.open("empleados.json", "r") as out:                 
-                response = HttpResponse(out.read(), content_type="application/force-download")
-                response['Content-Disposition'] = 'attachment; filename="empleados.json"'
-                out.close() 
-            #------------------------------------------------------------
-            return response
+#             with fs.open("empleados.json", "r") as out:                 
+#                 response = HttpResponse(out.read(), content_type="application/force-download")
+#                 response['Content-Disposition'] = 'attachment; filename="empleados.json"'
+#                 out.close() 
+#             #------------------------------------------------------------
+#             return response
 
-    def get(self,request):
-        form = ExportarEmpleadosFormulario()
+#     def get(self,request):
+#         form = ExportarEmpleadosFormulario()
 
-        if request.session.get('empleadosExportados') == True:
-            exportado = request.session.get('empleadosExportados')
-            contexto = { 'form':form,'empleadosExportados': exportado  }
-            request.session['empleadosExportados'] = False
+#         if request.session.get('empleadosExportados') == True:
+#             exportado = request.session.get('empleadosExportados')
+#             contexto = { 'form':form,'empleadosExportados': exportado  }
+#             request.session['empleadosExportados'] = False
 
-        else:
-            contexto = {'form':form}
-            contexto = complementarContexto(contexto,request.user) 
-        return render(request, 'inventario/exportarEmpleados.html',contexto)
-#Fin de vista-------------------------------------------------------------------------#
+#         else:
+#             contexto = {'form':form}
+#             contexto = complementarContexto(contexto,request.user) 
+#         return render(request, 'inventario/exportarEmpleados.html',contexto)
+# #Fin de vista-------------------------------------------------------------------------#
 
 
 
@@ -1119,7 +1098,7 @@ class EditarProveedor(LoginRequiredMixin, View):
             proveedor.save()
             form = ProveedorFormulario(instance=proveedor)
 
-            messages.success(request, 'Actualizado exitosamente el proveedor de ID %s.' % p)
+            messages.success(request, 'Actualizado exitosamente el proveedor de ID %s.' % pk)
             request.session['proveedorProcesado'] = 'editado'            
             return HttpResponseRedirect("/inventario/editarProveedor/%s" % proveedor.id)
         else:
