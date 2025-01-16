@@ -1601,6 +1601,9 @@ span a {
 /* Let's get this party started */
 ::-webkit-scrollbar {
   width: 7px;
+  background-color: #27ae60; /* Color del scroll */
+  border-radius: 10px; /* Bordes redondeados */
+  border: 3px solid #2c3e50; /* Espacio entre la barra y el thumb */
   height: 7px; }
 
 /* Track */
