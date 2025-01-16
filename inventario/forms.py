@@ -1,5 +1,5 @@
 from django import forms
-from .models import DetallePedido, Entrega, Inventario, Pedido, PedidoItem, Producto,Empleado, Proveedor, Recepcion, Usuario
+from .models import DetalleCompra, Entrega, EstadoProducto, Inventario, Compra, CompraItem, Producto,Empleado, Proveedor, Recepcion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -109,12 +109,11 @@ class EmpleadoFormulario(forms.ModelForm):
 
     class Meta:
         model = Empleado
-        fields = ['tipoDui','dui','nombre','apellido','direccion','nacimiento','telefono','correo']
+        fields = ['tipoDui','dui','nombre','apellido','nacimiento','telefono','correo']
         labels = {
         'DUI': 'Dui del empleado',
         'nombre': 'Nombre del empleado',
         'apellido': 'Apellido del empleado',
-        'direccion': 'Direccion del empleado',
         'nacimiento': 'Fecha de nacimiento del empleado',
         'telefono': 'Numero telefonico del empleado',
         'correo': 'Correo electronico del empleado'
@@ -125,7 +124,6 @@ class EmpleadoFormulario(forms.ModelForm):
         'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del empleado',
         'id':'nombre','class':'form-control'}),
         'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del empleado'}),
-        'direccion': forms.TextInput(attrs={'class':'form-control','id':'direccion','placeholder':'Direccion del empleado'}), 
         'nacimiento':forms.DateInput(format=('%d-%m-%Y'),attrs={'id':'hasta','class':'form-control','type':'date'} ),
         'telefono':forms.TextInput(attrs={'id':'telefono','class':'form-control',
         'placeholder':'El telefono del empleado'} ),
@@ -166,10 +164,10 @@ class DetallesFacturaFormulario(forms.Form):
     valor_subtotal = forms.DecimalField(min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total','class':'form-control','hidden':'true','value':'0'}))      
 
 
-class EmitirPedidoFormulario(forms.Form):
+class EmitirCompraFormulario(forms.Form):
     def _init_(self, *args, **kwargs):
        elecciones = kwargs.pop('duis')
-       super(EmitirPedidoFormulario, self)._init_(*args, **kwargs)
+       super(EmitirCompraFormulario, self)._init_(*args, **kwargs)
 
        if(elecciones):
             self.fields["proveedor"] = forms.CharField(label="Proveedor",max_length=50,
@@ -179,35 +177,34 @@ class EmitirPedidoFormulario(forms.Form):
     productos = forms.IntegerField(label="Numero de productos",widget=forms.NumberInput(attrs={'placeholder': 'Numero de productos a comprar',
         'id':'productos','class':'form-control'}))
 
-class PedidoFormulario(forms.ModelForm):
+class CompraFormulario(forms.ModelForm):
     class Meta:
-        model = Pedido
-        fields = ['proveedor', 'fecha', 'sub_monto', 'monto_general', 'presente']
+        model = Compra
+        fields = ['proveedor', 'fecha', 'sub_monto', 'monto_general']
         labels = {
             'proveedor': 'Proveedor',
             'fecha': 'Fecha',
             'sub_monto': 'Sub Monto',
             'monto_general': 'Monto General',
-            'presente': 'Presente',
         }
 
-class PedidoItemFormulario(forms.ModelForm):
+class CompraItemFormulario(forms.ModelForm):
     class Meta:
-        model = PedidoItem
-        fields = ['pedido', 'producto', 'bodega', 'cantidad']
+        model = CompraItem
+        fields = ['compra', 'producto', 'bodega', 'cantidad']
         labels = {
-            'pedido': 'Pedido',
+            'compra': 'Compra',
             'producto': 'Producto',
             'bodega': 'Bodega',
             'cantidad': 'Cantidad',
         }
 
-class DetallePedidoFormulario(forms.ModelForm):
+class DetalleCompraFormulario(forms.ModelForm):
     class Meta:
-        model = DetallePedido
-        fields = ['id_pedido', 'id_producto', 'cantidad', 'sub_total', 'total']
+        model = DetalleCompra
+        fields = ['id_compra', 'id_producto', 'cantidad', 'sub_total', 'total']
         labels = {
-            'id_pedido': 'Pedido',
+            'id_compra': 'Compra',
             'id_producto': 'Producto',
             'cantidad': 'Cantidad',
             'sub_total': 'Sub Total',
@@ -413,14 +410,16 @@ class EstadoFormulario(forms.Form):
         )
 
 #Estado Producto Formulario
-class EstadoProductoFormulario(forms.Form):
-    estado_producto = forms.CharField(
-        label = 'Nombre del estado del producto',
-        max_length=50,
-        widget = forms.TextInput(
-        attrs={'class':'form-control','id':'estado_producto',
-            'placeholder':'Coloque el nombre del estado del producto'}),
-        )
+class EstadoProductoFormulario(forms.ModelForm):
+    class Meta:
+        model = EstadoProducto
+        fields = ['nombre']
+        labels = {
+            'nombre': 'Nombre del estado del producto',
+        }
+        widgets = {
+           'descripcion': forms.TextInput(attrs={'placeholder': 'Estado del producto', 'class': 'form-control'}),
+        }
 
 #Formulario Bodega
 class BodegaFormulario(forms.Form):
@@ -453,6 +452,12 @@ class InventarioFormulario(forms.ModelForm):
             'idproducto': 'Producto',
             'stock': 'Stock',
         }
+
+    def __init__(self, *args, **kwargs):
+        super(InventarioFormulario, self).__init__(*args, **kwargs)
+        # Filtrar productos con estado 'en_bodega'
+        self.fields['idproducto'].queryset = Producto.objects.filter(estado__nombre='en_bodega').order_by('descripcion')
+
 
 #Formulario Reparacion
 class ReparacionFormulario(forms.Form):

@@ -42,6 +42,7 @@
                                                             <th>ID</th>
                                                             <th>Dui</th>
                                                             <th>Nombre completo</th>
+                                                            <th>Fecha de nacimiento</th>
                                                             <th>Telefono</th>
                                                             <th>Correo</th>
                                                             <th>Opciones</th>
@@ -51,8 +52,9 @@
                                                     	{% for fila in tabla %}
                                                         <tr>
                                                             <td>{{ fila.id }}</td>
-                                                            <td>{{ fila.cedula}}</td>
+                                                            <td>{{ fila.dui}}</td>
                                                             <td>{{ fila.nombre }} {{ fila.apellido }}</td>
+                                                            <td>{{ fila.nacimiento }}</td>
                                                             <td>{{ fila.telefono }}</td>
                                                             <td>{{ fila.correo }}</td>
                                                             <td>

@@ -1,6 +1,6 @@
 #----------------------------FUNCIONES DE AYUDA Y COMPLEMENTO--------------------------------------------------
 
-from .models import Producto, Opciones
+from .models import EstadoProducto, Producto, Opciones
 from decimal import Decimal
 
 
@@ -13,6 +13,12 @@ def obtenerIdProducto(descripcion):
 def obtenerProducto(idProducto):
     producto = Producto.objects.get(id=idProducto)      
     return producto
+
+def obtenerEstadoProducto(nombre):
+    estado = EstadoProducto.objects.get(nombre=nombre)      
+    resultado = estado.id
+    return resultado
+
 
 
 def complementarContexto(contexto,datos):

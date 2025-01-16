@@ -9,10 +9,6 @@ function empleadoCamposOcultos(esto)
 {
 	let check = esto.checked
 
-	let segTelefono = document.getElementById('div_telefono2')
-	let segCorreo = document.getElementById('div_correo2')
-
-
 	console.log(check)
 	if(check)
 	{
@@ -98,15 +94,15 @@ function empleadoCamposOcultos(esto)
 
 <!----------------   CAMPOS DE TIPO DE CEDULA Y CEDULA  ---------------------->
 
-				<label for="{{ form.cedula.name }}">
-					{{form.cedula.label}}
+				<label for="{{ form.dui.name }}">
+					{{form.dui.label}}
 				</label>
 			<div class="row form-group">
                 <div class="col-2">
-                 {{form.tipoCedula}}
+                 {{form.tipoDui}}
              	</div>
                     <div class="col-10">
-                      {{form.cedula}}
+                      {{form.dui}}
                   </div>
             </div>
 
@@ -136,17 +132,6 @@ function empleadoCamposOcultos(esto)
 
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
-
-<!-----------------   CAMPO DE LA DIRECCION DEL empleado ------------------>
-
-			<div class="form-group">
-				<label for="{{ form.direccion.name }}">
-					{{form.direccion.label}}
-				</label>
-					{{form.direccion}}
-			</div>
-
-<!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
 <!-----------------   CAMPO DEL NACIMIENTO DEL empleado ------------------>
@@ -185,41 +170,6 @@ function empleadoCamposOcultos(esto)
 <!-----------------   FIN DE CAMPOS ---------------------------------->
 
 
-<!-----------------   CAMPO DEL CORREO ALTERNATIVO DEL empleado ------------------>
-
-			<div class="form-group" id="div_correo2">
-				<label for="{{ form.correo2.name }}">
-					{{form.correo2.label}}
-				</label>
-					{{form.correo2}}
-			</div>
-
-<!-----------------   FIN DE CAMPOS ---------------------------------->
-
-
-<!-----------------   CAMPO DEL TELEFONO ALTERNATIVO DEL empleado ------------------>
-
-			<div class="form-group" id="div_telefono2">
-				<label for="{{ form.telefono2.name }}">
-					{{form.telefono2.label}}
-				</label>
-					{{form.telefono2}}
-			</div>
-
-<!-----------------   FIN DE CAMPOS ---------------------------------->
-
-
-<!------------    MUESTRA LOS CAMPOS DE CORREO Y TELEFONO ALTERNATIVOS -------------->
-				<div class="form-group">
-					<label>
-						<input class="checkbox rounded" type="checkbox"
-						onchange="empleadoCamposOcultos(this)">
-						<span>
-						Mostrar campos opcionales
-						</span>
-					</label>
-				</div>
-<!------------------------------- FIN DE CAMPOS OPCIONALES -------------------------->	
 
 
 
@@ -240,22 +190,3 @@ function empleadoCamposOcultos(esto)
 </section>
 </article>
 {% endblock %}
-
-<script>
-	
-document.onload
-{
-	let tipoCedula = document.getElementById('tipoCedula')
-	console.log(tipoCedula)	
-
-	let segTelefono = document.getElementById('div_telefono2')
-	let segCorreo = document.getElementById('div_correo2')
-
-	segTelefono.style = 'display: none;';
-	segCorreo.style = 'display: none;';
-
-	let opcionales = document.getElementById('mostrar_opcionales')
-	opcionales.checked = false;
-}
-	
-</script>

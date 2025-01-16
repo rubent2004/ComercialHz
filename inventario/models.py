@@ -172,7 +172,6 @@ class Empleado(models.Model):
     dui = models.CharField(max_length=12, unique=True)
     nombre = models.CharField(max_length=40)
     apellido = models.CharField(max_length=40)
-    direccion = models.CharField(max_length=200)
     nacimiento = models.DateField()
     telefono = models.CharField(max_length=20)
     correo = models.CharField(max_length=100)
@@ -254,30 +253,6 @@ class DetalleFactura(models.Model):
 
 
 #----------------------------------------PEDIDO-----------------------------------------
-
-class Pedido(models.Model):
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
-    fecha = models.DateField()
-    sub_monto = models.DecimalField(max_digits=20, decimal_places=2)
-    monto_general = models.DecimalField(max_digits=20, decimal_places=2)
-    presente = models.BooleanField(null=True)
-
-    def procesar_pedido(self):
-        # Asumiendo que tienes una relación de muchos a muchos entre Pedido y Producto
-        for item in self.items.all():
-            inventario, created = Inventario.objects.get_or_create(
-                bodega=item.bodega,
-                producto=item.producto,
-                defaults={'stock': 0}
-            )
-            inventario.aumentar_stock(item.cantidad)
-
-class PedidoItem(models.Model):
-    pedido = models.ForeignKey(Pedido, related_name='items', on_delete=models.CASCADE)
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
-    cantidad = models.IntegerField()
-
 class Inventario(models.Model):
     idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
     idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
@@ -302,13 +277,37 @@ class Inventario(models.Model):
         self.actualizar_stock(cantidad, operacion='aumentar')
 
 
+class Compra(models.Model):
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
+    fecha = models.DateField()
+    sub_monto = models.DecimalField(max_digits=20, decimal_places=2)
+    monto_general = models.DecimalField(max_digits=20, decimal_places=2)
+
+    def procesar_compra(self):
+        for item in self.items.all():
+            inventario, created = Inventario.objects.get_or_create(
+                idbodega=item.bodega,
+                idproducto=item.producto,
+                defaults={'stock': 0}
+            )
+            inventario.aumentar_stock(item.cantidad)
+            estado_bodega = EstadoProducto.objects.get(nombre='en_bodega')
+            item.producto.estado = estado_bodega
+            item.producto.save()
+
+class CompraItem(models.Model):
+    compra = models.ForeignKey(Compra, related_name='items', on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+
 #---------------------------------------------------------------------------------------    
 
 
 #-------------------------------------DETALLES DE PEDIDO-------------------------------
-class DetallePedido(models.Model):
+class DetalleCompra(models.Model):
     #id
-    id_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    id_compra = models.ForeignKey(Compra, on_delete=models.CASCADE)
     id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     sub_total = models.DecimalField(max_digits=20,decimal_places=2)
