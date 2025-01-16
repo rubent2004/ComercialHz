@@ -1,2 +1,3 @@
 env/
 BDD.sqlite3
+__pycache__/
