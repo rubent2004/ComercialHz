@@ -1799,7 +1799,7 @@ span a {
     overflow-y: auto;
     overflow-x: hidden; }
     .sidebar .sidebar-container::-webkit-scrollbar-track {
-      background-color: #2c353e; }
+      background-color: #3994f0; }
   .sidebar .label {
     font-size: .75em;
     display: inline-block;
@@ -2822,7 +2822,7 @@ span a {
     top: -3px;
     left: -2px; }
   .header .header-block-nav .notifications.new .counter {
-    color: #85CE36;
+    color: #03a1f6;
     font-weight: bold; }
   @media (max-width: 767.98px) {
     .header .header-block-nav .notifications {

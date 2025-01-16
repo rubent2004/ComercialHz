@@ -1421,7 +1421,7 @@ label,
           .item-list .item-actions-dropdown .item-actions-block .item-actions-list a.edit {
             color: #38424C; }
           .item-list .item-actions-dropdown .item-actions-block .item-actions-list a.check {
-            color: #40B726; }
+            color: #1ec8f7; }
           .item-list .item-actions-dropdown .item-actions-block .item-actions-list a.remove {
             color: #DB0E1E; }
 
@@ -1610,10 +1610,10 @@ span a {
 /* Handle */
 ::-webkit-scrollbar-thumb {
   border-radius: 0;
-  background: #78bd2e; }
+  background: #31c5ff; }
 
 ::-webkit-scrollbar-thumb:window-inactive {
-  background: #85CE36; }
+  background: #31c5ff; }
 
 .error-card {
   width: 410px;
