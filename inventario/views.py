@@ -1,5 +1,6 @@
 #renderiza las vistas al usuario
 import datetime
+from time import timezone
 from django.shortcuts import get_object_or_404, redirect, render
 # para redirigir a otras paginas
 from django.http import HttpResponseRedirect, HttpResponse,FileResponse
@@ -323,7 +324,7 @@ class Eliminar(LoginRequiredMixin, View):
             bodega = Bodega.objects.get(id=pk)
             bodega.delete()
             messages.success(request, 'Bodega de ID %s borrado exitosamente.' % pk)
-            return HttpResponseRedirect("/inventario/listarBodegas")
+            return HttpResponseRedirect("/inventario/listarBodega")
         
         elif modo == 'estadoproducto':
             estadoProducto = EstadoProducto.objects.get(id=pk)
@@ -332,10 +333,16 @@ class Eliminar(LoginRequiredMixin, View):
             return HttpResponseRedirect("/inventario/listarEstadoProducto")
         
         elif modo == 'empleado':
-            entity = empleado.objects.get(id=pk)
+            entity = Empleado.objects.get(id=pk)
             entity.delete()
             messages.success(request, 'Empleado de ID %s borrado exitosamente.' % pk)
             return HttpResponseRedirect("/inventario/listarEmpleado")
+        
+        elif modo == 'estado':
+            entity = Estado.objects.get(id=pk)
+            entity.delete()
+            messages.success(request, 'Estado de ID %s borrado exitosamente.' % pk)
+            return HttpResponseRedirect("/inventario/listarEstado")
         
 
 
@@ -1487,66 +1494,6 @@ class VerManualDeUsuario(LoginRequiredMixin, View):
         if pagina == 'opciones':
             return render(request, 'inventario/manual/opciones.html')
 
-#View Estado
-class Estado(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request):
-        return render(request, 'inventario/estado.html')
-#listar Estado 
-class ListarEstado(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request):
-        estados = Estado.objects.all()
-        contexto = {'tabla': estados}
-        contexto = complementarContexto(contexto,request.user) 
-        return render(request, 'inventario/estado/listarEstado.html', contexto)
-#Agregar Estado
-class AgregarEstado(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def post(self, request):
-        form = EstadoFormulario(request.POST)
-        if form.is_valid():
-            nombre = form.cleaned_data['nombre']
-            estado = Estado(nombre=nombre)
-            estado.save()
-            form = EstadoFormulario()
-            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % estado.id)
-            request.session['estadoProcesado'] = 'agregado'
-            return HttpResponseRedirect("/inventario/agregarEstado")
-        else:
-            return render(request, 'inventario/estado/agregarEstado.html', {'form': form})        
-
-    def get(self,request):
-        form = EstadoFormulario()
-        contexto = {'form':form , 'modo':request.session.get('estadoProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
-        return render(request, 'inventario/estado/agregarEstado.html', contexto)
-
-#Editar Estado
-class EditarEstado(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def post(self,request,pk):
-        estado = Estado.objects.get(id=pk)
-        form = EstadoFormulario(request.POST, instance=estado)
-        if form.is_valid():           
-            nombre = form.cleaned_data['nombre']
-            estado.nombre = nombre
-            estado.save()
-            form = EstadoFormulario(instance=estado)
-            messages.success(request, 'Actualizado exitosamente el estado de ID %s.' % p)
-            request.session['estadoProcesado'] = 'editado'            
-            return HttpResponseRedirect("/inventario/editarEstado/%s" % estado.id)
-        else:
-            return render(request, 'inventario/estado/agregarEstado.html', {'form': form})
-
 #listar Marca
 class ListarMarca(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1615,49 +1562,127 @@ class EditarMarca(LoginRequiredMixin, View):
         contexto = {'form':form , 'modo':request.session.get('marcaProcesado'),'editar':True} 
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/marca/agregarMarca.html', contexto)
-
-#Vistas de Bodega
-class Bodega(LoginRequiredMixin, View):
+    
+#Listar Estado
+class ListarEstado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def get(self, request):
-        return render(request, 'inventario/bodega.html')
+        from django.db import models
+        estados = Estado.objects.all()
+        contexto = {'tabla': estados}
+        contexto = complementarContexto(contexto,request.user)    
+        return render(request, 'inventario/estado/listarEstado.html', contexto)
+    
+class AgregarEstado(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        # Crea una instancia del formulario y la llena con los datos:
+        form = EstadoFormulario(request.POST)
+        # Revisa si es valido:
+        if form.is_valid():
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
+            nombre = form.cleaned_data['nombre']
+
+            estado = Estado(nombre=nombre)
+            estado.save()
+            
+            form = EstadoProductoFormulario()
+            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % estado.id)
+            request.session['estadoProductoProcesado'] = 'agregado'
+            return HttpResponseRedirect("/inventario/agregarEstado")
+        else:
+            # De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/estado/agregarEstado.html', {'form': form})
+
+    # Si se llega por GET crearemos un formulario en blanco
+    def get(self, request):
+        form = EstadoProductoFormulario()
+        # Envia al usuario el formulario para que lo llene
+        contexto = {'form': form, 'modo': request.session.get('estadoProcesado')}
+        return render(request, 'inventario/estado/agregarEstado.html', contexto)
+    
+
+class EditarEstado(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self,request,pk):
+        # Crea una instancia del formulario y la llena con los datos:
+        form = EstadoFormulario(request.POST)
+        # Revisa si es valido:
+        if form.is_valid():
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
+            nombre = form.cleaned_data['nombre']
+            entity = Estado.objects.get(id=pk)
+            entity.nombre = nombre
+            entity.save()
+            form = EstadoProductoFormulario(instance=entity)
+            messages.success(request, 'Actualizado exitosamente el estado de ID %s.' % pk)
+            request.session['estadoProcesado'] = 'editado'            
+            return HttpResponseRedirect("/inventario/editarEstado/%s" % entity.id)
+        else:
+            #De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/estado/agregarEstado.html', {'form': form})
+
+    def get(self, request,pk): 
+        entity = Estado.objects.get(id=pk)
+        form = EstadoFormulario(instance=entity)
+        #Envia al usuario el formulario para que lo llene
+        contexto = {'form':form , 'modo':request.session.get('estadoProcesado'),'editar':True}    
+        contexto = complementarContexto(contexto,request.user) 
+        return render(request, 'inventario/estado/agregarEstado.html', contexto)
+#Fin de vista------------------------------------------------------------------------------------#  
 #listar Bodega
 class ListarBodega(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def get(self, request):
-        bodegas = Bodega.objects.all()
-        contexto = {'tabla': bodegas}
+        entity = Bodega.objects.all()
+        contexto = {'tabla': entity}
         contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/bodega/listarBodega.html', contexto)
 #Agregar Bodega
+
 class AgregarBodega(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self, request):
+        # Crea una instancia del formulario y la llena con los datos:
         form = BodegaFormulario(request.POST)
+        # Revisa si es valido:
         if form.is_valid():
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
             nombre = form.cleaned_data['nombre']
-            direccion = form.cleaned_data['direccion']
-            bodega = Bodega(nombre=nombre,direccion=direccion)
+            ubicacion = form.cleaned_data['ubicacion']
+            estado = form.cleaned_data['estado']
+
+            bodega =Bodega(nombre=nombre,ubicacion=ubicacion,estado=estado)
             bodega.save()
+            
             form = BodegaFormulario()
             messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % bodega.id)
             request.session['bodegaProcesado'] = 'agregado'
             return HttpResponseRedirect("/inventario/agregarBodega")
         else:
-            return render(request, 'inventario/bodega/agregarBodega.html', {'form': form})        
+            # De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/bodega/agregarBodega.html', {'form': form})
 
-    def get(self,request):
+    # Si se llega por GET crearemos un formulario en blanco
+    def get(self, request):
         form = BodegaFormulario()
-        contexto = {'form':form , 'modo':request.session.get('bodegaProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
+        # Envia al usuario el formulario para que lo llene
+        contexto = {'form': form, 'modo': request.session.get('bodegaProcesado')}
+        contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/bodega/agregarBodega.html', contexto)
-#editar Bodega
+    
+
+#editar Marca
 class EditarBodega(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -1667,12 +1692,16 @@ class EditarBodega(LoginRequiredMixin, View):
         form = BodegaFormulario(request.POST, instance=bodega)
         if form.is_valid():           
             nombre = form.cleaned_data['nombre']
-            direccion = form.cleaned_data['direccion']
+            ubicacion = form.cleaned_data['ubicacion']
+            estado = form.cleaned_data['estado']
+
             bodega.nombre = nombre
-            bodega.direccion = direccion
+            bodega.ubicacion = ubicacion
+            bodega.estado = estado
+
             bodega.save()
             form = BodegaFormulario(instance=bodega)
-            messages.success(request, 'Actualizado exitosamente la bodega de ID %s.' % p)
+            messages.success(request, 'Actualizado exitosamente la bodega de ID %s.' % pk)
             request.session['bodegaProcesado'] = 'editado'            
             return HttpResponseRedirect("/inventario/editarBodega/%s" % bodega.id)
         else:
@@ -1683,7 +1712,6 @@ class EditarBodega(LoginRequiredMixin, View):
         contexto = {'form':form , 'modo':request.session.get('bodegaProcesado'),'editar':True} 
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/bodega/agregarBodega.html', contexto)
-#movimientoProducto
 class MovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None

@@ -29,10 +29,10 @@ class Usuario(AbstractUser):
             return int(self.objects.filter(is_superuser = False).count() )
 
 class Estado(models.Model):
-    estado = models.CharField(max_length=50)
+    nombre = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.estado
+        return self.nombre
 
 
 class EstadoProducto(models.Model):
@@ -54,7 +54,9 @@ class Bodega(models.Model):
     estado = models.ForeignKey(Estado, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.nombre
+        #agregar fecha_registro automaticamente
+
+        return f"{self.nombre} - {self.fecha_registro}"
 
 
 #------------------------------------------PROVEEDOR-----------------------------------

@@ -60,4 +60,13 @@ path('editarEstadoProducto/<int:pk>', views.EditarEstadoProducto.as_view(), name
 path('listarMarca', views.ListarMarca.as_view(), name='listarMarca'),
 path('agregarMarca', views.AgregarMarca.as_view(), name='agregarMarca'),
 path('editarMarca/<int:pk>', views.EditarMarca.as_view(), name='editarMarca'),
+
+path('listarBodega', views.ListarBodega.as_view(), name='listarBodega'),
+path('agregarBodega', views.AgregarBodega.as_view(), name='agregarBodega'),
+path('editarBodega/<int:pk>', views.EditarBodega.as_view(), name='editarBodega'),
+
+path('listarEstado', views.ListarEstado.as_view(), name='listarEstado'),
+path('agregarEstado', views.AgregarEstado.as_view(), name='agregarEstado'),
+path('editarEstado/<int:pk>', views.EditarEstado.as_view(), name='editarEstado'),
+ 
 ]
