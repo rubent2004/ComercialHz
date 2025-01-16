@@ -317,7 +317,7 @@ class Eliminar(LoginRequiredMixin, View):
             marca = Marca.objects.get(id=pk)
             marca.delete()
             messages.success(request, 'Marca de ID %s borrado exitosamente.' % pk)
-            return HttpResponseRedirect("/inventario/listarMarcas")
+            return HttpResponseRedirect("/inventario/listarMarca")
         
         elif modo == 'bodega':
             bodega = Bodega.objects.get(id=pk)
@@ -1547,13 +1547,6 @@ class EditarEstado(LoginRequiredMixin, View):
         else:
             return render(request, 'inventario/estado/agregarEstado.html', {'form': form})
 
-#Marca
-class Marca(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request):
-        return render(request, 'inventario/marca.html')
 #listar Marca
 class ListarMarca(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1862,6 +1855,7 @@ class ListarEstadoProducto(LoginRequiredMixin, View):
         from django.db import models
         estados = EstadoProducto.objects.all()
         contexto = {'tabla': estados}
+        contexto = complementarContexto(contexto,request.user)    
         return render(request, 'inventario/estadoproducto/listarEstadoProducto.html', contexto)
     
 class AgregarEstadoProducto(LoginRequiredMixin, View):

@@ -1,5 +1,5 @@
 from django import forms
-from .models import DetalleCompra, Entrega, EstadoProducto, Inventario, Compra, CompraItem, Producto,Empleado, Proveedor, Recepcion, Usuario
+from .models import DetalleCompra, Entrega, EstadoProducto, Inventario, Compra, CompraItem, Marca, Producto,Empleado, Proveedor, Recepcion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -434,13 +434,15 @@ class BodegaFormulario(forms.Form):
 
 #Formulario Marca
 class MarcaFormulario(forms.Form):
-    marca = forms.CharField(
-        label = 'Nombre de la marca',
-        max_length=50,
-        widget = forms.TextInput(
-        attrs={'class':'form-control','id':'marca',
-            'placeholder':'Coloque el nombre de la marca'}),
-        )
+   class Meta:
+        model = Marca
+        fields = ['nombre']
+        labels = {
+            'nombre': 'Nombre de la marca',
+        }
+        widgets = {
+           'marca': forms.TextInput(attrs={'placeholder': 'Marca', 'class': 'form-control'}),
+        }
 
 
 class InventarioFormulario(forms.ModelForm):

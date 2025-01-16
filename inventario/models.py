@@ -41,7 +41,7 @@ class EstadoProducto(models.Model):
         return self.nombre
 
 class Marca(models.Model):
-    marca = models.CharField(max_length=50)
+    nombre = models.CharField(max_length=50)
 
     def __str__(self):
         return self.nombre

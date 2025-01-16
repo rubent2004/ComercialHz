@@ -3,37 +3,6 @@
 {% block content %}
 
 
-<script>
-	
-function empleadoCamposOcultos(esto)
-{
-	let check = esto.checked
-
-	console.log(check)
-	if(check)
-	{
-		console.log("MOSTRAR!!")
-		//$(document).ready(function(){
-		segTelefono.style = 'display: block;';
-		segCorreo.style = 'display: block;';
-							//		}
-							//		)
-	}
-
-	else
-	{
-		console.log("ESCONDER :(")
-		//$(document).ready(function(){
-		segTelefono.style = 'display: none;';
-		segCorreo.style = 'display: none;';
-									//}
-									//)
-	}
-
-}	
-
-</script>
-
 <article class="content forms-page">
 	    <div class="title-block">
 	    	{% if editar %}
