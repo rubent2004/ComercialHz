@@ -1,5 +1,5 @@
 from django import forms
-from .models import DetalleCompra, Entrega, EstadoProducto, Inventario, Compra, CompraItem, Marca, Producto,Empleado, Proveedor, Recepcion, Usuario
+from .models import Bodega, DetalleCompra, Entrega, EstadoProducto, Inventario, Compra, CompraItem, Marca, Producto,Empleado, Proveedor, Recepcion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -418,22 +418,27 @@ class EstadoProductoFormulario(forms.ModelForm):
             'nombre': 'Nombre del estado del producto',
         }
         widgets = {
-           'descripcion': forms.TextInput(attrs={'placeholder': 'Estado del producto', 'class': 'form-control'}),
+           'nombre': forms.TextInput(attrs={'placeholder': 'Estado del producto', 'class': 'form-control'}),
         }
 
 #Formulario Bodega
-class BodegaFormulario(forms.Form):
-    bodega = forms.CharField(
-        label = 'Nombre de la bodega',
-        max_length=50,
-        widget = forms.TextInput(
-        attrs={'class':'form-control','id':'bodega',
-            'placeholder':'Coloque el nombre de la bodega'}),
-        )
-    
+# class BodegaFormulario(forms.ModelForm):
+#    class Meta:
+#         model = Bodega
+#         fields = ['nombre', 'ubicacion','fecha_registro','estado']
+#         labels = {
+#             'nombre': 'Nombre de la bodega',
+#             'ubicacion':'Ubicación de la bodega',
+#             'fecha_registro':'Fecha de registro',
+#             'estado':'Estado de la bodega',
+#         }
+#         widgets = {
+#            'nombre': forms.TextInput(attrs={'placeholder': 'Nombre de la marca', 'class': 'form-control'}),
+#         }
+
 
 #Formulario Marca
-class MarcaFormulario(forms.Form):
+class MarcaFormulario(forms.ModelForm):
    class Meta:
         model = Marca
         fields = ['nombre']
@@ -441,7 +446,7 @@ class MarcaFormulario(forms.Form):
             'nombre': 'Nombre de la marca',
         }
         widgets = {
-           'marca': forms.TextInput(attrs={'placeholder': 'Marca', 'class': 'form-control'}),
+           'nombre': forms.TextInput(attrs={'placeholder': 'Nombre de la marca', 'class': 'form-control'}),
         }
 
 

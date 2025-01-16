@@ -1,8 +1,8 @@
 ## Crear un entorno virtual
-python -m venv mi_entorno
+python -m venv env
 
 ## Activar el entorno virtual
-mi_entorno\Scripts\activate
+env\Scripts\activate
 
 ## Instalar las dependencias desde requirements.txt
 pip install -r requirements.txt

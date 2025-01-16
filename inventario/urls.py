@@ -59,5 +59,5 @@ path('editarEstadoProducto/<int:pk>', views.EditarEstadoProducto.as_view(), name
     # path('eliminarEstadoProducto/<int:pk>', views.EliminarEstadoProducto.as_view(), name='eliminarEstadoProducto'),
 path('listarMarca', views.ListarMarca.as_view(), name='listarMarca'),
 path('agregarMarca', views.AgregarMarca.as_view(), name='agregarMarca'),
-
+path('editarMarca/<int:pk>', views.EditarMarca.as_view(), name='editarMarca'),
 ]

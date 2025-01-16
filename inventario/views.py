@@ -1558,28 +1558,39 @@ class ListarMarca(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/marca/listarMarca.html', contexto)
 #Agregar Marca
+
 class AgregarMarca(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self, request):
+        # Crea una instancia del formulario y la llena con los datos:
         form = MarcaFormulario(request.POST)
+        # Revisa si es valido:
         if form.is_valid():
+            # Procesa y asigna los datos con form.cleaned_data como se requiere
             nombre = form.cleaned_data['nombre']
-            marca = Marca(nombre=nombre)
+
+            marca =Marca(nombre=nombre)
             marca.save()
+            
             form = MarcaFormulario()
             messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % marca.id)
             request.session['marcaProcesado'] = 'agregado'
             return HttpResponseRedirect("/inventario/agregarMarca")
         else:
-            return render(request, 'inventario/marca/agregarMarca.html', {'form': form})        
+            # De lo contrario lanzara el mismo formulario
+            return render(request, 'inventario/marca/agregarMarca.html', {'form': form})
 
-    def get(self,request):
+    # Si se llega por GET crearemos un formulario en blanco
+    def get(self, request):
         form = MarcaFormulario()
-        contexto = {'form':form , 'modo':request.session.get('marcaProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
+        # Envia al usuario el formulario para que lo llene
+        contexto = {'form': form, 'modo': request.session.get('marcaProcesado')}
+        contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/marca/agregarMarca.html', contexto)
+    
+
 #editar Marca
 class EditarMarca(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1593,7 +1604,7 @@ class EditarMarca(LoginRequiredMixin, View):
             marca.nombre = nombre
             marca.save()
             form = MarcaFormulario(instance=marca)
-            messages.success(request, 'Actualizado exitosamente la marca de ID %s.' % p)
+            messages.success(request, 'Actualizado exitosamente la marca de ID %s.' % pk)
             request.session['marcaProcesado'] = 'editado'            
             return HttpResponseRedirect("/inventario/editarMarca/%s" % marca.id)
         else:
