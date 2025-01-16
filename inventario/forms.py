@@ -96,7 +96,7 @@ class ExportarEmpleadoFormulario(forms.Form):
 
 
 class EmpleadoFormulario(forms.ModelForm):
-    tipoC =  [ ('1','V'),('2','E') ]
+    tipoC =  [ ('1','DUI'),('2','NIT') ]
 
     tipoDui = forms.CharField(
         label="Tipo de DUI",
@@ -211,7 +211,7 @@ class DetalleCompraFormulario(forms.ModelForm):
             'total': 'Total',
         }
 class ProveedorFormulario(forms.ModelForm):
-    tipoC =  [ ('1','V'),('2','E') ]
+    tipoC =  [ ('1','DUI'),('2','NIT') ]
 
     tipoDui = forms.CharField(
         label="Tipo de dui",
