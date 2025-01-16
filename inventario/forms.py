@@ -1,5 +1,5 @@
 from django import forms
-from .models import Bodega, DetalleCompra, Entrega, EstadoProducto, Inventario, Compra, CompraItem, Marca, Producto,Empleado, Proveedor, Recepcion, Usuario
+from .models import Bodega, DetalleCompra, Entrega, Estado, EstadoProducto, Inventario, Compra, CompraItem, Marca, Producto,Empleado, Proveedor, Recepcion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -400,14 +400,16 @@ class OpcionesFormulario(forms.Form):
         attrs={'class':'custom-file-input','id':'customFile'}))
 
 #Formulario Estado
-class EstadoFormulario(forms.Form):
-    estado = forms.CharField(
-        label = 'Nombre del estado',
-        max_length=50,
-        widget = forms.TextInput(
-        attrs={'class':'form-control','id':'estado',
-            'placeholder':'Coloque el nombre del estado'}),
-        )
+class EstadoFormulario(forms.ModelForm):
+    class Meta:
+        model = Estado
+        fields = ['nombre']
+        labels = {
+            'nombre': 'Nombre del estado del producto',
+        }
+        widgets = {
+           'nombre': forms.TextInput(attrs={'placeholder': 'Estado del producto', 'class': 'form-control'}),
+        }
 
 #Estado Producto Formulario
 class EstadoProductoFormulario(forms.ModelForm):
@@ -422,19 +424,20 @@ class EstadoProductoFormulario(forms.ModelForm):
         }
 
 #Formulario Bodega
-# class BodegaFormulario(forms.ModelForm):
-#    class Meta:
-#         model = Bodega
-#         fields = ['nombre', 'ubicacion','fecha_registro','estado']
-#         labels = {
-#             'nombre': 'Nombre de la bodega',
-#             'ubicacion':'Ubicación de la bodega',
-#             'fecha_registro':'Fecha de registro',
-#             'estado':'Estado de la bodega',
-#         }
-#         widgets = {
-#            'nombre': forms.TextInput(attrs={'placeholder': 'Nombre de la marca', 'class': 'form-control'}),
-#         }
+class BodegaFormulario(forms.ModelForm):
+   class Meta:
+        model = Bodega
+        fields = ['nombre', 'ubicacion','estado']
+        labels = {
+            'nombre': 'Nombre de la bodega',
+            'ubicacion':'Ubicación de la bodega',
+            'estado':'Estado de la bodega',
+        }
+        widgets = {
+            'nombre': forms.TextInput(attrs={'placeholder': 'Nombre de la bodega', 'class': 'form-control'}),
+            'ubicacion': forms.TextInput(attrs={'placeholder': 'Ubicación de la bodega', 'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'})
+        }
 
 
 #Formulario Marca
