@@ -8,10 +8,11 @@
 <!-- FIN DE JAVASCRIPT ------------------------------------>
 
 <article class="content responsive-tables-page">
-    <div class="title-block">
-        <h1 class="title"> Listar Estados </h1>
-        <p class="title-description"> Verifique los estados agregados </p>
+    <div class="title-block text-center">
+        <h1 class="title display-3 fot">Listar Estados</h1>
+        <p class="title-description">Verifique los estados agregados</p>
     </div>
+    
     <section class="section">
         <div class="row">
             <div class="col-md-12">
@@ -29,13 +30,21 @@
                 {% endif %}
                 <div class="card">
                     <div class="card-block">
-                        <div class="card-title-block">
-                            <h3 class="title">Estados</h3>
+                        <div class="d-flex justify-content-between mb-3">
+                            <!-- Botón para agregar estados -->
+                            <a href="/inventario/agregarEstado" class="btn btn-success">
+                                <i class="fa fa-plus"></i> Agregar Estado
+                            </a>
                             <!-- Botón de imprimir -->
-                            <button type="button" class="btn btn-secondary float-right" onclick="window.print()">
+                            <button type="button" class="btn btn-secondary" onclick="window.print()">
                                 <i class="fa fa-print"></i> Imprimir
                             </button>
                         </div>
+                        
+                        <div class="card-title-block">
+                            <h3 class="title">Estados</h3>
+                        </div>
+                        
                         <section class="example">
                             <div class="table-responsive">
                                 <table id="example2" class="table table-striped table-bordered table-hover">

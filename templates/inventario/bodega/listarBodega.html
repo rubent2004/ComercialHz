@@ -8,10 +8,24 @@
 <!-- FIN DE JAVASCRIPT ------------------------------------>
 
 <article class="content responsive-tables-page">
-    <div class="title-block">
-        <h1 class="title"> Listar Bodegas </h1>
-        <p class="title-description"> Verifique las bodegas agregadas </p>
+    <!-- Título centrado -->
+    <div class="title-block text-center">
+        <h1 class="title display-3 fot">Listar Bodegas</h1>
+        <p class="title-description">Verifique las bodegas agregadas</p>
     </div>
+    
+    <!-- Botones Agregar e Imprimir -->
+    <div class="d-flex justify-content-between mb-3">
+        <!-- Botón Agregar Bodegas -->
+        <a href="/inventario/agregarBodega" class="btn btn-primary">
+            <i class="fa fa-plus"></i> Agregar Bodegas
+        </a>
+        <!-- Botón Imprimir -->
+        <button type="button" class="btn btn-secondary" onclick="window.print()">
+            <i class="fa fa-print"></i> Imprimir
+        </button>
+    </div>
+
     <section class="section">
         <div class="row">
             <div class="col-md-12">
@@ -29,7 +43,7 @@
                 {% endif %}
                 <div class="card">
                     <div class="card-block">
-                        <div class="card-title-block">
+                        <div class="card-title-block text-center">
                             <h3 class="title">Bodegas</h3>
                         </div>
                         <section class="example">

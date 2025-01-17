@@ -2,18 +2,26 @@
 
 {% block content %}
 <article class="content forms-page">
-    <div class="title-block">
+    <div class="title-block text-center">
         {% if editar %}
-            <h3 class="title">Editar Estado </h3>
-            <p class="title-description">Cambie los datos del estado </p>
+            <h1 class="title display-3 fot">Editar Estado</h1>
+            <p class="title-description">Cambie los datos del estado</p>
         {% else %}
-            <h3 class="title">Agregar Estado </h3>
+            <h1 class="title display-3 fot">Agregar Estado</h1>
             <p class="title-description">Introduzca los datos del estado</p>
         {% endif %}
     </div>
+    
     <section class="section">
         <div class="row sameheight-container">
             <div class="col-md-12">
+                <!-- Botón para listar estados -->
+                <div class="mb-3">
+                    <a href="/inventario/listarEstado" class="btn btn-secondary">
+                        <i class="fa fa-list"></i> Listar Estados
+                    </a>
+                </div>
+
                 {% if modo == "agregado" %}
                     {% if messages %}
                         {% for message in messages %}

@@ -3,19 +3,27 @@
 {% block content %}
 
 <article class="content forms-page">
-    <div class="title-block">
+    <!-- Título centrado -->
+    <div class="title-block text-center">
         {% if editar %}
-            <h3 class="title">Editar Bodega</h3>
+            <h1 class="title display-3 fot">Editar Bodega</h1>
             <p class="title-description">Cambie los datos de la bodega</p>
         {% else %}
-            <h3 class="title">Agregar Bodega</h3>
+            <h1 class="title display-3 fot">Agregar Bodega</h1>
             <p class="title-description">Introduzca los datos de la bodega</p>
         {% endif %}
     </div>
+
+    <!-- Botón Listar Bodegas -->
+    <div class="d-flex justify-content-end mb-3">
+        <a href="/inventario/listarBodega" class="btn btn-secondary">
+            <i class="fa fa-list"></i> Listar Bodegas
+        </a>
+    </div>
+
     <section class="section">
         <div class="row sameheight-container">
             <div class="col-md-12">
-
                 {% for error in form.non_field_errors %}
                 <div class="card card-primary">
                     <div class="card-header">
@@ -56,48 +64,46 @@
                     {% endif %}
                 {% endif %}
 
-                <!-------------------   FORMULARIO PARA AGREGAR BODEGA ---------------------------------->
+                <!-- FORMULARIO PARA AGREGAR O EDITAR BODEGA -->
                 <div class="card card-block sameheight-item">
                     <form role="form" method="POST">
                         {% csrf_token %}
-
-                        <!-----------------   CAMPO DEL NOMBRE DE LA BODEGA ------------------>
+                        
+                        <!-- Campo del nombre de la bodega -->
                         <div class="form-group">
                             <label for="{{ form.nombre.name }}">
                                 {{ form.nombre.label }}
                             </label>
                             {{ form.nombre }}
                         </div>
-                        <!-----------------   FIN DE CAMPOS ---------------------------------->
 
-                        <!-----------------   CAMPO DE LA UBICACIÓN DE LA BODEGA ------------------>
+                        <!-- Campo de la ubicación de la bodega -->
                         <div class="form-group">
                             <label for="{{ form.ubicacion.name }}">
                                 {{ form.ubicacion.label }}
                             </label>
                             {{ form.ubicacion }}
                         </div>
-                        <!-----------------   FIN DE CAMPOS ---------------------------------->
 
-                        <!-----------------   CAMPO DEL ESTADO DE LA BODEGA ------------------>
+                        <!-- Campo del estado de la bodega -->
                         <div class="form-group">
                             <label for="{{ form.estado.name }}">
                                 {{ form.estado.label }}
                             </label>
                             {{ form.estado }}
                         </div>
-                        <!-----------------   FIN DE CAMPOS ---------------------------------->
 
-                        <!------------------------------- BOTON DE INGRESO ------------------------------------>
+                        <!-- Botón de envío -->
                         <div class="form-group">
-                            <button type="submit" class="btn btn-primary">{% if editar %}Actualizar{% else %}Ingresar{% endif %}</button>
+                            <button type="submit" class="btn btn-primary">
+                                {% if editar %}Actualizar{% else %}Ingresar{% endif %}
+                            </button>
                         </div>
-                        <!---------------------------------- FIN DE BOTON ---------------------------------->
                     </form>
-                    <!----------------------------------- FIN DEL FORMULARIO -------------------------->
                 </div>
             </div>
         </div>
     </section>
 </article>
+
 {% endblock %}
