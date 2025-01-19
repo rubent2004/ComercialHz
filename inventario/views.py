@@ -1404,7 +1404,7 @@ class ConfiguracionGeneral(LoginRequiredMixin, View):
             #Si se subio un logo se sobreescribira en la carpeta ubicada
             #--en la siguiente ruta
             if imagen:
-                manejarArchivo(imagen,'inventario/static/inventario/assets/logo/logo2.png')
+                manejarArchivo(imagen,'inventario/static/inventario/assets/logo/logo3.png')
 
             conf = Opciones.objects.get(id=1)
             conf.moneda = moneda

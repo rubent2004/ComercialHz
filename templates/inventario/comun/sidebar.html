@@ -1,12 +1,16 @@
 <aside class="sidebar">
     <div class="sidebar-container">
         <div class="sidebar-header">
-            <div class="brand">
-                
+            <div class="brand" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <!-- Logo en la esquina superior izquierda -->
                 <div class="logo-nuevo">
-        {% load static %} 
-        <img id="logo-endogeno" src="{% static 'inventario/assets/logo/logo2.png' %}">
-                </div> Administrador </div>
+                    {% load static %}
+                    <img id="logo-endogeno2" src="{% static 'inventario/assets/logo/logo3.png' %}" style="width: 50px; height: auto;">
+                </div>
+                <!-- Texto Administrador en la esquina superior derecha, centrado -->
+                <div style="text-align: center; font-size: 20px; font-weight: bold; color: #ffffff; margin-top: 20px; margin-right: 20px;">
+                    Administrador
+                </div>
         </div>
 
         <nav class="menu">
