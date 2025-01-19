@@ -26,31 +26,22 @@ class LoginFormulario(forms.Form):
 class ProductoFormulario(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['descripcion', 'precio_unitario', 'precio_cash', 'codigo', 'disponible', 'imagen', 'proveedor', 'marca', 'estado']
+        fields = ['descripcion', 'precio_unitario', 'precio_cash', 'proveedor', 'marca']
         labels = {
-            'codigo': 'Código',
             'descripcion': 'Descripción',
             'precio_unitario': 'Precio Unitario',
             'precio_cash': 'Precio Cash',
-            'disponible': 'Disponible',
-            'imagen': 'Imagen',
-            'categoria': 'Categoría',
             'proveedor': 'Proveedor',
-            'marca': 'Marca',
-            'estado': 'Estado'
+            'marca': 'Marca'
         }
         widgets = {
-            'codigo': forms.TextInput(attrs={'placeholder': 'Código del producto', 'class': 'form-control'}),
             'descripcion': forms.TextInput(attrs={'placeholder': 'Descripción del producto', 'class': 'form-control'}),
             'precio_unitario': forms.NumberInput(attrs={'placeholder': 'Precio Unitario', 'class': 'form-control'}),
             'precio_cash': forms.NumberInput(attrs={'placeholder': 'Precio Cash', 'class': 'form-control'}),
-            'disponible': forms.NumberInput(attrs={'placeholder': 'Cantidad disponible', 'class': 'form-control'}),
-            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-            'categoria': forms.Select(attrs={'class': 'form-control'}),
             'proveedor': forms.Select(attrs={'class': 'form-control'}),
-            'marca': forms.Select(attrs={'class': 'form-control'}),
-            'estado': forms.Select(attrs={'class': 'form-control'})
+            'marca': forms.Select(attrs={'class': 'form-control'})
         }
+
 
 class ImportarProductosFormulario(forms.Form):
     importar = forms.FileField(

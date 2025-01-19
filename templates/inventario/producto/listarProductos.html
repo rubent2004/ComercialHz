@@ -2,10 +2,8 @@
 
 {% block content %}
 
-<!-- NO MODIFICAR ---------------------------------->
 {% load static %}
 <script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
-<!-- FIN DE JAVASCRIPT ------------------------------------>
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
@@ -17,14 +15,14 @@
             <div class="col-md-12">
                 {% if messages %}
                     {% for message in messages %}
-                    <div class="card card-primary">
-                        <div class="card-header">
-                            <div class="header-block">
-                                <em class="fa fa-check"></em>
-                                <p class="title">{{ message }}</p>
+                        <div class="card card-primary">
+                            <div class="card-header">
+                                <div class="header-block">
+                                    <em class="fa fa-check"></em>
+                                    <p class="title">{{ message }}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     {% endfor %}
                 {% endif %}
                 <div class="card">
@@ -35,16 +33,14 @@
 
                         <!-- Botones para agregar producto e imprimir -->
                         <div class="d-flex justify-content-end mb-3">
-                            <!-- Botón para agregar producto -->
-                            <a href="/inventario/agregarProducto" class="btn btn-success mr-2">
+                            <a href="{% url 'inventario:agregarProducto' %}" class="btn btn-success mr-2">
                                 <i class="fa fa-plus"></i> Agregar Producto
                             </a>
-                            <!-- Botón para imprimir -->
+                            
                             <button class="btn btn-primary" onclick="window.print()">
                                 <i class="fa fa-print"></i> Imprimir
                             </button>
                         </div>
-                        <!-- Fin de botones -->
 
                         <section class="example">
                             <div class="table-responsive">
@@ -52,14 +48,12 @@
                                     <thead>
                                         <tr>
                                             <th>Item</th>
-                                            <th>Nombre</th>
-                                            <th>Precio</th>
-                                            <th>Disponible</th>
-                                            <th>Categoria</th>
-                                            <th>Cash</th>
-                                            <th>Precio Unit</th>
-                                            <th>Ubicación</th>
-                                            
+                                            <th>Descripcion</th>
+                                            <th>Precio Unitario</th>
+                                            <th>Precio Cash</th>
+                                            <td>Codigo</td>
+                                            <th>Proveedor</th>
+                                            <th>Marca</th>
                                             <th>Opciones</th>
                                         </tr>
                                     </thead>
@@ -68,33 +62,22 @@
                                         <tr>
                                             <td>{{ fila.id }}</td>
                                             <td>{{ fila.descripcion }}</td>
-                                            <td>{{ fila.precio }}</td>
-                                            <td>{{ fila.disponible }}</td>
-                                            <td>
-                                                {% if fila.categoria == '1' %}
-                                                    Unidad
-                                                {% elif fila.categoria == '2' %}
-                                                    Kilo
-                                                {% elif fila.categoria == '3' %}
-                                                    Litro
-                                                {% elif fila.categoria == '4' %}
-                                                    Otros
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if fila.tiene_iva %}
-                                                    Si
-                                                {% else %}
-                                                    No
-                                                {% endif %}
-                                            </td>
+                                            <td>{{ fila.precio_unitario }}</td>
+                                            <td>{{ fila.precio_cash|default:"—" }}</td>
+                                            <td>{{ fila.codigo }}</td>
+                                            <td>{{ fila.proveedor.nombre }}</td>
+
+                                            <td>{{ fila.marca }}</td>
                                             <td>
                                                 <div class="btn-group">
                                                     <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         <i class="fa fa-wrench"></i>
                                                     </button>
                                                     <div class="dropdown-menu">
-                                                        <a class="dropdown-item" href="/inventario/editarProducto/{{ fila.id }}">Editar/Ver producto</a>
+                                                        <a class="dropdown-item" href="{% url 'inventario:editarProducto' fila.id %}">Editar/Ver producto</a>
+
+
+
                                                         <div class="dropdown-divider"></div>
                                                         <a class="dropdown-item" onclick="eliminarEntrada({{ fila.id }}, 'producto')">Eliminar producto</a>
                                                     </div>

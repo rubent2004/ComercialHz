@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.forms import ValidationError
+from django.urls import reverse
+
 
 
 # MODELOS
@@ -60,8 +62,9 @@ class Bodega(models.Model):
 
 
 #------------------------------------------PROVEEDOR-----------------------------------
+# models.py
 class Proveedor(models.Model):
-    #id
+    # id
     dui = models.CharField(max_length=12, unique=True)
     nombre = models.CharField(max_length=40)
     apellido = models.CharField(max_length=40)
@@ -73,17 +76,21 @@ class Proveedor(models.Model):
     def duisRegistradas(self):
         objetos = self.objects.all().order_by('nombre')
         arreglo = []
-        for indice,objeto in enumerate(objetos):
+        for indice, objeto in enumerate(objetos):
             arreglo.append([])
             arreglo[indice].append(objeto.dui)
             nombre_empleado = objeto.nombre + " " + objeto.empleado
-            arreglo[indice].append("%s. C.I: %s" % (nombre_empleado,self.formateardui(objeto.dui)) )
- 
-        return arreglo 
+            arreglo[indice].append("%s. C.I: %s" % (nombre_empleado, self.formateardui(objeto.dui)))
+        return arreglo
 
     @staticmethod
     def formateardui(dui):
-        return format(int(dui), ',d')  
+        return format(int(dui), ',d')
+
+    def __str__(self):
+        # Aquí puedes retornar lo que desees, por ejemplo el nombre y apellido
+        return f"{self.nombre} {self.apellido}"  # Se mostrará nombre y apellido del proveedor
+
     
 #---------------------------------------------------------------------------------------    
 class Opciones(models.Model):
@@ -98,19 +105,22 @@ class Opciones(models.Model):
 #-------------------------------PRODUCTO------------------------------------------------
 
    # Modelo Producto
+from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+#from django.urls import reverse
+
+
 class Producto(models.Model):
     descripcion = models.CharField(max_length=40)  # Equivale a 'nombre'
     precio_unitario = models.DecimalField(max_digits=9, decimal_places=2)
     precio_cash = models.DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
-    codigo = models.CharField(max_length=50, unique=True, null= True)
+    codigo = models.CharField(max_length=50, unique=True, null=True)  # Código único basado en el id
     fecha_registro = models.DateTimeField(auto_now_add=True)
-    disponible = models.IntegerField(null=True, default=0)  # Calculado a partir de Inventario
-    imagen = models.ImageField(upload_to='productos/', blank=True, null=True)
-
+    
     # Relaciones
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
-    marca = models.ForeignKey(Marca, on_delete=models.CASCADE)
-    estado = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE,null= True)  # Estado del producto
+    proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE)
+    marca = models.ForeignKey('Marca', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.descripcion
@@ -143,14 +153,15 @@ class Producto(models.Model):
             arreglo[indice + extra].append("%d" % (precio_producto))
 
         return arreglo
+
     @classmethod
-    def productosDisponibles(self):
-        objetos = self.objects.all().order_by('id')
+    def productosDisponibles(cls):
+        objetos = cls.objects.all().order_by('id')
         arreglo = []
         etiqueta = True
         extra = 1
 
-        for indice,objeto in enumerate(objetos):
+        for indice, objeto in enumerate(objetos):
             arreglo.append([])
             if etiqueta:
                 arreglo[indice].append(0)
@@ -160,9 +171,17 @@ class Producto(models.Model):
 
             arreglo[indice + extra].append(objeto.id)
             productos_disponibles = objeto.disponible
-            arreglo[indice + extra].append("%d" % (productos_disponibles) )  
+            arreglo[indice + extra].append("%d" % (productos_disponibles))  
 
-        return arreglo 
+        return arreglo
+
+# Señal para autogenerar el código cuando el producto es guardado
+@receiver(pre_save, sender=Producto)
+def asignar_codigo(sender, instance, **kwargs):
+    if not instance.codigo:  # Solo genera el código si aún no tiene uno asignado
+        ultimo_id = Producto.objects.count() + 1  # Incrementa el ID actual
+        instance.codigo = f"{ultimo_id:07d}"  # Genera un código como 0000001, 0000002, etc.
+
 #---------------------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------------------

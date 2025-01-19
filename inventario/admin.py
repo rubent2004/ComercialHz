@@ -15,7 +15,7 @@ admin.site.register(Usuario, UsuarioAdmin)
 
  #ver productos
 class ProductoAdmin(admin.ModelAdmin):
-     list_display = ['descripcion', 'marca', 'precio_unitario', 'precio_cash', 'disponible', 'proveedor']
+     list_display = ['descripcion', 'marca', 'precio_unitario', 'precio_cash', 'proveedor']
 admin.site.register(Producto, ProductoAdmin)
 
 class EstadoProductoAdmin(admin.ModelAdmin):

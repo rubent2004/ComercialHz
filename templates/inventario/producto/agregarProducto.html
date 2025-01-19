@@ -14,22 +14,7 @@
     <section class="section">
         <div class="row sameheight-container">
             <div class="col-md-12">
-                {% if modo == "agregado" %}
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="card card-primary">
-                                <div class="card-header">
-                                    <div class="header-block">
-                                        <em class="fa fa-check"></em>
-                                        <p class="title">{{ message }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endif %}
-
-                {% if modo == "editado" %}
+                {% if modo %}
                     {% if messages %}
                         {% for message in messages %}
                             <div class="card card-primary">
@@ -47,33 +32,30 @@
                 <div class="card card-block sameheight-item">
                     <!-- Botón de Listar Productos -->
                     <div class="d-flex justify-content-end mb-3">
-                        <a href="/inventario/listarProductos" class="btn btn-secondary">
+                        <a href="{% url 'inventario:listarProductos' %}" class="btn btn-secondary">
                             <i class="fa fa-list"></i> Listar Productos
                         </a>
                     </div>
-                    <!-- Fin del botón -->
 
-                    <form role="form" method="POST" onsubmit="return validarTodo('producto')">
+                    <form role="form" method="POST" enctype="multipart/form-data" onsubmit="return validarTodo('producto')">
                         {% csrf_token %}
+                        
+                        <!-- Renderizar el formulario -->
                         {% for field in form %}
-                            {% if field.name == 'tiene_iva' %}
-                                <div class="form-group">
-                                    <label>
-                                        {{ field }}
-                                        <span>{{ field.label }}</span>
-                                    </label>
-                                </div>
-                            {% else %}
-                                <div class="form-group">
-                                    <label for="{{ field.name }}">
-                                        {{ field.label }}
-                                    </label>
-                                    {{ field }}
-                                </div>
-                            {% endif %}
+                            <div class="form-group">
+                                <label for="{{ field.name }}">
+                                    {{ field.label }}
+                                </label>
+                                {{ field }}  <!-- Esto mostrará todos los campos -->
+                                
+                                {% if field.errors %}
+                                    <div class="text-danger">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
                         {% endfor %}
+
                         <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Ingresar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
                         </div>
                     </form>
                 </div>

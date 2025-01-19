@@ -1,9 +1,12 @@
 from django.urls import path
 from . import views
+#from .views import AgregarProducto, ListarProductos, ImportarProductos, ExportarProductos, EditarProducto
+
 
 app_name = "inventario"
 
 urlpatterns = [
+    
 path('login', views.Login.as_view(), name='login'),
 path('panel', views.Panel.as_view(), name='panel'),
 path('salir', views.Salir.as_view(), name='salir'),
@@ -15,6 +18,7 @@ path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto')
 path('importarProductos', views.ImportarProductos.as_view(), name='importarProductos'),
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
 path('editarProducto/<int:pk>', views.EditarProducto.as_view(), name='editarProducto'),
+
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
 path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),

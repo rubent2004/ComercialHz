@@ -8,6 +8,8 @@ from django.http import HttpResponseRedirect, HttpResponse,FileResponse
 from .forms import *
 # clase para crear vistas basadas en sub-clases
 from django.views import View
+from django.urls import reverse
+
 #autentificacion de usuario e inicio de sesion
 from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
@@ -392,52 +394,31 @@ class ListarProductos(LoginRequiredMixin, View):
 
 
 
-
-#Maneja y visualiza un formulario--------------------------------------------------#
-class AgregarProducto(LoginRequiredMixin, View):
+class AgregarProducto(View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self, request):
-        # Crea una instancia del formulario y la llena con los datos:
         form = ProductoFormulario(request.POST)
-        # Revisa si es valido:
         if form.is_valid():
-            # Procesa y asigna los datos con form.cleaned_data como se requiere
-            descripcion = form.cleaned_data['descripcion']
-            precio_unitario = form.cleaned_data['precio_unitario']
-            precio_cash = form.cleaned_data['precio_cash']
-            codigo = form.cleaned_data['codigo']
-            categoria = form.cleaned_data['categoria']
-            imagen = form.cleaned_data['imagen']
-            Proveedor = form.cleaned_data['Proveedor']
-            marca = form.cleaned_data['marca']
-            estado = form.cleaned_data['estado']
-            fecha_registro = datetime.now()
-            disponible = 0
-
-            prod = Producto(descripcion=descripcion, precio_unitario=precio_unitario, precio_cash=precio_cash, codigo=codigo, categoria=categoria, imagen=imagen, Proveedor=Proveedor, marca=marca, estado=estado, fecha_registro=fecha_registro, disponible=disponible)
-            prod.save()
+            try:
+                producto = form.save()
+                messages.success(request, f'Producto ingresado exitosamente con ID {producto.id}.')
+                request.session['productoProcesado'] = 'agregado'
+                return HttpResponseRedirect(reverse('inventario:agregarProducto'))  # Aquí se hace la redirección a 'agregarProducto'
             
-            form = ProductoFormulario()
-            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % prod.id)
-            request.session['productoProcesado'] = 'agregado'
-            return HttpResponseRedirect("/inventario/producto/agregarProducto")
-        else:
-            #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
+            except Exception as e:
+                messages.error(request, f'Error al guardar el producto: {str(e)}')
 
-    # Si se llega por GET crearemos un formulario en blanco
-    def get(self,request):
+        return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
+
+    def get(self, request):
         form = ProductoFormulario()
-        #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('productoProcesado')}   
-        contexto = complementarContexto(contexto,request.user)  
+        contexto = {
+            'form': form,
+            'modo': request.session.pop('productoProcesado', None),
+        }
         return render(request, 'inventario/producto/agregarProducto.html', contexto)
-# #Fin de vista------------------------------------------------------------------------# 
-
-
-
 
 
 #Formulario simple que procesa un script para importar los productos-----------------#
