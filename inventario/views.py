@@ -1758,93 +1758,6 @@ class EditarRep(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/reparacion/agregarRep.html', contexto)
     
-#inventario
-#Listar inventario
-class ListarInventario(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request):
-        inventarios = Inventario.objects.all()
-        contexto = {'tabla': inventarios}
-        contexto = complementarContexto(contexto,request.user) 
-        return render(request, 'inventario/inventario/listarInventario.html', contexto)
-
-#Fin de vista--------------------------------------------------------------------------------
-
-#Entrada 
-# class Entrega(models.Model):
-#     idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-#     idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
-#     id_empleado_autorizo = models.ForeignKey(Usuario, related_name='autorizo_entregas', on_delete=models.CASCADE)
-#     id_empleado_recibio = models.ForeignKey(Usuario, related_name='recibio_entregas', on_delete=models.CASCADE)
-#     cantidad = models.IntegerField()
-#     fecha_entrega = models.DateTimeField(auto_now_add=True)
-
-#     def save(self, *args, **kwargs):
-#         # Validar que la cantidad no sea negativa
-#         if self.cantidad <= 0:
-#             raise ValidationError("La cantidad debe ser mayor que cero.")
-
-#         # Reducir el stock en la bodega
-#         inventario = Inventario.objects.get(bodega=self.idbodega, producto=self.idproducto)
-#         inventario.reducir_stock(self.cantidad)
-
-#         # Crear un movimiento de producto
-#         MovimientoProducto.objects.create(
-#             bodega=self.idbodega,
-#             producto=self.idproducto,
-#             tipo_movimiento='salida',
-#             cantidad=self.cantidad,
-#             usuario=self.id_empleado_autorizo,
-#             estado_producto=self.idproducto.estado
-#         )
-
-#         super().save(*args, **kwargs)
-
-# #Recepcion 
-# class Recepcion(models.Model):
-#     TIPO_RECEPCION_CHOICES = [
-#         ('vendido', 'Vendido'),
-#         ('devuelto', 'Devuelto'),
-#     ]
-#     idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-#     idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
-#     id_empleado_autorizo = models.ForeignKey(Usuario, related_name='autorizo_recepcion', on_delete=models.CASCADE)
-#     id_empleado_devolvio = models.ForeignKey(Usuario, related_name='devolvio_recepcion', on_delete=models.CASCADE)
-#     cantidad = models.IntegerField()
-#     tipo_recepcion = models.CharField(max_length=10, choices=TIPO_RECEPCION_CHOICES)
-
-#     def save(self, *args, **kwargs):
-#         # Validar que la cantidad no sea negativa
-#         if self.cantidad <= 0:
-#             raise ValidationError("La cantidad debe ser mayor que cero.")
-
-#         # Actualizar el estado del producto según el tipo de recepción
-#         if self.tipo_recepcion == 'vendido':
-#             estado_vendido = EstadoProducto.objects.get(nombre='vendido')
-#             self.idproducto.estado = estado_vendido
-#         elif self.tipo_recepcion == 'devuelto':
-#             estado_bodega = EstadoProducto.objects.get(nombre='en_bodega')
-#             self.idproducto.estado = estado_bodega
-
-#             # Aumentar el stock en la bodega
-#             inventario, created = Inventario.objects.get_or_create(bodega=self.idbodega, producto=self.idproducto, defaults={'stock': 0})
-#             inventario.aumentar_stock(self.cantidad)
-
-#         # Crear un movimiento de producto
-#         MovimientoProducto.objects.create(
-#             bodega=self.idbodega,
-#             producto=self.idproducto,
-#             tipo_movimiento=self.tipo_recepcion,
-#             cantidad=self.cantidad,
-#             usuario=self.id_empleado_autorizo,
-#             estado_producto=self.idproducto.estado
-#         )
-
-#         self.idproducto.save()
-#         super().save(*args, **kwargs)
-
 #Estado producto
 class ListarEstadoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1918,3 +1831,51 @@ class EditarEstadoProducto(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/estadoproducto/agregarEstadoProducto.html', contexto)
 #Fin de vista------------------------------------------------------------------------------------#  
+
+# Inventario
+class ListarInventario(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def get(self, request):
+        form = BuscarInventarioFormulario(request.GET)
+        inventarios = Inventario.objects.all()
+
+        if form.is_valid():
+            if form.cleaned_data['bodega']:
+                inventarios = inventarios.filter(idbodega=form.cleaned_data['bodega'])
+            if form.cleaned_data['producto']:
+                inventarios = inventarios.filter(idproducto=form.cleaned_data['producto'])
+            if form.cleaned_data['estado']:
+                inventarios = inventarios.filter(estado__nombre=form.cleaned_data['estado'])
+
+        contexto = {'tabla': inventarios, 'form': form}
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/inventario/listarInventario.html', contexto)
+# Registro Inventario
+class AgregarInventario(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        form = RegistroInventarioFormulario(request.POST)
+        if form.is_valid():
+            registro = form.save(commit=False)
+            inventario, _ = Inventario.objects.get_or_create(
+                idbodega=registro.bodega,
+                idproducto=registro.producto,
+                defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
+            )
+            inventario.aumentar_stock(registro.cantidad)
+            inventario.save()
+            registro.estado = EstadoProducto.objects.get(nombre='Disponible')
+            registro.ajustar_stock(registro.cantidad)
+            messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
+            return HttpResponseRedirect("/inventario/agregarInventario")
+        else:
+            return render(request, 'inventario/inventario/agregarInventario.html', {'form': form})
+
+    def get(self, request):
+        form = RegistroInventarioFormulario()
+        contexto = {'form': form}
+        return render(request, 'inventario/inventario/agregarInventario.html', contexto)

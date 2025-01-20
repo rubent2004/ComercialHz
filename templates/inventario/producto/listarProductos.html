@@ -48,10 +48,10 @@
                                     <thead>
                                         <tr>
                                             <th>Item</th>
+                                            <td>Codigo</td>
                                             <th>Descripcion</th>
                                             <th>Precio Unitario</th>
                                             <th>Precio Cash</th>
-                                            <td>Codigo</td>
                                             <th>Proveedor</th>
                                             <th>Marca</th>
                                             <th>Opciones</th>
@@ -61,10 +61,10 @@
                                         {% for fila in tabla %}
                                         <tr>
                                             <td>{{ fila.id }}</td>
+                                            <td>{{ fila.codigo }}</td>
                                             <td>{{ fila.descripcion }}</td>
                                             <td>{{ fila.precio_unitario }}</td>
                                             <td>{{ fila.precio_cash|default:"—" }}</td>
-                                            <td>{{ fila.codigo }}</td>
                                             <td>{{ fila.proveedor.nombre }}</td>
 
                                             <td>{{ fila.marca }}</td>

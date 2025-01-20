@@ -1,5 +1,5 @@
 from django import forms
-from .models import Bodega, DetalleCompra, Entrega, Estado, EstadoProducto, Inventario, Compra, CompraItem, Marca, Producto,Empleado, Proveedor, Recepcion, Usuario
+from .models import Bodega, Entrega, Estado, EstadoProducto, Inventario, Marca, Producto, Empleado, Proveedor, Recepcion, RegistroInventario, Reparacion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -26,8 +26,9 @@ class LoginFormulario(forms.Form):
 class ProductoFormulario(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['descripcion', 'precio_unitario', 'precio_cash', 'proveedor', 'marca']
+        fields = ['codigo','descripcion', 'precio_unitario', 'precio_cash', 'proveedor', 'marca']
         labels = {
+            'codigo': 'Código',
             'descripcion': 'Descripción',
             'precio_unitario': 'Precio Unitario',
             'precio_cash': 'Precio Cash',
@@ -35,6 +36,7 @@ class ProductoFormulario(forms.ModelForm):
             'marca': 'Marca'
         }
         widgets = {
+            'codigo': forms.TextInput(attrs={'placeholder': 'Código del producto', 'class': 'form-control'}),
             'descripcion': forms.TextInput(attrs={'placeholder': 'Descripción del producto', 'class': 'form-control'}),
             'precio_unitario': forms.NumberInput(attrs={'placeholder': 'Precio Unitario', 'class': 'form-control'}),
             'precio_cash': forms.NumberInput(attrs={'placeholder': 'Precio Cash', 'class': 'form-control'}),
@@ -154,53 +156,27 @@ class DetallesFacturaFormulario(forms.Form):
 
     valor_subtotal = forms.DecimalField(min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total','class':'form-control','hidden':'true','value':'0'}))      
 
+class EmitirFacturaFormulario(forms.Form):
+    def __init__(self, *args, **kwargs):
+        elecciones = kwargs.pop('duis')
+        super(EmitirFacturaFormulario, self).__init__(*args, **kwargs)
 
-class EmitirCompraFormulario(forms.Form):
-    def _init_(self, *args, **kwargs):
-       elecciones = kwargs.pop('duis')
-       super(EmitirCompraFormulario, self)._init_(*args, **kwargs)
+        if elecciones:
+            self.fields["empleado"] = forms.CharField(label="Empleado a facturar", max_length=50, widget=forms.Select(choices=elecciones, attrs={'placeholder': 'El DUI del empleado a facturar', 'id': 'empleado', 'class': 'form-control'}))
 
-       if(elecciones):
-            self.fields["proveedor"] = forms.CharField(label="Proveedor",max_length=50,
-            widget=forms.Select(choices=elecciones,attrs={'placeholder': 'El dui del proveedor que vende el producto',
-            'id':'proveedor','class':'form-control'}))
+    productos = forms.IntegerField(label="Número de productos", widget=forms.NumberInput(attrs={'placeholder': 'Número de productos a facturar', 'id': 'productos', 'class': 'form-control'}))
 
-    productos = forms.IntegerField(label="Numero de productos",widget=forms.NumberInput(attrs={'placeholder': 'Numero de productos a comprar',
-        'id':'productos','class':'form-control'}))
+class DetallesFacturaFormulario(forms.Form):
+    productos = Producto.productosRegistrados()
 
-class CompraFormulario(forms.ModelForm):
-    class Meta:
-        model = Compra
-        fields = ['proveedor', 'fecha', 'sub_monto', 'monto_general']
-        labels = {
-            'proveedor': 'Proveedor',
-            'fecha': 'Fecha',
-            'sub_monto': 'Sub Monto',
-            'monto_general': 'Monto General',
-        }
+    descripcion = MisProductos(queryset=productos, widget=forms.Select(attrs={'placeholder': 'El producto a debitar', 'class': 'form-control select-group', 'onchange': 'establecerOperaciones(this)'}))
+    vista_precio = MisPrecios(required=False, queryset=productos, label="Precio del producto", widget=forms.Select(attrs={'placeholder': 'El precio del producto', 'class': 'form-control', 'disabled': 'true'}))
+    cantidad = forms.IntegerField(label="Cantidad a facturar", min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Introduzca la cantidad del producto', 'class': 'form-control', 'value': '0', 'onchange': 'calculoPrecio(this);calculoDisponible(this)', 'max': '0'}))
+    cantidad_disponibles = forms.IntegerField(required=False, label="Stock disponible", min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Introduzca la cantidad del producto', 'class': 'form-control', 'value': '0', 'max': '0', 'disabled': 'true'}))
+    selec_disponibles = MisDisponibles(queryset=productos, required=False, widget=forms.Select(attrs={'placeholder': 'El producto a debitar', 'class': 'form-control', 'disabled': 'true', 'hidden': 'true'}))
+    subtotal = forms.DecimalField(required=False, label="Sub-total", min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total', 'class': 'form-control', 'disabled': 'true', 'value': '0'}))
+    valor_subtotal = forms.DecimalField(min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total', 'class': 'form-control', 'hidden': 'true', 'value': '0'}))
 
-class CompraItemFormulario(forms.ModelForm):
-    class Meta:
-        model = CompraItem
-        fields = ['compra', 'producto', 'bodega', 'cantidad']
-        labels = {
-            'compra': 'Compra',
-            'producto': 'Producto',
-            'bodega': 'Bodega',
-            'cantidad': 'Cantidad',
-        }
-
-class DetalleCompraFormulario(forms.ModelForm):
-    class Meta:
-        model = DetalleCompra
-        fields = ['id_compra', 'id_producto', 'cantidad', 'sub_total', 'total']
-        labels = {
-            'id_compra': 'Compra',
-            'id_producto': 'Producto',
-            'cantidad': 'Cantidad',
-            'sub_total': 'Sub Total',
-            'total': 'Total',
-        }
 class ProveedorFormulario(forms.ModelForm):
     tipoC =  [ ('1','DUI'),('2','NIT') ]
 
@@ -444,32 +420,46 @@ class MarcaFormulario(forms.ModelForm):
         }
 
 
-class InventarioFormulario(forms.ModelForm):
+class BuscarInventarioFormulario(forms.Form):
+    bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
+    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    estado = forms.ChoiceField(choices=[('Disponible', 'Disponible'), ('Dañado', 'Dañado'), ('En reparación', 'En reparación'), ('Vendido', 'Vendido'), ('Pendiente', 'Pendiente')], required=False, label='Estado', widget=forms.Select(attrs={'class': 'form-control'}))
+
+
+# Formulario Registro Inventario
+
+class RegistroInventarioFormulario(forms.ModelForm):
     class Meta:
-        model = Inventario
-        fields = ['idbodega', 'idproducto', 'stock']
+        model = RegistroInventario
+        fields = ['producto', 'bodega', 'cantidad']
         labels = {
-            'idbodega': 'Bodega',
-            'idproducto': 'Producto',
-            'stock': 'Stock',
+            'producto': 'Producto',
+            'bodega': 'Bodega',
+            'cantidad': 'Cantidad',
         }
-
-    def __init__(self, *args, **kwargs):
-        super(InventarioFormulario, self).__init__(*args, **kwargs)
-        # Filtrar productos con estado 'en_bodega'
-        self.fields['idproducto'].queryset = Producto.objects.filter(estado__nombre='en_bodega').order_by('descripcion')
-
-
-#Formulario Reparacion
-class ReparacionFormulario(forms.Form):
-    reparacion = forms.CharField(
-        label = 'Nombre de la reparacion',
-        max_length=50,
-        widget = forms.TextInput(
-        attrs={'class':'form-control','id':'reparacion',
-            'placeholder':'Coloque el nombre de la reparacion'}),
-        )
-#Formulario Entrega
+        widgets = {
+            'producto': forms.Select(attrs={'class': 'form-control'}),
+            'bodega': forms.Select(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+        }
+# Formulario Reparaciónclass ReparacionFormulario(forms.ModelForm):
+class ReparacionFormulario(forms.ModelForm):
+    class Meta:
+        model = Reparacion
+        fields = ['idproducto', 'descripcion_problema', 'fecha_retorno', 'estado']
+        labels = {
+            'idproducto': 'Producto',
+            'descripcion_problema': 'Descripción del problema',
+            'fecha_retorno': 'Fecha de retorno',
+            'estado': 'Estado',
+        }
+        widgets = {
+            'idproducto': forms.Select(attrs={'class': 'form-control'}),
+            'descripcion_problema': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Descripción del problema'}),
+            'fecha_retorno': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
+        }
+# Formulario Entrega
 class EntregaFormulario(forms.ModelForm):
     class Meta:
         model = Entrega
@@ -481,15 +471,32 @@ class EntregaFormulario(forms.ModelForm):
             'id_empleado_recibio': 'Empleado que Recibe',
             'cantidad': 'Cantidad',
         }
+        widgets = {
+            'idproducto': forms.Select(attrs={'class': 'form-control'}),
+            'idbodega': forms.Select(attrs={'class': 'form-control'}),
+            'id_empleado_autorizo': forms.Select(attrs={'class': 'form-control'}),
+            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+        }
+
+# Formulario Recepción
 class RecepcionFormulario(forms.ModelForm):
     class Meta:
         model = Recepcion
-        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_devolvio', 'cantidad', 'tipo_recepcion']
+        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_recibio', 'cantidad', 'tipo_recepcion']
         labels = {
             'idproducto': 'Producto',
             'idbodega': 'Bodega',
             'id_empleado_autorizo': 'Empleado que Autoriza',
-            'id_empleado_devolvio': 'Empleado que Devolvió',
+            'id_empleado_recibio': 'Empleado que Recibe',
             'cantidad': 'Cantidad',
             'tipo_recepcion': 'Tipo de Recepción',
+        }
+        widgets = {
+            'idproducto': forms.Select(attrs={'class': 'form-control'}),
+            'idbodega': forms.Select(attrs={'class': 'form-control'}),
+            'id_empleado_autorizo': forms.Select(attrs={'class': 'form-control'}),
+            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+            'tipo_recepcion': forms.Select(attrs={'class': 'form-control'}),
         }
