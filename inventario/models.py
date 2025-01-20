@@ -170,27 +170,6 @@ class Producto(models.Model):
 
         return arreglo
 
-    @classmethod
-    def productosDisponibles(cls):
-        objetos = cls.objects.all().order_by('id')
-        arreglo = []
-        etiqueta = True
-        extra = 1
-
-        for indice, objeto in enumerate(objetos):
-            arreglo.append([])
-            if etiqueta:
-                arreglo[indice].append(0)
-                arreglo[indice].append("------")
-                etiqueta = False
-                arreglo.append([])
-
-            arreglo[indice + extra].append(objeto.id)
-            productos_disponibles = objeto.disponible
-            arreglo[indice + extra].append("%d" % (productos_disponibles))  
-
-        return arreglo
-
 # Señal para autogenerar el código cuando el producto es guardado
 @receiver(pre_save, sender=Producto)
 def asignar_codigo(sender, instance, **kwargs):
@@ -234,6 +213,10 @@ class Empleado(models.Model):
         Formatea el DUI.
         """
         return format(int(dui), ',d')
+    #return nombre
+    
+    def __str__(self):
+        return f"{self.nombre}"
 
 
 #--------------------------------FACTURA-----------------------------------------------
@@ -347,19 +330,19 @@ class Notificaciones(models.Model):
     #id
     autor = models.ForeignKey(Usuario,to_field='username', on_delete=models.CASCADE)
     mensaje = models.TextField()
-#---------------------------------------------------------------------------------------
-
-class MovimientoProducto(models.Model):
+#---------------------------------------------------------------------------------------class MovimientoProducto(models.Model):
+class MovimientoProducto(models.Model):    
     TIPO_MOVIMIENTO_CHOICES = [
         ('entrada', 'Entrada'),
         ('salida', 'Salida'),
-        ('reparacion', 'Reparacion'),
-        ('devolucion', 'Devolucion'),
+        ('reparacion', 'Reparación'),
+        ('devolucion', 'Devolución'),
         ('entrega', 'Entrega'),
-        ('recepcion', 'Recepcion'),
+        ('recepcion', 'Recepción'),
         ('venta', 'Venta'),
         ('pendiente', 'Pendiente'),
     ]
+    
     bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     tipo_movimiento = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
@@ -368,6 +351,43 @@ class MovimientoProducto(models.Model):
     empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
     fecha_movimiento = models.DateTimeField(auto_now_add=True)
     estado_producto = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        if self.tipo_movimiento == 'entrega':
+            # Solo considerar productos en estado 'disponible' para el cálculo de stock
+            stock_disponible = Inventario.objects.filter(
+                idproducto=self.producto,
+                idbodega=self.bodega,
+                estado__nombre='Disponible'  # Suponiendo que el estado "disponible" tiene ese nombre
+            ).aggregate(total=Sum('stock'))['total'] or 0
+            
+            # Sumar las entradas previas y restar las salidas previas, solo considerando productos en estado 'disponible'
+            total_entradas = MovimientoProducto.objects.filter(
+                producto=self.producto,
+                tipo_movimiento='entrada',
+                bodega=self.bodega,
+                estado_producto__nombre='Disponible'  # Filtrar solo productos en estado 'disponible'
+            ).aggregate(total=Sum('cantidad'))['total'] or 0
+            
+            total_salidas = MovimientoProducto.objects.filter(
+                producto=self.producto,
+                tipo_movimiento='salida',
+                bodega=self.bodega,
+                estado_producto__nombre='Disponible'  # Filtrar solo productos en estado 'disponible'
+            ).aggregate(total=Sum('cantidad'))['total'] or 0
+            
+            # Stock final considerando solo productos en estado 'disponible'
+            stock_final = stock_disponible + total_entradas - total_salidas
+
+            # Validación: si la cantidad de la entrega es mayor que el stock final, lanzar error
+            if self.cantidad > stock_final:
+                raise ValidationError(f"No hay suficiente stock disponible para realizar este movimiento. Stock disponible: {stock_final}")
+        
+        # Llamada al método `save` de la superclase
+        super().save(*args, **kwargs)
+
+    class Meta:
+        unique_together = ('bodega', 'producto', 'fecha_movimiento')
 
 #--------------------------------REGISTRO INVENTARIO------------------------------------
 class RegistroInventario(models.Model):
@@ -415,7 +435,10 @@ class RegistroInventario(models.Model):
         Retorna los productos más vendidos.
         """
         return cls.objects.filter(estado__nombre=EstadoProducto.VENDIDO).annotate(total_vendidos=Count('producto')).order_by('-total_vendidos')
-
+    
+    def clean(self):
+        if self.cantidad < 0:
+            raise ValidationError("El stock no puede ser negativo.")
 #--------------------------------REPARACION--------------------------------------------
 class Reparacion(models.Model):
     """
@@ -450,25 +473,32 @@ class Entrega(models.Model):
         if self.cantidad <= 0:
             raise ValidationError("La cantidad debe ser mayor que cero.")
 
-        inventario = Inventario.objects.get(bodega=self.idbodega, producto=self.idproducto)
+        # Verificar que hay suficiente stock en la bodega usando Inventario
+        inventario = Inventario.objects.get(idbodega=self.idbodega, idproducto=self.idproducto)
         if inventario.stock < self.cantidad:
             raise ValidationError("No hay suficiente stock en la bodega.")
+        
+        # Reducir el stock en el inventario
         inventario.reducir_stock(self.cantidad)
 
-        if self.idproducto.estado.nombre != 'Vendido':
+        # Verificar y cambiar el estado del producto en inventario si está disponible
+        if inventario.estado.nombre == 'Disponible':
             estado_pendiente = EstadoProducto.objects.get(nombre='Pendiente')
-            self.idproducto.estado = estado_pendiente
-            self.idproducto.save()
+            inventario.estado = estado_pendiente
+            inventario.save()
 
+        # Crear movimiento de producto
         MovimientoProducto.objects.create(
             bodega=self.idbodega,
             producto=self.idproducto,
             tipo_movimiento='salida',
             cantidad=self.cantidad,
             usuario=self.id_empleado_autorizo,
-            estado_producto=self.idproducto.estado
+            empleado=self.id_empleado_recibio,
+            estado_producto=inventario.estado  # Asegúrate de usar el estado correcto
         )
 
+        # Guardar la entrega
         super().save(*args, **kwargs)
 
     def __str__(self):

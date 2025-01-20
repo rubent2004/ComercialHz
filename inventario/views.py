@@ -1,6 +1,7 @@
 #renderiza las vistas al usuario
 import datetime
 from time import timezone
+from urllib import request
 from django.shortcuts import get_object_or_404, redirect, render
 # para redirigir a otras paginas
 from django.http import HttpResponseRedirect, HttpResponse,FileResponse
@@ -1841,6 +1842,7 @@ class ListarInventario(LoginRequiredMixin, View):
         form = BuscarInventarioFormulario(request.GET)
         inventarios = Inventario.objects.all()
 
+        # Filtrar según los criterios del formulario
         if form.is_valid():
             if form.cleaned_data['bodega']:
                 inventarios = inventarios.filter(idbodega=form.cleaned_data['bodega'])
@@ -1849,8 +1851,14 @@ class ListarInventario(LoginRequiredMixin, View):
             if form.cleaned_data['estado']:
                 inventarios = inventarios.filter(estado__nombre=form.cleaned_data['estado'])
 
-        contexto = {'tabla': inventarios, 'form': form}
+        # Calcular el total de stock
+        total_stock = sum(item.stock for item in inventarios)
+
+        # Preparar el contexto
+        contexto = {'tabla': inventarios, 'form': form, 'total_stock': total_stock}
         contexto = complementarContexto(contexto, request.user)
+
+        # Renderizar la página con el contexto adecuado
         return render(request, 'inventario/inventario/listarInventario.html', contexto)
 # Registro Inventario
 class AgregarInventario(LoginRequiredMixin, View):
@@ -1879,3 +1887,97 @@ class AgregarInventario(LoginRequiredMixin, View):
         form = RegistroInventarioFormulario()
         contexto = {'form': form}
         return render(request, 'inventario/inventario/agregarInventario.html', contexto)
+    
+
+# VIEWS MAS PERRONAS AQUI XD# MovimientoProducto
+class ListarMovimientoProducto(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def get(self, request):
+        form = MovimientoProductoFormulario(request.GET)
+        movimientos = MovimientoProducto.objects.all()
+
+        if form.is_valid():
+            if form.cleaned_data['bodega']:
+                movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
+            if form.cleaned_data['producto']:
+                movimientos = movimientos.filter(producto=form.cleaned_data['producto'])
+            if form.cleaned_data['tipo_movimiento']:
+                movimientos = movimientos.filter(tipo_movimiento=form.cleaned_data['tipo_movimiento'])
+
+        contexto = {'tabla': movimientos, 'form': form}
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+
+class AgregarEntrega(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        form = EntregaFormulario(request.POST)
+        if form.is_valid():
+            idbodega = form.cleaned_data['idbodega']
+            idproducto = form.cleaned_data['idproducto']
+            cantidad = form.cleaned_data['cantidad']
+            id_empleado_recibio = form.cleaned_data['id_empleado_recibio']
+            
+            try:
+                inventario = Inventario.objects.get(idbodega=idbodega, idproducto=idproducto)
+
+                if inventario.stock < cantidad:
+                    messages.error(request, 'No hay suficiente stock para realizar la entrega.')
+                    return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
+
+                entrega = form.save(commit=False)
+                entrega.id_empleado_autorizo = request.user  # Usuario autenticado
+                entrega.save()
+
+                inventario.reducir_stock(cantidad)
+                inventario.save()
+
+                messages.success(request, 'Entrega registrada y stock actualizado exitosamente.')
+                request.session['entregaProcesada'] = 'registrada'
+                return HttpResponseRedirect("/inventario/agregarEntrega")
+
+            except Inventario.DoesNotExist:
+                messages.error(request, 'El producto no está disponible en la bodega seleccionada.')
+                return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
+
+        else:
+            return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
+
+
+    def get(self, request):
+        form = EntregaFormulario()
+        contexto = {'form': form, 'modo': request.session.get('entregaProcesada')}
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
+
+class AgregarRecepcion(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        form = RecepcionFormulario(request.POST)
+        if form.is_valid():
+            recepcion = form.save(commit=False)
+            
+            # Asignar automáticamente el usuario autenticado como el que realiza la recepción
+            recepcion.id_empleado_autorizo = request.user
+
+            # Guardar la recepción y actualizar el inventario
+            recepcion.save()
+            inventario = Inventario.objects.get(idbodega=recepcion.idbodega, idproducto=recepcion.idproducto)
+            inventario.aumentar_stock(recepcion.cantidad)
+            inventario.save()
+
+            messages.success(request, 'Recepción registrada y stock actualizado exitosamente.')
+            return HttpResponseRedirect("/inventario/agregarRecepcion")
+        else:
+            return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
+
+    def get(self, request):
+        form = RecepcionFormulario()
+        contexto = {'form': form}
+        return render(request, 'inventario/recepcion/agregarRecepcion.html', contexto)

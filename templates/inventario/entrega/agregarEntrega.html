@@ -1,0 +1,79 @@
+{% extends "inventario/comun/base.html" %}
+
+{% block content %}
+<!-- NO MODIFICAR ---------------------------------->
+{% load static %}
+<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
+<!-- FIN DE JAVASCRIPT ------------------------------------>
+
+<article class="content responsive-tables-page">
+    <div class="title-block text-center">
+        <h1 class="title">Salida de producto de stock</h1>
+        <p class="title-description">Entrega de Producto</p>
+    </div>
+
+    <section class="section">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Mostrar mensajes de éxito o error -->
+                {% if messages %}
+                    <div class="alert-container">
+                        {% for message in messages %}
+                            {% if message.tags == 'success' %}
+                                <div class="alert alert-success alert-dismissible fade show">
+                                    <em class="fa fa-check"></em>
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            {% elif message.tags == 'error' %}
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    <em class="fa fa-exclamation-triangle"></em>
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <!-- Botón para listar inventario -->
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="/inventario/listarInventario" class="btn btn-info">
+                        <i class="fa fa-list"></i> Listar Inventario
+                    </a>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-block">
+                            <div class="card-title-block">
+                                <h3 class="title">Producto Entregado</h3>
+                            </div>
+
+                            <section class="example">
+                                <!-- Formulario de registro de productos -->
+                                <form method="post" class="form-horizontal">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        {{ form.as_p }}
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fa fa-save"></i> Aceptar
+                                        </button>
+                                    </div>
+                                </form>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+
+{% endblock %}

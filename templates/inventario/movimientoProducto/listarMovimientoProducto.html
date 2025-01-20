@@ -9,8 +9,8 @@
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
-        <h1 class="title"> Listar Inventario </h1>
-        <p class="title-description"> Verifique los productos disponibles en el inventario </p>
+        <h1 class="title"> Movimientos de Producto </h1>
+        <p class="title-description"> Verifique los movimientos registrados en el inventario </p>
     </div>
     <section class="section">
         <div class="row">
@@ -49,38 +49,35 @@
 
                         <div class="card-block">
                             <div class="card-title-block">
-                                <h3 class="title">Inventario</h3>
+                                <h3 class="title">Movimientos Registrados</h3>
                             </div>
                             <section class="example">
                                 <div class="table-responsive">
                                     <table id="example2" class="table table-striped table-bordered table-hover">
                                         <thead>
                                             <tr>
-                                                <th>ID</th>
+                                                <th>ID Movimiento</th>
                                                 <th>Producto</th>
                                                 <th>Bodega</th>
-                                                <th>Stock</th>
-                                                <th>Fecha de Actualización</th>
+                                                <th>Empleado</th>
+                                                <th>Cantidad</th>
+                                                <th>Tipo de Movimiento</th>
+                                                <th>Fecha de Movimiento</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for fila in tabla %}
+                                            {% for movimiento in movimientos %}
                                             <tr>
-                                                <td>{{ fila.id }}</td>
-                                                <td>{{ fila.idproducto.descripcion }}</td>
-                                                <td>{{ fila.idbodega.nombre }}</td>
-                                                <td>{{ fila.stock }}</td>
-                                                <td>{{ fila.fecha_actualizacion }}</td>
+                                                <td>{{ movimiento.id }}</td>
+                                                <td>{{ movimiento.idproducto.descripcion }}</td>
+                                                <td>{{ movimiento.idbodega.nombre }}</td>
+                                                <td>{{ movimiento.id_empleado.nombre }}</td>
+                                                <td>{{ movimiento.cantidad }}</td>
+                                                <td>{{ movimiento.tipo_movimiento }}</td>
+                                                <td>{{ movimiento.fecha_movimiento }}</td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
-                                        <!-- Fila de Total -->
-                                        <tfoot>
-                                            <tr>
-                                                <td colspan="3" class="text-right"><strong>Total de Stock:</strong></td>
-                                                <td colspan="2"><strong>{{ total_stock }}</strong></td>
-                                            </tr>
-                                        </tfoot>
                                     </table>
                                 </div>
                             </section>
@@ -90,6 +87,6 @@
             </div>
         </div>
     </section>
-
 </article>
+
 {% endblock %}

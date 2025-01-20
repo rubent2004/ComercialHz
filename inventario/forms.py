@@ -1,5 +1,5 @@
 from django import forms
-from .models import Bodega, Entrega, Estado, EstadoProducto, Inventario, Marca, Producto, Empleado, Proveedor, Recepcion, RegistroInventario, Reparacion, Usuario
+from .models import Bodega, Entrega, Estado, EstadoProducto, Inventario, Marca, MovimientoProducto, Producto, Empleado, Proveedor, Recepcion, RegistroInventario, Reparacion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -480,23 +480,39 @@ class EntregaFormulario(forms.ModelForm):
         }
 
 # Formulario Recepción
-class RecepcionFormulario(forms.ModelForm):
+class EntregaFormulario(forms.ModelForm):
     class Meta:
-        model = Recepcion
-        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_recibio', 'cantidad', 'tipo_recepcion']
+        model = Entrega
+        fields = ['idproducto', 'idbodega', 'id_empleado_recibio', 'cantidad']
         labels = {
             'idproducto': 'Producto',
             'idbodega': 'Bodega',
-            'id_empleado_autorizo': 'Empleado que Autoriza',
             'id_empleado_recibio': 'Empleado que Recibe',
             'cantidad': 'Cantidad',
-            'tipo_recepcion': 'Tipo de Recepción',
         }
         widgets = {
             'idproducto': forms.Select(attrs={'class': 'form-control'}),
             'idbodega': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_autorizo': forms.Select(attrs={'class': 'form-control'}),
             'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
-            'tipo_recepcion': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+# Formulario Movimiento Producto
+class MovimientoProductoFormulario(forms.ModelForm):
+    class Meta:
+        model = MovimientoProducto  # Asegúrate de usar el modelo MovimientoProducto
+        fields = ['producto', 'bodega', 'empleado', 'cantidad', 'tipo_movimiento']  # Campos correctos para MovimientoProducto
+        labels = {
+            'producto': 'Producto',
+            'bodega': 'Bodega',
+            'empleado': 'Empleado',
+            'cantidad': 'Cantidad',
+            'tipo_movimiento': 'Tipo de Movimiento',
+        }
+        widgets = {
+            'producto': forms.Select(attrs={'class': 'form-control'}),
+            'bodega': forms.Select(attrs={'class': 'form-control'}),
+            'empleado': forms.Select(attrs={'class': 'form-control'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+            'tipo_movimiento': forms.Select(attrs={'class': 'form-control'}),
         }

@@ -76,5 +76,8 @@ path('editarEstado/<int:pk>', views.EditarEstado.as_view(), name='editarEstado')
 path('listarInventario', views.ListarInventario.as_view(), name='listarInventario'),
 #registrar inventario
 path('agregarInventario', views.AgregarInventario.as_view(), name='agregarInventario'),
- 
+#movimiento producto
+path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
+#Agregar entrega
+path('agregarEntrega', views.AgregarEntrega.as_view(), name='agregarEntrega'),
 ]
