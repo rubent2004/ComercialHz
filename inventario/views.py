@@ -1676,15 +1676,8 @@ class EditarBodega(LoginRequiredMixin, View):
         contexto = {'form':form , 'modo':request.session.get('bodegaProcesado'),'editar':True} 
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/bodega/agregarBodega.html', contexto)
-<<<<<<< HEAD
-=======
-# class MovimientoProducto(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
 
-#     def get(self, request):
-#         return render(request, 'inventario/movimientoProducto.html')
-# #listar movimientoProducto
+
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -1695,7 +1688,6 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user) 
         return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
 
->>>>>>> 4ba4139a5e64067b40ec735fca8928b7df312b4e
 #Reparacion
 class Reparacion(LoginRequiredMixin, View):
     login_url = '/inventario/login'
