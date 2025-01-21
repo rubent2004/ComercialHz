@@ -9,17 +9,16 @@
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
-        <h1 class="title">Registrar Movimiento de Producto</h1>
-        <p class="title-description">Registre los movimientos de productos en el inventario</p>
+        <h1 class="title"> Registrar Inventario </h1>
+        <p class="title-description"> Agregue productos al inventario </p>
     </div>
-
     <section class="section">
         <div class="row">
             <div class="col-md-12">
                 {% if messages %}
                     {% for message in messages %}
                         <div class="card card-primary">
-                            <div class="card-header">
+                            <div class="card-header"> 
                                 <div class="header-block">
                                     <em class="fa fa-check"></em>
                                     <p class="title">{{ message }}</p>
@@ -33,66 +32,20 @@
                     <div class="card">
                         <div class="card-block">
                             <div class="card-title-block">
-                                <h3 class="title">Registrar Movimiento</h3>
+                                <h3 class="title">Registrar Inventario</h3>
                             </div>
                             <section class="example">
                                 <form method="post">
                                     {% csrf_token %}
                                     {{ form.as_p }}
-                                    <button type="submit" class="btn btn-primary">Registrar Movimiento</button>
+                                    <button type="submit" class="btn btn-primary">Registrar</button>
                                 </form>
                             </section>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-block">
-                        <div class="card-title-block">
-                            <h3 class="title">Listado de Movimientos</h3>
-                        </div>
-                        <section class="example">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Bodega</th>
-                                        <th>Empleado</th>
-                                        <th>Cantidad</th>
-                                        <th>Tipo de Movimiento</th>
-                                        <th>Fecha</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for movimiento in tabla %}
-                                        <tr>
-                                            <td>{{ movimiento.producto }}</td>
-                                            <td>{{ movimiento.bodega }}</td>
-                                            <td>{{ movimiento.empleado }}</td>
-                                            <td>{{ movimiento.cantidad }}</td>
-                                            <td>{{ movimiento.tipo_movimiento }}</td>
-                                            <td>{{ movimiento.fecha_movimiento }}</td>
-                                            <td>
-                                                <a href="{% url 'editarMovimiento' movimiento.id %}" class="btn btn-warning btn-sm">Editar</a>
-                                                <a href="{% url 'eliminarMovimiento' movimiento.id %}" class="btn btn-danger btn-sm">Eliminar</a>
-                                            </td>
-                                        </tr>
-                                    {% empty %}
-                                        <tr>
-                                            <td colspan="7" class="text-center">No hay movimientos registrados</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </section>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 </article>
-
 {% endblock %}

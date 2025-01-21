@@ -82,5 +82,8 @@ path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name=
 path('agregarEntrega', views.AgregarEntrega.as_view(), name='agregarEntrega'),
 #movimiento producto
 path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
-
+#listado empleado pendeinte
+path('listarEmpleadosPendientes', views.ListarEmpleadosPendientes.as_view(), name='listarEmpleadosPendientes'),
+#recepcion
+path('recepcion-producto/', views.recepcion_producto, name='recepcion_producto'),
 ]

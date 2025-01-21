@@ -1,7 +1,9 @@
 #renderiza las vistas al usuario
+from collections import defaultdict
 import datetime
 from time import timezone
 from urllib import request
+from venv import logger
 from django.shortcuts import get_object_or_404, redirect, render
 # para redirigir a otras paginas
 from django.http import HttpResponseRedirect, HttpResponse,FileResponse
@@ -10,7 +12,7 @@ from .forms import *
 # clase para crear vistas basadas en sub-clases
 from django.views import View
 from django.urls import reverse
-
+from django.db.models import Count, Prefetch, F
 #autentificacion de usuario e inicio de sesion
 from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
@@ -30,7 +32,8 @@ from django.core.management import call_command
 from django.core import serializers
 #permite acceder de manera mas facil a los ficheros
 from django.core.files.storage import FileSystemStorage
-
+from django.views.decorators.http import require_POST
+from django.db import transaction
 
 #Vistas endogenas.
 
@@ -1905,27 +1908,10 @@ class AgregarEntrega(LoginRequiredMixin, View):
     def post(self, request):
         form = EntregaFormulario(request.POST)
         if form.is_valid():
-            idbodega = form.cleaned_data['idbodega']
-            idproducto = form.cleaned_data['idproducto']
-            cantidad = form.cleaned_data['cantidad']
-            id_empleado_recibio = form.cleaned_data['id_empleado_recibio']
-            
             try:
-                inventario = Inventario.objects.get(idbodega=idbodega, idproducto=idproducto)
-
-                # Verificar si hay suficiente stock
-                if inventario.stock < cantidad:
-                    messages.error(request, 'No hay suficiente stock para realizar la entrega.')
-                    return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
-
-                # Si hay stock suficiente, proceder con la entrega
                 entrega = form.save(commit=False)
                 entrega.id_empleado_autorizo = request.user  # Usuario autenticado
-                entrega.save()
-
-                # Reducir el stock en el inventario
-                inventario.reducir_stock(cantidad)
-                inventario.save()
+                entrega.save()  # Aquí se maneja todo (reducción de stock, movimiento, etc.)
 
                 # Mensaje de éxito
                 messages.success(request, 'Entrega registrada y stock actualizado exitosamente.')
@@ -1938,84 +1924,229 @@ class AgregarEntrega(LoginRequiredMixin, View):
                 messages.error(request, 'El producto no está disponible en la bodega seleccionada.')
                 return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
 
+            except ValidationError as e:
+                messages.error(request, str(e))
+                return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
+
         else:
             return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
-
 
     def get(self, request):
         form = EntregaFormulario()
         contexto = {'form': form, 'modo': request.session.get('entregaProcesada')}
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
+# class AgregarRecepcion(LoginRequiredMixin, View):
+#     login_url = '/inventario/login'
+#     redirect_field_name = None
 
-class AgregarRecepcion(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def post(self, request):
-        form = RecepcionForm(request.POST)
+#     def post(self, request):
+#         form = RecepcionForm(request.POST)
         
-        if form.is_valid():
-            tipo_recepcion = form.cleaned_data['tipo_recepcion']
-            cantidad_recibida = form.cleaned_data['cantidad_recibida']
-            idproducto = form.cleaned_data['idproducto']
+#         if form.is_valid():
+#             tipo_recepcion = form.cleaned_data['tipo_recepcion']
+#             cantidad_recibida = form.cleaned_data['cantidad_recibida']
+#             idproducto = form.cleaned_data['idproducto']
 
-            try:
-                # Buscar el movimiento pendiente
-                movimiento_producto = MovimientoProducto.objects.get(
-                    producto=idproducto,
-                    estado="pendiente"
-                )
+#             try:
+#                 # Buscar el movimiento pendiente
+#                 movimiento_producto = MovimientoProducto.objects.get(
+#                     producto=idproducto,
+#                     estado="pendiente"
+#                 )
 
-                # Verificar si la cantidad recibida es mayor que la cantidad pendiente
-                if cantidad_recibida > movimiento_producto.cantidad:
-                    messages.error(request, 'La cantidad recibida no puede ser mayor a la cantidad pendiente.')
-                    return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
+#                 # Verificar si la cantidad recibida es mayor que la cantidad pendiente
+#                 if cantidad_recibida > movimiento_producto.cantidad:
+#                     messages.error(request, 'La cantidad recibida no puede ser mayor a la cantidad pendiente.')
+#                     return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
 
-                # Si fue vendido, actualizar el estado y reducir el inventario
-                if tipo_recepcion == 'vendido':
-                    movimiento_producto.estado = 'vendido'
-                    movimiento_producto.save()
+#                 # Si fue vendido, actualizar el estado y reducir el inventario
+#                 if tipo_recepcion == 'vendido':
+#                     movimiento_producto.estado = 'vendido'
+#                     movimiento_producto.save()
 
-                    # Reducir el stock del inventario
-                    inventario = Inventario.objects.get(bodega=movimiento_producto.bodega, producto=idproducto)
-                    inventario.reducir_stock(cantidad_recibida)
-                    inventario.save()
+#                     # Reducir el stock del inventario
+#                     inventario = Inventario.objects.get(bodega=movimiento_producto.bodega, producto=idproducto)
+#                     inventario.reducir_stock(cantidad_recibida)
+#                     inventario.save()
 
-                # Si fue devuelto, actualizar el estado y aumentar el inventario
-                elif tipo_recepcion == 'devuelto':
-                    movimiento_producto.estado = 'devuelto'
-                    movimiento_producto.save()
+#                 # Si fue devuelto, actualizar el estado y aumentar el inventario
+#                 elif tipo_recepcion == 'devuelto':
+#                     movimiento_producto.estado = 'devuelto'
+#                     movimiento_producto.save()
 
-                    # Aumentar el stock en el inventario
-                    inventario = Inventario.objects.get(bodega=movimiento_producto.bodega, producto=idproducto)
-                    inventario.aumentar_stock(cantidad_recibida)
-                    inventario.save()
+#                     # Aumentar el stock en el inventario
+#                     inventario = Inventario.objects.get(bodega=movimiento_producto.bodega, producto=idproducto)
+#                     inventario.aumentar_stock(cantidad_recibida)
+#                     inventario.save()
 
-                    # Cambiar el estado del producto a "Disponible"
-                    producto = Producto.objects.get(id=idproducto)
-                    producto.estado = 'Disponible'
-                    producto.save()
+#                     # Cambiar el estado del producto a "Disponible"
+#                     producto = Producto.objects.get(id=idproducto)
+#                     producto.estado = 'Disponible'
+#                     producto.save()
 
-                # Mensaje de éxito
-                messages.success(request, 'Recepción registrada y stock actualizado exitosamente.')
+#                 # Mensaje de éxito
+#                 messages.success(request, 'Recepción registrada y stock actualizado exitosamente.')
                 
-                # Establecer la sesión indicando que la recepción fue procesada
-                request.session['recepcionProcesada'] = 'registrada'
-                return HttpResponseRedirect("/inventario/agregarRecepcion")
+#                 # Establecer la sesión indicando que la recepción fue procesada
+#                 request.session['recepcionProcesada'] = 'registrada'
+#                 return HttpResponseRedirect("/inventario/agregarRecepcion")
 
-            except MovimientoProducto.DoesNotExist:
-                messages.error(request, 'No se encontró el producto pendiente con ese estado.')
-                return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
-            except Inventario.DoesNotExist:
-                messages.error(request, 'El producto no está disponible en la bodega seleccionada.')
-                return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
+#             except MovimientoProducto.DoesNotExist:
+#                 messages.error(request, 'No se encontró el producto pendiente con ese estado.')
+#                 return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
+#             except Inventario.DoesNotExist:
+#                 messages.error(request, 'El producto no está disponible en la bodega seleccionada.')
+#                 return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
 
-        else:
-            return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
+#         else:
+#             return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
 
+#     def get(self, request):
+#         form = RecepcionForm()
+#         contexto = {'form': form, 'modo': request.session.get('recepcionProcesada')}
+#         contexto = complementarContexto(contexto, request.user)
+#         return render(request, 'inventario/recepcion/agregarRecepcion.html', contexto)
+
+# views.py
+
+class ListarEmpleadosPendientes(LoginRequiredMixin, View):
     def get(self, request):
-        form = RecepcionForm()
-        contexto = {'form': form, 'modo': request.session.get('recepcionProcesada')}
+        movimientos_pendientes = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente'
+        ).select_related('producto', 'empleado')
+
+        # Organizar datos por empleado y eliminar duplicados
+        empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
+        for movimiento in movimientos_pendientes:
+            empleado_id = movimiento.empleado.id
+            empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
+            empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
+            producto_id = movimiento.producto.id
+            if producto_id not in empleados[empleado_id]['productos']:
+                empleados[empleado_id]['productos'][producto_id] = {
+                    'descripcion': movimiento.producto.descripcion,
+                    'cantidad': movimiento.cantidad,
+                }
+
+        logger.debug("Estructura de empleados: %s", dict(empleados))
+        contexto = {'empleados': dict(empleados)}
         contexto = complementarContexto(contexto, request.user)
-        return render(request, 'inventario/recepcion/agregarRecepcion.html', contexto)
+        return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+    
+
+@require_POST
+@transaction.atomic
+def recepcion_producto(request):
+    producto_id = request.POST.get('producto_id')
+    cantidad_vendida = int(request.POST.get('cantidad_vendida', 0))
+    cantidad_devuelta = int(request.POST.get('cantidad_devuelta', 0))
+
+    # Validar que el producto existe y que pertenece al empleado
+    producto_pendiente = get_object_or_404(
+        MovimientoProducto, 
+        id=producto_id, 
+        estado_producto__nombre='Pendiente'
+    )
+
+    total_pendiente = producto_pendiente.cantidad
+
+    # Validar que la suma de vendida y devuelta no exceda la cantidad pendiente
+    if cantidad_vendida + cantidad_devuelta > total_pendiente:
+        messages.error(request, "La suma de productos vendidos y devueltos excede el total pendiente.")
+        contexto = complementarContexto({}, request.user)
+        return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+
+    # Actualizar cantidades en función de los movimientos
+    if cantidad_vendida > 0:
+        MovimientoProducto.objects.create(
+            bodega=producto_pendiente.bodega,
+            producto=producto_pendiente.producto,
+            tipo_movimiento='venta',
+            cantidad=cantidad_vendida,
+            usuario=request.user,
+            empleado=producto_pendiente.empleado,
+            estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
+        )
+
+    if cantidad_devuelta > 0:
+        MovimientoProducto.objects.create(
+            bodega=producto_pendiente.bodega,
+            producto=producto_pendiente.producto,
+            tipo_movimiento='devolucion',
+            cantidad=cantidad_devuelta,
+            usuario=request.user,
+            empleado=producto_pendiente.empleado,
+            estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
+        )
+
+        # Ajustar stock en la bodega
+        inventario = RegistroInventario.objects.filter(
+            producto=producto_pendiente.producto,
+            bodega=producto_pendiente.bodega,
+            estado=get_object_or_404(EstadoProducto, nombre='Disponible')
+        ).first()
+
+        if inventario:
+            inventario.ajustar_stock(cantidad_devuelta)
+
+    # Actualizar la cantidad pendiente en el registro original
+    producto_pendiente.cantidad -= (cantidad_vendida + cantidad_devuelta)
+    if producto_pendiente.cantidad == 0:
+        producto_pendiente.delete()
+    else:
+        producto_pendiente.save()
+
+    messages.success(request, "Recepción de producto procesada correctamente.")
+    # Cambiar por la URL correspondiente
+    contexto = complementarContexto({}, request.user)
+    return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+# class DetalleEmpleadoPendiente(LoginRequiredMixin, View):
+#     def get(self, request, empleado_id):
+#         empleado = Empleado.objects.get(id=empleado_id)
+#         productos_pendientes = MovimientoProducto.objects.filter(
+#             empleado=empleado,
+#             estado_producto__nombre='Pendiente'
+#         )
+
+#         form = RecepcionFormulario(initial={'empleado': empleado})
+#         return render(request, 'inventario/recepcion/detalleEmpleadoPendiente.html', {'form': form, 'empleado': empleado, 'productos_pendientes': productos_pendientes})
+
+#     def post(self, request, empleado_id):
+#         form = RecepcionFormulario(request.POST)
+#         if form.is_valid():
+#             empleado = Empleado.objects.get(id=empleado_id)
+
+#             # Procesar los datos de cada producto
+#             for producto_id, cantidad_vendida in request.POST.items():
+#                 if cantidad_vendida:
+#                     cantidad_vendida = int(cantidad_vendida)
+#                     cantidad_devuelta = int(request.POST.get(f'cantidad_devuelta_{producto_id}', 0))
+
+#                     # Obtener el registro de inventario
+#                     inventario = RegistroInventario.objects.get(producto_id=producto_id, bodega=bodega)  # Reemplazar bodega con tu lógica
+
+#                     # Validaciones
+#                     if cantidad_vendida + cantidad_devuelta > inventario.cantidad:
+#                         # Manejar error: cantidad ingresada excede el stock
+#                         continue
+
+#                     # Actualizar inventario y registrar movimientos
+#                     inventario.reducir_stock(cantidad_vendida)
+#                     inventario.aumentar_stock(cantidad_devuelta)
+#                     inventario.save()
+
+#                     MovimientoProducto.objects.create(
+#                         producto_id=producto_id,
+#                         bodega=bodega,
+#                         empleado=empleado,
+#                         tipo_movimiento='venta' if cantidad_vendida > 0 else 'devolucion',
+#                         cantidad=cantidad_vendida if cantidad_vendida > 0 else cantidad_devuelta,
+#                         estado_producto=EstadoProducto.objects.get(nombre='Vendido' if cantidad_vendida > 0 else 'Disponible')
+#                     )
+
+#             messages.success(request, 'Recepción registrada exitosamente.')
+#             return redirect('detalleEmpleadoPendiente', empleado_id=empleado_id)
+#         else:
+#             # Manejar errores de validación
+#             return render(request, 'inventario/recepcion/detalleEmpleadoPendiente.html', {'form': form, 'empleado': empleado})

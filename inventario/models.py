@@ -313,7 +313,9 @@ class Inventario(models.Model):
         Aumenta el stock del producto en la bodega.
         """
         self.actualizar_stock(cantidad, operacion='aumentar')
-
+    def obtener_bodega(self):
+        return self.idbodega
+        
     @classmethod
     def stock_total(cls, producto):
         """
@@ -358,6 +360,16 @@ class MovimientoProducto(models.Model):
         Retorna los movimientos de productos en un rango de fechas.
         """
         return cls.objects.filter(fecha_movimiento__range=[fecha_inicial, fecha_final])
+    #listar producto en Pendiente
+    @classmethod
+    def productosPendientes(cls):
+        """
+        Retorna los productos en estado 'Pendiente'.
+        """
+        return cls.objects.filter(estado_producto__nombre='Pendiente')
+    @classmethod
+    def productos_pendientes_por_empleado(cls, empleado):
+        return cls.objects.filter(empleado=empleado, estado_producto__nombre='Pendiente')
     
     def save(self, *args, **kwargs):
         if self.tipo_movimiento == 'entrega':
@@ -446,6 +458,37 @@ class RegistroInventario(models.Model):
     def clean(self):
         if self.cantidad < 0:
             raise ValidationError("El stock no puede ser negativo.")
+        
+    def recibir_producto(self, accion):
+        """
+        Actualiza el estado de un producto pendiente según la acción realizada.
+        :param accion: 'vendido' o 'devuelto'
+        """
+        if self.tipo_movimiento != 'pendiente':
+            raise ValidationError("Solo se pueden recibir productos con estado 'Pendiente'.")
+
+        if accion == 'vendido':
+            # Cambiar estado a "Vendido"
+            self.tipo_movimiento = 'venta'
+            self.estado_producto = EstadoProducto.objects.get(nombre='Vendido')
+
+        elif accion == 'devuelto':
+            # Cambiar estado a "Disponible"
+            self.tipo_movimiento = 'devolucion'
+            self.estado_producto = EstadoProducto.objects.get(nombre='Disponible')
+
+            # Ajustar el stock en el inventario
+            registro_inventario = RegistroInventario.objects.get(
+                producto=self.producto,
+                bodega=self.bodega,
+                estado=self.estado_producto
+            )
+            registro_inventario.ajustar_stock(self.cantidad)
+        else:
+            raise ValidationError("La acción debe ser 'vendido' o 'devuelto'.")
+
+        # Guardar cambios
+        self.save()
 #--------------------------------REPARACION--------------------------------------------
 class Reparacion(models.Model):
     """
@@ -494,16 +537,24 @@ class Entrega(models.Model):
             inventario.estado = estado_pendiente
             inventario.save()
 
-        # Crear movimiento de producto
-        MovimientoProducto.objects.create(
+        # Crear movimiento de producto, solo si no se ha creado previamente
+        if not MovimientoProducto.objects.filter(
             bodega=self.idbodega,
             producto=self.idproducto,
             tipo_movimiento='salida',
             cantidad=self.cantidad,
             usuario=self.id_empleado_autorizo,
-            empleado=self.id_empleado_recibio,
-            estado_producto=inventario.estado  # Asegúrate de usar el estado correcto
-        )
+            empleado=self.id_empleado_recibio
+        ).exists():
+            MovimientoProducto.objects.create(
+                bodega=self.idbodega,
+                producto=self.idproducto,
+                tipo_movimiento='salida',
+                cantidad=self.cantidad,
+                usuario=self.id_empleado_autorizo,
+                empleado=self.id_empleado_recibio,
+                estado_producto=inventario.estado  # Asegúrate de usar el estado correcto
+            )
 
         # Guardar la entrega
         super().save(*args, **kwargs)

@@ -503,3 +503,17 @@ class MovimientoProductoFormulario(forms.Form):
     producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
     empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False, label='Empleado', widget=forms.Select(attrs={'class': 'form-control'}))
     estado_producto = forms.ModelChoiceField(queryset=EstadoProducto.objects.all(), required=False, label='Estado del Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+
+class RecepcionFormulario(forms.Form):
+    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), widget=forms.HiddenInput())
+    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), widget=forms.HiddenInput())
+    bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), widget=forms.HiddenInput())
+    cantidad_vendida = forms.IntegerField(min_value=0)
+    cantidad_devuelta = forms.IntegerField(min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'productos_pendientes' in kwargs:
+            for producto in kwargs.pop('productos_pendientes'):
+                self.fields[f'cantidad_vendida_{producto.id}'] = forms.IntegerField(min_value=0, max_value=producto.cantidad)
+                self.fields[f'cantidad_devuelta_{producto.id}'] = forms.IntegerField(min_value=0, max_value=producto.cantidad)
