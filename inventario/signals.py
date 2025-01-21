@@ -12,7 +12,6 @@ def crear_movimiento_entrega(sender, instance, created, **kwargs):
         MovimientoProducto.objects.create(
             bodega=instance.idbodega,
             producto=instance.idproducto,
-            tipo_movimiento='salida',
             cantidad=instance.cantidad,
             usuario=instance.id_empleado_autorizo,
             empleado=instance.id_empleado_recibio,  # Asegúrate de usar el empleado correcto
@@ -25,7 +24,6 @@ def crear_movimiento_recepcion(sender, instance, created, **kwargs):
         MovimientoProducto.objects.create(
             bodega=instance.idbodega,
             producto=instance.idproducto,
-            tipo_movimiento=instance.tipo_recepcion,
             cantidad=instance.cantidad,
             usuario=instance.id_empleado_autorizo,
             empleado_recibio=instance.id_empleado_recibio,

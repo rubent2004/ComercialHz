@@ -498,21 +498,8 @@ class EntregaFormulario(forms.ModelForm):
         }
 
 # Formulario Movimiento Producto
-class MovimientoProductoFormulario(forms.ModelForm):
-    class Meta:
-        model = MovimientoProducto  # Asegúrate de usar el modelo MovimientoProducto
-        fields = ['producto', 'bodega', 'empleado', 'cantidad', 'tipo_movimiento']  # Campos correctos para MovimientoProducto
-        labels = {
-            'producto': 'Producto',
-            'bodega': 'Bodega',
-            'empleado': 'Empleado',
-            'cantidad': 'Cantidad',
-            'tipo_movimiento': 'Tipo de Movimiento',
-        }
-        widgets = {
-            'producto': forms.Select(attrs={'class': 'form-control'}),
-            'bodega': forms.Select(attrs={'class': 'form-control'}),
-            'empleado': forms.Select(attrs={'class': 'form-control'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
-            'tipo_movimiento': forms.Select(attrs={'class': 'form-control'}),
-        }
+class MovimientoProductoFormulario(forms.Form):
+    bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
+    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False, label='Empleado', widget=forms.Select(attrs={'class': 'form-control'}))
+    estado_producto = forms.ModelChoiceField(queryset=EstadoProducto.objects.all(), required=False, label='Estado del Producto', widget=forms.Select(attrs={'class': 'form-control'}))

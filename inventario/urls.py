@@ -80,4 +80,7 @@ path('agregarInventario', views.AgregarInventario.as_view(), name='agregarInvent
 path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
 #Agregar entrega
 path('agregarEntrega', views.AgregarEntrega.as_view(), name='agregarEntrega'),
+#movimiento producto
+path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
+
 ]

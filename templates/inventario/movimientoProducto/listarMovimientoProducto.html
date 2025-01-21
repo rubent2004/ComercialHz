@@ -9,8 +9,8 @@
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
-        <h1 class="title"> Movimientos de Producto </h1>
-        <p class="title-description"> Verifique los movimientos registrados en el inventario </p>
+        <h1 class="title">Listado de Movimientos de Producto</h1>
+        <p class="title-description">Filtra y visualiza los movimientos de los productos</p>
     </div>
     <section class="section">
         <div class="row">
@@ -30,57 +30,56 @@
 
                 <div class="col-md-12">
                     <div class="card">
-
-                        <!-- Formulario de búsqueda -->
-                        <form method="get" class="form-inline mb-4">
-                            {{ form.as_p }}
-                            <button type="submit" class="btn btn-primary">Buscar</button>
-                        </form>
-                        <!-- Fin del formulario de búsqueda -->
-
-                        <!-- Botones en la parte superior -->
-                        <div class="d-flex justify-content-end mt-3 mb-4">
-                            <!-- Botón para imprimir -->
-                            <button class="btn btn-primary" onclick="window.print()">
-                                <i class="fa fa-print"></i> Imprimir
-                            </button>
+                        <div class="card-block">
+                            <div class="card-title-block">
+                                <h3 class="title">Filtrar Movimientos</h3>
+                            </div>
+                            <section class="example">
+                                <form method="get" class="form-inline mb-4">
+                                    {{ form.as_p }}
+                                    <button type="submit" class="btn btn-primary">Buscar</button>
+                                </form>
+                            </section>
                         </div>
-                        <!-- Fin de botones -->
+                    </div>
+                </div>
 
+                <div class="col-md-12">
+                    <div class="card">
                         <div class="card-block">
                             <div class="card-title-block">
                                 <h3 class="title">Movimientos Registrados</h3>
                             </div>
-                            <section class="example">
-                                <div class="table-responsive">
-                                    <table id="example2" class="table table-striped table-bordered table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>ID Movimiento</th>
-                                                <th>Producto</th>
-                                                <th>Bodega</th>
-                                                <th>Empleado</th>
-                                                <th>Cantidad</th>
-                                                <th>Tipo de Movimiento</th>
-                                                <th>Fecha de Movimiento</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for movimiento in movimientos %}
-                                            <tr>
-                                                <td>{{ movimiento.id }}</td>
-                                                <td>{{ movimiento.idproducto.descripcion }}</td>
-                                                <td>{{ movimiento.idbodega.nombre }}</td>
-                                                <td>{{ movimiento.id_empleado.nombre }}</td>
-                                                <td>{{ movimiento.cantidad }}</td>
-                                                <td>{{ movimiento.tipo_movimiento }}</td>
-                                                <td>{{ movimiento.fecha_movimiento }}</td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Bodega</th>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Empleado</th>
+                                        <th>Usuario</th>
+                                        <th>Fecha Movimiento</th>
+                                        <th>Estado del Producto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for movimiento in tabla %}
+                                        <tr>
+                                            <td>{{ movimiento.bodega }}</td>
+                                            <td>{{ movimiento.producto }}</td>
+                                            <td>{{ movimiento.cantidad }}</td>
+                                            <td>{{ movimiento.empleado }}</td>
+                                            <td>{{ movimiento.usuario }}</td>
+                                            <td>{{ movimiento.fecha_movimiento }}</td>
+                                            <td>{{ movimiento.estado_producto }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="8" class="text-center">No se encontraron movimientos</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

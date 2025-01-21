@@ -352,6 +352,13 @@ class MovimientoProducto(models.Model):
     fecha_movimiento = models.DateTimeField(auto_now_add=True)
     estado_producto = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
 
+    @classmethod
+    def movimientos_por_fecha(cls, fecha_inicial, fecha_final):
+        """
+        Retorna los movimientos de productos en un rango de fechas.
+        """
+        return cls.objects.filter(fecha_movimiento__range=[fecha_inicial, fecha_final])
+    
     def save(self, *args, **kwargs):
         if self.tipo_movimiento == 'entrega':
             # Solo considerar productos en estado 'disponible' para el cálculo de stock
