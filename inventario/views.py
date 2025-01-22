@@ -2085,6 +2085,7 @@ def recepcion_producto(request):
         #     estado_producto__nombre='Pendiente'
         # )
         # Verifica si los datos llegan correctamente
+        #no
         print(f"Producto ID: {producto_id}")
         print(f"Cantidad Vendida: {cantidad_vendida}")
         print(f"Cantidad Devuelta: {cantidad_devuelta}")
