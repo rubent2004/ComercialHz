@@ -23,7 +23,7 @@ BASE_DIR = BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 SECRET_KEY = 'cwc9m+z#ppu8)+@v#$7ci$=w*gae$+%n&gfq6kcsn#59ze(3a3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['rbcreacion.com', 'www.rbcreacion.com', 'localhost','*' ]
 
@@ -138,11 +138,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/2.1/howto/static-files/
+
 #STATIC_URL = '/static/'
-STATIC_URL = '/staticfiles/'
-STATIC_ROOT = BASE_DIR / 'static'  # Carpeta donde se recopilan los archivos estáticos al usar collectstatic
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
 STATICFILES_DIRS = [
-    BASE_DIR / 'staticfiles',  # Carpeta para tus archivos estáticos personalizados
+    BASE_DIR / 'static',  # Carpeta para tus archivos estáticos personalizados
 ]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

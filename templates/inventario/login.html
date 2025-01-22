@@ -1,46 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html class="no-js" lang="en">
 {% include "inventario/comun/estilos.html" %}
+    <head>
+        <style>
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background-color: #f4f4f4;
+            }
+            .auth-container {
+                width: 90%;
+                max-width: 400px;
+                padding: 30px;
+                background-color: #fff;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                animation: fadeIn 1s ease-in-out;
+            }
+            .auth-title {
+                text-align: center;
+                font-size: 24px;
+                color: #000;
+                margin-bottom: 10px;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            .btn {
+                width: 100%;
+                padding: 10px;
+                font-size: 16px;
+                background-color: #15b7ed;
+                border: none;
+                color: white;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            .btn:hover {
+                background-color: #0f9ad1;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+    </head>
     <body>
-        <div class="auth">
-            <div class="auth-container" style="width: 500px; padding: 30px; background-color: rgb(255, 255, 255); border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-                <div class="card">
-                    <header class="auth-header" style="text-align: left; margin-bottom: px;">
-                        <div class="logo-nuevo" style="padding-top: 10px;">
-                            {% load static %}
-                            <img id="logo-endogeno2" src="{% static 'inventario/assets/logo/logo3.png' %}" style="width: 120px; height: auto; margin-left: 0px;">
-                        </div>
-                        <h1 class="auth-title" style="text-align: center; margin: 20px 0; font-size: 28px; color: #000000;">Bienvenido</h1>
-                    </header>
-                    <div class="auth-content" style="padding: 20px;">
-                        <p class="text-center" style="font-size: 16px; color: #070707;">Por favor, ingresa tus credenciales para acceder</p>
-                        <form id="login-form" method="POST" novalidate="">
-                            <div class="form-group" style="margin-bottom: 20px;">
-                                {% csrf_token %}
-                                <label for="{{ form.username.id_for_label }}" style="font-size: 14px; color: #333;">Nombre de usuario:</label>
-                                {{ form.username }}
-                            </div>
-                            <div class="form-group" style="margin-bottom: 20px;">
-                                <label for="{{ form.password.id_for_label }}" style="font-size: 14px; color: #333;">Contraseña:</label>
-                                {{ form.password }}
-                            </div>
-                            <div class="form-group" style="margin-top: 20px;">
-                                <button type="submit" class="btn btn-block btn-primary" style="background-color: #15b7ed; border: none; padding: 10px; font-size: 16px; color: white;">Iniciar sesión</button>
-                            </div>
-                        </form>
-                    </div>
+        <div class="auth-container">
+            <div class="logo-nuevo" style="text-align: center;">
+                {% load static %}
+                <img id="logo-endogeno2" src="{% static 'inventario/assets/logo/logo3.png' %}" style="width: 100px; height: auto;">
+            </div>
+            <h1 class="auth-title">Bienvenido</h1>
+            <p class="text-center" style="font-size: 16px; color: #070707;">Por favor, ingresa tus credenciales para acceder</p>
+            <form id="login-form" method="POST" novalidate>
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ form.username.id_for_label }}" style="font-size: 14px; color: #333;">Nombre de usuario:</label>
+                    {{ form.username }}
                 </div>
-            </div>
+                <div class="form-group">
+                    <label for="{{ form.password.id_for_label }}" style="font-size: 14px; color: #333;">Contraseña:</label>
+                    {{ form.password }}
+                </div>
+                <button type="submit" class="btn">Iniciar sesión</button>
+            </form>
         </div>
-        <!-- Reference block for JS -->
-        <div class="ref" id="ref">
-            <div class="color-primary"></div>
-            <div class="chart">
-                <div class="color-primary"></div>
-                <div class="color-secondary"></div>
-            </div>
-        </div>
-
 {% include "inventario/comun/scripts.html" %}
     </body>
 </html>

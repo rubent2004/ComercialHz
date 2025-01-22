@@ -1,53 +1,218 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <title>Reporte Financiero - {{ mes }}</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .encabezado { text-align: center; margin-bottom: 2cm; }
-        .tabla { width: 100%; border-collapse: collapse; }
-        .tabla th { background: #f39c12; color: white; padding: 12px; }
-        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
-        .resaltado { background: #f8f9fa; }
-        .ganancia { color: #27ae60; }
-        .perdida { color: #e74c3c; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #34495e;
+            line-height: 1.6;
+            margin: 2rem;
+            background-color: #f8f9fa;
+        }
+
+        .header {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 2.2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .metric {
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .metric h3 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .metric .value {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #27ae60;
+        }
+
+        .negative {
+            color: #e74c3c;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .chart-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin: 2rem 0;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            padding: 1rem;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .data-alert {
+            padding: 1rem;
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
-    <div class="encabezado">
-        <h1>Reporte de Ganancias y Pérdidas</h1>
-        <p>Mes: {{ mes }}</p>
+    <div class="header">
+        <h1>Reporte Financiero</h1>
+        <h2>{{ mes }}</h2>
     </div>
 
-    <h2>Resumen Financiero</h2>
-    <p>Ganancia Bruta: <span class="ganancia">${{ ganancia_bruta|floatformat:2 }}</span></p>
-    <p>Pérdidas: <span class="perdida">${{ perdidas|floatformat:2 }}</span></p>
-    <p>Ganancia Neta: <span class="ganancia">${{ ganancia_neta|floatformat:2 }}</span></p>
+    <div class="metrics-grid">
+        <div class="metric">
+            <h3>Ventas Actuales</h3>
+            <div class="value positive">{{ ventas_mes_actual }}</div>
+        </div>
+        
+        <div class="metric">
+            <h3>Ventas Año Anterior</h3>
+            <div class="value">{{ ventas_mes_anterior }}</div>
+        </div>
 
-    <h2>Detalle de Movimientos</h2>
-    <table class="tabla">
-        <thead>
-            <tr>
-                <th>Concepto</th>
-                <th>Tipo</th>
-                <th>Monto</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for movimiento in data %}
-            <tr class="{% cycle '' 'resaltado' %}">
-                <td>{{ movimiento.concepto }}</td>
-                <td>{{ movimiento.tipo }}</td>
-                <td class="{% if movimiento.tipo == 'Ganancia' %}ganancia{% else %}perdida{% endif %}">
-                    ${{ movimiento.monto|floatformat:2 }}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="metric {% if diferencia >= 0 %}positive{% else %}negative{% endif %}">
+            <h3>Crecimiento Interanual</h3>
+            <div class="value">
+                {% if growth_percent %}
+                    {{ growth_percent }}%
+                {% else %} 
+                    N/A
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-    <div class="firma">
-        <p>Generado por: {{ usuario }}</p>
-        <p>Fecha: {{ fecha_generacion }}</p>
+    <div class="card">
+        <h2>Visualizaciones Clave</h2>
+        <div class="charts-container">
+            {% if line_chart %}
+            <div class="chart-card">
+                <h3>Tendencia Histórica</h3>
+                <img src="data:image/png;base64,{{ line_chart }}" alt="Tendencia de ventas históricas">
+            </div>
+            {% endif %}
+
+            {% if bar_chart %}
+            <div class="chart-card">
+                <h3>Comparación Interanual</h3>
+                <img src="data:image/png;base64,{{ bar_chart }}" alt="Comparación de ventas">
+            </div>
+            {% endif %}
+
+            {% if pie_chart %}
+            <div class="chart-card">
+                <h3>Distribución Financiera</h3>
+                <img src="data:image/png;base64,{{ pie_chart }}" alt="Distribución financiera">
+            </div>
+            {% endif %}
+        </div>
+
+        {% if not line_chart or not bar_chart or not pie_chart %}
+        <div class="data-alert">
+             Algunos gráficos no están disponibles debido a datos insuficientes
+        </div>
+        {% endif %}
+    </div>
+
+    {% if predicciones %}
+    <div class="card">
+        <h2>Pronósticos de Ventas</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Periodo</th>
+                    <th>Ventas Estimadas</th>
+                    <th>Confianza</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fecha, valor in predicciones %}
+                <tr>
+                    <td>{{ fecha|date:"M Y" }}</td>
+                    <td>{{ valor|floatformat:0 }}</td>
+                    <td>{% widthratio forloop.counter 3 100 %}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generado por {{ usuario }} el {{ fecha_generacion }}</p>
+        <p>Sistema de Gestión ComercialHz • Todos los derechos reservados</p>
     </div>
 </body>
 </html>

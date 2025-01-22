@@ -27,36 +27,30 @@
                 {% endif %}
 
                 <div class="col-md-12">
-                    <div class="card shadow-lg border-0 rounded">
-                        <!-- Botones en la parte superior -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <!-- Botón para agregar stock (esquina izquierda) -->
-                            <a href="{% url 'inventario:agregarInventario' %}" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
-                                <i class="fa fa-plus-circle"></i> Agregar Stock
-                            </a>
-
-                            <!-- Formulario de búsqueda centrado -->
-                            <form method="get" class="form-inline mb-4 justify-content-center">
-                                <div class="input-group">
-                                    {{ form.as_p }}
-                                    <button type="submit" class="btn btn-lg mt-2" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 4px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; margin-left: 10px;">
-                                        <i class="fa fa-search text-center" style="font-size: 16px;"></i> Buscar
-                                    </button>
-                                    
-                                    <!-- Botón para limpiar los campos -->
-                                    <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg mt-2" style="background-color: #dc3545; color: white; border: 2px solid #dc3545; border-radius: 25px; padding: 4px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; margin-left: 15px;">
-                                        <i class="fa fa-times" style="font-size: 16px;"></i> <span>Limpiar</span>
-                                    </a>
-                                </div>
-                            </form>
-
-                            <!-- Botón para imprimir (esquina derecha) -->
-                            <button class="btn btn-lg" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;" onclick="window.print()">
-                                <i class="fa fa-print"></i> Imprimir
-                            </button>
+                    <div class="card shadow-lg border-0 rounded p-4">
+                        <div class="row mb-4">
+                            <div class="col-md-4 col-sm-12 text-md-left text-center mb-2 mb-md-0">
+                                <a href="{% url 'inventario:agregarInventario' %}" class="btn btn-lg btn-success w-100">
+                                    <i class="fa fa-plus-circle"></i> Agregar Stock
+                                </a>
+                            </div>
+                            <div class="col-md-8 col-sm-12">
+                                <form method="get" class="d-flex flex-wrap justify-content-center">
+                                    <div class="w-100">
+                                        {{ form.as_p }}
+                                        <div class="d-flex w-100 justify-content-center">
+                                            <button type="submit" class="btn btn-lg btn-primary mt-2 mx-1 w-50">
+                                                <i class="fa fa-search"></i> Buscar
+                                            </button>
+                                            <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg btn-danger mt-2 mx-1 w-50">
+                                                <i class="fa fa-times"></i> Limpiar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                        <!-- Fin de botones en la parte superior -->
-
+                        
                         <div class="card-body">
                             <div class="card-title-block">
                                 <h3 class="title text-info">Inventario</h3>
@@ -64,11 +58,10 @@
                             <section class="example">
                                 <div class="row">
                                     {% for fila in tabla %}
-                                    <div class="col-md-3 mb-4">
-                                        <div class="card shadow-sm product-card" style="border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;">
-                                            <!-- Icono en la esquina superior derecha -->
+                                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                                        <div class="card shadow-sm product-card">
                                             <div class="position-relative">
-                                                <i class="fa fa-cube" style="position: absolute; top: 10px; right: 10px; font-size: 24px; color: #007bff;"></i>
+                                                <i class="fa fa-cube position-absolute" style="top: 10px; right: 10px; font-size: 24px; color: #007bff;"></i>
                                             </div>
                                             <div class="card-body">
                                                 <h5 class="card-title text-center">{{ fila.idproducto.descripcion }}</h5>
@@ -81,7 +74,6 @@
                                     {% endfor %}
                                 </div>
 
-                                <!-- Tarjeta de Total de Stock -->
                                 <div class="row">
                                     <div class="col-md-12 mb-4">
                                         <div class="card shadow-sm" style="border: 2px solid #28a745; border-radius: 8px; background-color: #f8f9fa;">
@@ -107,13 +99,13 @@
         border: 2px solid #ddd;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra por defecto */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
     }
 
     .product-card:hover {
-        transform: scale(1.05); /* Agranda la tarjeta al pasar el mouse */
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada al pasar el mouse */
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
 
     .product-card .card-body {
@@ -131,33 +123,21 @@
     }
 
     .product-card:hover .card-title {
-        color: #007bff; /* Cambia el color del título al pasar el mouse */
+        color: #007bff;
     }
 </style>
 <script>
     function imprimirInventario() {
-        // Guardar los estilos de la página para restaurarlos después
         var originalBody = document.body.innerHTML;
-
-        // Crear una sección solo para imprimir
         var printContent = document.getElementById('content-to-print').innerHTML;
-
-        // Si hay una búsqueda, solo imprimimos lo que está visible
-        var filteredContent = document.getElementById('tabla-filtrada'); // Asegúrate de que la tabla filtrada tenga este id
+        var filteredContent = document.getElementById('tabla-filtrada');
         if (filteredContent) {
             printContent = filteredContent.innerHTML;
         }
-
-        // Configuramos el contenido de la página de impresión
         document.body.innerHTML = "<html><head><title>Imprimir Inventario</title></head><body>" + printContent + "</body></html>";
-
-        // Ejecutamos la función de impresión
         window.print();
-
-        // Restauramos el contenido original de la página
         document.body.innerHTML = originalBody;
     }
 </script>
 
 {% endblock %}
-

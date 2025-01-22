@@ -29,9 +29,11 @@ path('importarProductos', views.ImportarProductos.as_view(), name='importarProdu
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
 path('editarProducto/<int:pk>', views.EditarProducto.as_view(), name='editarProducto'),
 path('buscar-producto/', views.buscar_producto, name='buscar_producto'),
+path('buscar-productoNom/', views.buscar_productoNom, name='buscar_productoNom'),
+path('buscar-empleado/', views.buscar_empleado, name='buscar_empleado'),
 path('buscar-producto-por-id/', views.BuscarProductoPorId.as_view(), name='buscar_producto_por_id'),
- 
-
+path('buscar-sugerencias-nombre/', views.buscar_sugerencias_nombre, name='buscar_sugerencias_nombre'),
+ path('buscar-sugerencias-empleado/', views.buscar_sugerencias_empleado, name='buscar_sugerencias_empleado'),
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
 path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),

@@ -309,6 +309,7 @@ class Perfil(LoginRequiredMixin, View):
 
 
 #Elimina usuarios, productos, empleados o proveedores----------------------------
+@method_decorator(nivel_requerido(1), name='dispatch')
 class Eliminar(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -623,6 +624,7 @@ class ListarEmpleados(LoginRequiredMixin, View):
 
 
 #Crea y procesa un formulario para agregar a un empleado---------------------------------#
+@method_decorator(nivel_requerido(1), name='dispatch')
 class AgregarEmpleado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -738,6 +740,7 @@ class ExportarEmpleados(LoginRequiredMixin, View):
 
 
 #Muestra el mismo formulario del empleado pero con los datos a editar----------------------#
+@method_decorator(nivel_requerido(1), name='dispatch')
 class EditarEmpleado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -970,6 +973,7 @@ class EditarProveedor(LoginRequiredMixin, View):
 
 
 #Crea un nuevo usuario--------------------------------------------------------------#
+@method_decorator(nivel_requerido(1), name='dispatch')
 class CrearUsuario(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None    
@@ -1047,6 +1051,7 @@ class CrearUsuario(LoginRequiredMixin, View):
 
 
 #Lista todos los usuarios actuales--------------------------------------------------------------#
+@method_decorator(nivel_requerido(1), name='dispatch')
 class ListarUsuarios(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None    
@@ -1863,11 +1868,13 @@ def agregarEntrega(request):
             messages.error(request, f'Error: {str(e)}')
             return redirect('inventario:agregarEntrega')
     
-    return render(request, 'inventario/entrega/agregarEntrega.html', {
-        'bodegas': Bodega.objects.all(),
-        'empleados': Empleado.objects.all(),
-        'productos': Producto.objects.all()
-    })
+    contexto = {
+            'bodegas': Bodega.objects.all(),
+            'empleados': Empleado.objects.all(),
+            'productos': Producto.objects.all()
+        }
+    contexto = complementarContexto(contexto, request.user)  # Complementamos el contexto con la info del usuario
+    return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
 # views.py
 
 
@@ -2125,7 +2132,7 @@ from django.shortcuts import render
 from django.views import View
 from .forms import ReporteInventarioForm
 from .models import Inventario
-
+@method_decorator(nivel_requerido(1), name='dispatch')
 class ReporteInventarioView(View):
     def get(self, request, *args, **kwargs):
         # Inicializar el formulario con los parámetros GET (si existen)
@@ -2152,7 +2159,7 @@ class ReporteInventarioView(View):
         }
         return render(request, 'inventario/reportes/createReport.html', context)
 
-
+@method_decorator(nivel_requerido(1), name='dispatch')
 class ReporteInventarioPDF(View):
     def get(self, request, *args, **kwargs):
         # Inicializamos el formulario con los datos de la URL (GET)
@@ -2237,7 +2244,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors  # Asegúrate de importar la librería de colores
 from django.http import HttpResponse
-
+@method_decorator(nivel_requerido(1), name='dispatch')
 class ReporteProductoView(View):
     def get(self, request, *args, **kwargs):
         # Inicializar el formulario de filtros
@@ -2351,7 +2358,7 @@ from django.views import View
 from .models import MovimientoProducto
 from .forms import ReporteMovimientoFormulario
 from datetime import datetime
-
+@method_decorator(nivel_requerido(1), name='dispatch')
 class ReporteMovimientoView(View):
     login_url = '/inventario/login'
     template_name = 'inventario/Reportes/reporteMovimiento.html'
@@ -2483,26 +2490,59 @@ from .models import Producto
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 
-class BuscarProductoPorCodigo(LoginRequiredMixin, View):
+
+def buscar_sugerencias_nombre(request):
+    nombre = request.GET.get('nombre', '')
+    if nombre:
+        productos = Producto.objects.filter(descripcion__icontains=nombre)[:10]
+        productos_data = [{'id': producto.id, 'descripcion': producto.descripcion} for producto in productos]
+        return JsonResponse(productos_data, safe=False)
+    return JsonResponse([], safe=False)
+
+def buscar_sugerencias_empleado(request):
+    nombre = request.GET.get('nombre', '')
+    if nombre:
+        empleados = Empleado.objects.filter(nombre__icontains=nombre)[:10]
+        empleados_data = [{'id': empleado.id, 'nombre': empleado.nombre, 'apellido': empleado.apellido} for empleado in empleados]
+        return JsonResponse(empleados_data, safe=False)
+    return JsonResponse([], safe=False)
+
+def buscar_empleado(request):
+
+    nombre = request.GET.get('nombre', '')
+    empleados = Empleado.objects.filter(nombre__icontains=nombre)[:10]  # Limita a 10 resultados
+    resultados = [{'id': empleado.id, 'nombre': empleado.nombre, 'apellido': empleado.apellido} for empleado in empleados]
+    return JsonResponse(resultados, safe=False)
+class BuscarProductoPorCodigoId(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = "Inventario/listarProductos.html"
 def buscar_producto(request):
     codigo = request.GET.get('codigo')
     if codigo:
         try:
-            producto = Producto.objects.get(codigo=codigo)
+            producto = Producto.objects.get(id=codigo)
             return JsonResponse({'id': producto.id, 'descripcion': producto.descripcion})
         except Producto.DoesNotExist:
             return JsonResponse({'error': 'Producto no encontrado'})
     return JsonResponse({'error': 'Código no proporcionado'})
 
+class BuscarProductoPorNombre(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = "Inventario/listarProductos.html"
+def buscar_productoNom(request):
+    nombre = request.GET.get('nombre', '')
+    if nombre:
+        productos = Producto.objects.filter(descripcion__icontains=nombre)[:10]  # Limitar a 10 resultados
+        productos_data = [{'id': producto.id, 'descripcion': producto.descripcion} for producto in productos]
+        return JsonResponse({'productos': productos_data})
+    return JsonResponse({'error': 'No se proporcionó nombre'}, status=400)
 
 
 from django.http import JsonResponse
 from .models import Producto
 from django.views import View
 
-class BuscarProductoPorId(View):
+class BuscarProductoPorId(LoginRequiredMixin,View):
 
     def get(self, request):
         producto_id = request.GET.get('id')
@@ -2522,7 +2562,7 @@ class BuscarProductoPorId(View):
 from django.utils.numberformat import format as format_number
 import calendar
 from datetime import date
-
+@method_decorator(nivel_requerido(1), name='dispatch')
 class ProductosMasVendidosPDF(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -2591,23 +2631,35 @@ class ProductosMasVendidosPDF(LoginRequiredMixin, View):
         response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         return response
     
+import calendar
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
 
+from django.db.models import Sum
+from django.db.models.functions import ExtractMonth, ExtractYear
+@method_decorator(nivel_requerido(1), name='dispatch')
 class GeneradorReportesPDF(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-    
+
+    # Configuración de los reportes disponibles
     reportes_config = {
         'ventas': {
             'nombre': 'Reporte de Ventas',
             'icono': 'fa-chart-line',
-            'parametros': ['mes', 'bodega'],
+            'parametros': ['mes'],
             'template': 'inventario/Reportes/ventas.html',
             'handler': 'procesar_ventas'
         },
         'stock': {
             'nombre': 'Stock Actual',
             'icono': 'fa-boxes',
-            'parametros': ['bodega', 'estado'],
+            'parametros': ['estado'],
             'template': 'inventario/Reportes/stock.html',
             'handler': 'procesar_stock'
         },
@@ -2625,375 +2677,49 @@ class GeneradorReportesPDF(LoginRequiredMixin, View):
             'template': 'inventario/Reportes/vendedor_mes.html',
             'handler': 'procesar_vendedor_mes'
         },
-        'ganancias': {
-            'nombre': 'Ganancias y Pérdidas',
-            'icono': 'fa-coins',
-            'parametros': ['mes'],
-            'template': 'inventario/Reportes/ganancias.html',
-            'handler': 'procesar_ganancias'
-        },
+        # 'ganancias': {
+        #     'nombre': 'Ganancias y Pérdidas',
+        #     'icono': 'fa-coins',
+        #     'parametros': ['mes'],
+        #     'template': 'inventario/Reportes/ganancias.html',
+        #     'handler': 'procesar_ganancias'
+        # },
         'entradas': {
             'nombre': 'Reporte de Entradas',
             'icono': 'fa-sign-in-alt',
-            'parametros': ['mes', 'bodega'],
+            'parametros': ['mes'],
             'template': 'inventario/Reportes/entradas.html',
             'handler': 'procesar_entradas'
         },
         'salidas': {
             'nombre': 'Reporte de Salidas',
             'icono': 'fa-sign-out-alt',
-            'parametros': ['mes', 'bodega'],
+            'parametros': ['mes'],
             'template': 'inventario/Reportes/salidas.html',
             'handler': 'procesar_salidas'
         }
     }
 
+    # Método GET para mostrar el formulario de generación de reportes
     def get(self, request, reporte_type='ventas'):
         config = self.reportes_config.get(reporte_type)
         contexto = self._preparar_contexto(request, config)
+        contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/Reportes/base_generador.html', contexto)
 
+    # Método POST para procesar la generación del reporte
     def post(self, request, reporte_type='ventas'):
         config = self.reportes_config.get(reporte_type)
-        
         if config is None:
             return HttpResponse("Error: Tipo de reporte inválido", status=400)
-        
-        handler = getattr(self, config.get('handler', ''), None)
 
+        handler = getattr(self, config.get('handler', ''), None)
         if handler is None or not callable(handler):
             return HttpResponse("Error: Handler no encontrado para el reporte", status=500)
-        
+
         return handler(request, config)
-    
-    def _preparar_contexto(self, request, config):
-        bodegas = list(Bodega.objects.all())
-        if not bodegas:
-            bodegas = [{'id': 0, 'nombre': 'Todas las Bodegas'}]
-        return {
-            'reportes_config': self.reportes_config,
-            'reporte_type': config.get('nombre', ''),
-            'config': config,
-            'bodegas': bodegas,
-            'estados': EstadoProducto.objects.all(),
-            'empleados': Empleado.objects.all(),
-            'todas_bodegas_option': {'id': 0, 'nombre': 'Todas las Bodegas'}
-        }
 
-    # Handlers específicos para cada tipo de reporte
-    def procesar_ventas(self, request, config):
-        try:
-            params = {
-                'mes': request.POST.get('mes'),
-                'bodega_id': request.POST.get('bodega')
-            }
-
-            bodega_filter = {}
-            if params['bodega_id'] != '0':
-                bodega_filter['bodega_id'] = params['bodega_id']
-
-            año, mes = map(int, params['mes'].split('-'))
-            fecha_inicio = date(año, mes, 1)
-            fecha_fin = date(año, mes, calendar.monthrange(año, mes)[1])
-            
-            ventas = MovimientoProducto.objects.filter(
-                tipo_movimiento='venta',
-                fecha_movimiento__range=[fecha_inicio, fecha_fin],
-                **bodega_filter
-            ).annotate(
-                total_vendido=Sum('cantidad')
-            ).values('producto__descripcion', 'total_vendido')
-            
-            if not ventas:
-                return self._generar_pdf({
-                    'mensaje': 'No hay datos de ventas para el periodo seleccionado.'
-                }, config)
-            
-            total_ventas = sum(item['total_vendido'] for item in ventas)
-            
-            for venta in ventas:
-                if total_ventas > 0:
-                    venta['participacion'] = (venta['total_vendido'] / total_ventas) * 100
-                else:
-                    venta['participacion'] = 0
-
-            bodega_nombre = Bodega.objects.get(id=params['bodega_id']).nombre if params['bodega_id'] != '0' else 'Todas las Bodegas'
-            
-            return self._generar_pdf({
-                'data': ventas,
-                'total_ventas': total_ventas,
-                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
-                'bodega': bodega_nombre
-            }, config)
-
-        except Exception as e:
-            return self._generar_pdf({
-                'mensaje': f"Error al generar el reporte: {str(e)}"
-            }, config)
-
-    def procesar_stock(self, request, config):
-        bodega_id = request.POST.get('bodega')
-        estado_id = EstadoProducto.objects.get(nombre=EstadoProducto.DISPONIBLE).id
-
-        bodega_filter = {}
-        if bodega_id != '0':
-            bodega_filter['idbodega_id'] = bodega_id
-
-        stock = Inventario.objects.filter(
-            estado_id=estado_id,
-            **bodega_filter
-        ).annotate(
-            valor_total=F('stock') * F('idproducto__precio_unitario')
-        )
-
-        bodega_nombre = Bodega.objects.get(id=bodega_id).nombre if bodega_id != '0' else 'Todas las Bodegas'
-
-        return self._generar_pdf({
-            'data': stock,
-            'titulo': 'Stock Actual',
-            'bodega': bodega_nombre
-        }, config)
-
-    def procesar_danados(self, request, config):
-        mes = request.POST.get('mes')
-        año, mes = map(int, mes.split('-'))
-        
-        danados = Devolucion.objects.filter(
-            dañado=True,
-            fecha_devolucion__year=año,
-            fecha_devolucion__month=mes
-        ).select_related('idproducto', 'idbodega')
-        
-        return self._generar_pdf({
-            'data': danados,
-            'titulo': 'Productos Dañados',
-            'mes': f"{mes}/{año}"
-        }, config)
-    
-    def procesar_ganancias(self, request, config):
-        mes = request.POST.get('mes')
-        año, mes = map(int, mes.split('-'))
-        
-        fecha_inicio = datetime(año, mes, 1)
-        fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
-        
-        ventas_mes_actual = MovimientoProducto.objects.filter(
-            tipo_movimiento='venta',
-            fecha_movimiento__range=[fecha_inicio, fecha_fin]
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-        
-        fecha_inicio_mes_anterior = fecha_inicio - timedelta(days=1)
-        fecha_fin_mes_anterior = fecha_inicio - timedelta(days=1)
-        
-        ventas_mes_anterior = MovimientoProducto.objects.filter(
-            tipo_movimiento='venta',
-            fecha_movimiento__range=[fecha_inicio_mes_anterior, fecha_fin_mes_anterior]
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-        
-        diferencia = ventas_mes_actual - ventas_mes_anterior
-        
-        return self._generar_pdf({
-            'mes': fecha_inicio.strftime('%B %Y'),
-            'ventas_mes_actual': ventas_mes_actual,
-            'ventas_mes_anterior': ventas_mes_anterior,
-            'diferencia': diferencia
-        }, config)
-
-    def procesar_vendedor_mes(self, request, config):
-        try:
-            mes = request.POST.get('mes')
-            año, mes = map(int, mes.split('-'))
-            
-            fecha_inicio = timezone.make_aware(datetime(año, mes, 1), timezone.get_current_timezone())
-            fecha_fin = timezone.make_aware(datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59), timezone.get_current_timezone())
-            
-            vendedores = MovimientoProducto.objects.filter(
-                tipo_movimiento='venta',
-                fecha_movimiento__range=[fecha_inicio, fecha_fin]
-            ).values('empleado__nombre', 'empleado__apellido').annotate(
-                total_vendido=Sum('cantidad')
-            ).order_by('-total_vendido')
-            
-            if vendedores.exists():
-                total_ventas = sum(v['total_vendido'] for v in vendedores)
-                for vendedor in vendedores:
-                    vendedor['participacion'] = (vendedor['total_vendido'] / total_ventas * 100) if total_ventas > 0 else 0
-                
-                return self._generar_pdf({
-                    'mes': fecha_inicio.strftime('%B %Y'),
-                    'vendedores': vendedores,
-                    'total_ventas': total_ventas
-                }, config)
-            else:
-                return self._generar_pdf({
-                    'mes': fecha_inicio.strftime('%B %Y'),
-                    'mensaje': 'No se encontraron ventas para este mes.'
-                }, config)
-        
-        except Exception as e:
-            return self._generar_pdf({
-                'mensaje': f"Error al generar el reporte: {str(e)}"
-            }, config)
-
-    def procesar_entradas(self, request, config):
-        try:
-            params = {
-                'mes': request.POST.get('mes'),
-                'bodega_id': request.POST.get('bodega')
-            }
-            
-            bodega_filter = {}
-            if params['bodega_id'] != '0':
-                bodega_filter['bodega_id'] = params['bodega_id']
-
-            año, mes = map(int, params['mes'].split('-'))
-            fecha_inicio = datetime(año, mes, 1)
-            fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
-            
-            entradas = MovimientoProducto.objects.filter(
-                tipo_movimiento__in=['entrada', 'recepcion', 'devolucion'],
-                fecha_movimiento__range=[fecha_inicio, fecha_fin],
-                **bodega_filter,
-                estado_producto__nombre='Disponible'
-            ).select_related('producto', 'empleado')
-
-            bodega_nombre = Bodega.objects.get(id=params['bodega_id']).nombre if params['bodega_id'] != '0' else 'Todas las Bodegas'
-
-            return self._generar_pdf({
-                'data': entradas,
-                'tipo': 'Entradas',
-                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
-                'bodega': bodega_nombre
-            }, config)
-        
-        except Exception as e:
-            return self._generar_pdf({'mensaje': str(e)}, config)
-
-    def procesar_salidas(self, request, config):
-        try:
-            params = {
-                'mes': request.POST.get('mes'),
-                'bodega_id': request.POST.get('bodega')
-            }
-            
-            bodega_filter = {}
-            if params['bodega_id'] != '0':
-                bodega_filter['bodega_id'] = params['bodega_id']
-
-            año, mes = map(int, params['mes'].split('-'))
-            fecha_inicio = datetime(año, mes, 1)
-            fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
-
-            movimientos_pendientes = MovimientoPendiente.objects.filter(
-                fecha__range=[fecha_inicio, fecha_fin],
-                **bodega_filter,
-                estado='Pendiente'
-            ).select_related('producto', 'empleado_recibio', 'empleado_entrego')
-
-            productos_en_movimiento = MovimientoProducto.objects.filter(
-                tipo_movimiento__in=['salida', 'entrega', 'reparacion', 'dañado'],
-                fecha_movimiento__range=[fecha_inicio, fecha_fin],
-                **bodega_filter
-            ).values_list('producto', flat=True)
-
-            salidas = movimientos_pendientes.exclude(producto__in=productos_en_movimiento)
-
-            bodega_nombre = Bodega.objects.get(id=params['bodega_id']).nombre if params['bodega_id'] != '0' else 'Todas las Bodegas'
-
-            return self._generar_pdf({
-                'data': salidas,
-                'tipo': 'Salidas',
-                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
-                'bodega': bodega_nombre
-            }, config)
-        
-        except Exception as e:
-            return self._generar_pdf({'mensaje': str(e)}, config)
-
-    def _generar_pdf(self, data, config):
-        contexto = {
-            **data,
-            'usuario': self.request.user.get_full_name(),
-            'fecha_generacion': date.today().strftime('%d/%m/%Y')
-        }
-        
-        pdf = render_to_pdf(config['template'], contexto)
-        response = HttpResponse(pdf, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{config["nombre"]}.pdf"'
-        return response
-    login_url = '/inventario/login'
-    redirect_field_name = None
-    
-    reportes_config = {
-        'ventas': {
-            'nombre': 'Reporte de Ventas',
-            'icono': 'fa-chart-line',
-            'parametros': ['mes', 'bodega'],
-            'template': 'inventario/Reportes/ventas.html',
-            'handler': 'procesar_ventas'
-        },
-        'stock': {
-            'nombre': 'Stock Actual',
-            'icono': 'fa-boxes',
-            'parametros': ['bodega', 'estado'],
-            'template': 'inventario/Reportes/stock.html',
-            'handler': 'procesar_stock'
-        },
-        'danados': {
-            'nombre': 'Productos Dañados',
-            'icono': 'fa-exclamation-triangle',
-            'parametros': ['mes'],
-            'template': 'inventario/Reportes/danados.html',
-            'handler': 'procesar_danados'
-        },
-        'vendedor_mes': {
-            'nombre': 'Vendedor del Mes',
-            'icono': 'fa-trophy',
-            'parametros': ['mes'],
-            'template': 'inventario/Reportes/vendedor_mes.html',
-            'handler': 'procesar_vendedor_mes'
-        },
-        'ganancias': {
-            'nombre': 'Ganancias y Pérdidas',
-            'icono': 'fa-coins',
-            'parametros': ['mes'],
-            'template': 'inventario/Reportes/ganancias.html',
-            'handler': 'procesar_ganancias'
-        },
-        'entradas': {
-        'nombre': 'Reporte de Entradas',
-        'icono': 'fa-sign-in-alt',
-        'parametros': ['mes', 'bodega'],
-        'template': 'inventario/Reportes/entradas.html',
-        'handler': 'procesar_entradas'
-        },
-        'salidas': {
-            'nombre': 'Reporte de Salidas',
-            'icono': 'fa-sign-out-alt',
-            'parametros': ['mes', 'bodega'],
-            'template': 'inventario/Reportes/salidas.html',
-            'handler': 'procesar_salidas'
-        }
-    }
-
-    def get(self, request, reporte_type='ventas'):
-        config = self.reportes_config.get(reporte_type)
-        contexto = self._preparar_contexto(request, config)
-        return render(request, 'inventario/Reportes/base_generador.html', contexto)
-
-    def post(self, request, reporte_type='ventas'):
-        config = self.reportes_config.get(reporte_type)
-        
-        if config is None:
-            return HttpResponse("Error: Tipo de reporte inválido", status=400)
-        
-        handler = getattr(self, config.get('handler', ''), None)
-
-        if handler is None or not callable(handler):
-            return HttpResponse("Error: Handler no encontrado para el reporte", status=500)
-        
-        return handler(request, config)
-    
+    # Preparar el contexto común para todos los reportes
     def _preparar_contexto(self, request, config):
         return {
             'reportes_config': self.reportes_config,
@@ -3001,60 +2727,51 @@ class GeneradorReportesPDF(LoginRequiredMixin, View):
             'config': config,
             'bodegas': Bodega.objects.all(),
             'estados': EstadoProducto.objects.all(),
-            'empleados': Empleado.objects.all(),
-            'todas_bodegas_option': {'id': 0, 'nombre': 'Todas las Bodegas'}  # Nueva opción
+            'empleados': Empleado.objects.all()
         }
 
-    # Handlers específicos para cada tipo de reporte
-    def procesar_ventas(self, request, config):
-        try:
-            # Obtener parámetros
-            params = {
-                'mes': request.POST.get('mes'),
-                'bodega_id': request.POST.get('bodega')
-            }
+    # ------------------------- Handlers Específicos -------------------------
 
-            if not params['mes'] or not params['bodega_id']:
-                raise ValueError("Parámetros incompletos")
-            
-            # Desglosar año y mes
-            año, mes = map(int, params['mes'].split('-'))
+    def procesar_ventas(self, request, config):
+        """
+        Procesa el reporte de ventas.
+        """
+        try:
+            mes = request.POST.get('mes')
+            año, mes = map(int, mes.split('-'))
             fecha_inicio = date(año, mes, 1)
             fecha_fin = date(año, mes, calendar.monthrange(año, mes)[1])
-            
-            # Obtener ventas
+
+            # Obtener ventas del mes
             ventas = MovimientoProducto.objects.filter(
                 tipo_movimiento='venta',
-                fecha_movimiento__range=[fecha_inicio, fecha_fin],
-                bodega_id=params['bodega_id']
-            ).annotate(
+                fecha_movimiento__range=[fecha_inicio, fecha_fin]
+            ).select_related('bodega', 'empleado').annotate(
                 total_vendido=Sum('cantidad')
-            ).values('producto__descripcion', 'total_vendido')
-            
-            # Verificar si hay ventas
+            ).values(
+                'producto__id',
+                'producto__descripcion',
+                'bodega__nombre',
+                'empleado__nombre',
+                'empleado__apellido',
+                'total_vendido',
+                'fecha_movimiento',
+            )
+
             if not ventas:
                 return self._generar_pdf({
                     'mensaje': 'No hay datos de ventas para el periodo seleccionado.'
                 }, config)
-            
-            # Calcular el total de ventas y la participación por producto
-            total_ventas = sum(item['total_vendido'] for item in ventas)
-            
-            for venta in ventas:
-                if total_ventas > 0:
-                    venta['participacion'] = (venta['total_vendido'] / total_ventas) * 100
-                else:
-                    venta['participacion'] = 0
 
-            # Obtener nombre de la bodega
-            bodega = Bodega.objects.get(id=params['bodega_id']).nombre
-            
-            # Generar el reporte en PDF
+            # Calcular total de ventas y participación
+            total_ventas = sum(item['total_vendido'] for item in ventas)
+            for venta in ventas:
+                venta['participacion'] = (venta['total_vendido'] / total_ventas * 100) if total_ventas > 0 else 0
+
             return self._generar_pdf({
                 'data': ventas,
                 'total_ventas': total_ventas,
                 'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
-                'bodega': bodega
             }, config)
 
         except Exception as e:
@@ -3063,187 +2780,321 @@ class GeneradorReportesPDF(LoginRequiredMixin, View):
             }, config)
 
     def procesar_stock(self, request, config):
-        bodega_id = request.POST.get('bodega')
-        estado_id = EstadoProducto.objects.get(nombre= EstadoProducto.DISPONIBLE).id,
-        
+        """
+        Procesa el reporte de stock actual.
+        """
+        estado_id = EstadoProducto.objects.get(nombre=EstadoProducto.DISPONIBLE).id
         stock = Inventario.objects.filter(
-            idbodega_id=bodega_id,
             estado_id=estado_id
         ).annotate(
             valor_total=F('stock') * F('idproducto__precio_unitario')
         )
-        
+
         return self._generar_pdf({
             'data': stock,
             'titulo': 'Stock Actual',
-            'bodega': Bodega.objects.get(id=bodega_id).nombre
+            'estado': estado_id
         }, config)
 
     def procesar_danados(self, request, config):
+        """
+        Procesa el reporte de productos dañados.
+        """
         mes = request.POST.get('mes')
         año, mes = map(int, mes.split('-'))
-        
+
         danados = Devolucion.objects.filter(
             dañado=True,
             fecha_devolucion__year=año,
             fecha_devolucion__month=mes
         ).select_related('idproducto', 'idbodega')
-        
+
         return self._generar_pdf({
             'data': danados,
             'titulo': 'Productos Dañados',
             'mes': f"{mes}/{año}"
         }, config)
-    
-    #Ganancias o perdidas en comparacion al mes anterior 
-    def procesar_ganancias(self, request, config):
-        mes = request.POST.get('mes')
-        año, mes = map(int, mes.split('-'))
-        
-        fecha_inicio = datetime(año, mes, 1)
-        fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
-        
-        # Obtener las ventas del mes actual
-        ventas_mes_actual = MovimientoProducto.objects.filter(
-            tipo_movimiento='venta',
-            fecha_movimiento__range=[fecha_inicio, fecha_fin]
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-        
-        # Obtener las ventas del mes anterior
-        fecha_inicio_mes_anterior = fecha_inicio - timedelta(days=1)
-        fecha_fin_mes_anterior = fecha_inicio - timedelta(days=1)
-        
-        ventas_mes_anterior = MovimientoProducto.objects.filter(
-            tipo_movimiento='venta',
-            fecha_movimiento__range=[fecha_inicio_mes_anterior, fecha_fin_mes_anterior]
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-        
-        # Calcular la diferencia
-        diferencia = ventas_mes_actual - ventas_mes_anterior
-        
-        return self._generar_pdf({
-            'mes': fecha_inicio.strftime('%B %Y'),
-            'ventas_mes_actual': ventas_mes_actual,
-            'ventas_mes_anterior': ventas_mes_anterior,
-            'diferencia': diferencia
-        }, config)
-    #procesar vendedor mes
+
     def procesar_vendedor_mes(self, request, config):
+        """
+        Procesa el reporte del vendedor del mes.
+        """
         try:
             mes = request.POST.get('mes')
             año, mes = map(int, mes.split('-'))
-            
-            # Crear las fechas con la zona horaria de Django
             fecha_inicio = timezone.make_aware(datetime(año, mes, 1), timezone.get_current_timezone())
             fecha_fin = timezone.make_aware(datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59), timezone.get_current_timezone())
-            
-            # Obtener los vendedores con ventas en el rango de fechas
+
+            # Obtener vendedores con ventas en el mes
             vendedores = MovimientoProducto.objects.filter(
                 tipo_movimiento='venta',
                 fecha_movimiento__range=[fecha_inicio, fecha_fin]
             ).values('empleado__nombre', 'empleado__apellido').annotate(
                 total_vendido=Sum('cantidad')
             ).order_by('-total_vendido')
-            
+
             if vendedores.exists():
-                # Calcular la participación de cada vendedor
                 total_ventas = sum(v['total_vendido'] for v in vendedores)
                 for vendedor in vendedores:
                     vendedor['participacion'] = (vendedor['total_vendido'] / total_ventas * 100) if total_ventas > 0 else 0
-                
+
                 return self._generar_pdf({
                     'mes': fecha_inicio.strftime('%B %Y'),
                     'vendedores': vendedores,
                     'total_ventas': total_ventas
                 }, config)
             else:
-                # Si no hay ventas, retornar un mensaje
                 return self._generar_pdf({
                     'mes': fecha_inicio.strftime('%B %Y'),
                     'mensaje': 'No se encontraron ventas para este mes.'
                 }, config)
-        
+
         except Exception as e:
             return self._generar_pdf({
                 'mensaje': f"Error al generar el reporte: {str(e)}"
             }, config)
-    def procesar_entradas(self, request, config):
-        try:
-            params = {
-                'mes': request.POST.get('mes'),
-                'bodega_id': request.POST.get('bodega')
-            }
+
+    # def procesar_ganancias(self, request, config):
+    #     """
+    #     Procesa el reporte de ganancias y pérdidas con manejo correcto de timezones y gráficos
+    #     """
+    #     try:
+    #         import matplotlib
+    #         matplotlib.use('Agg')  # Backend no interactivo
+    #         import matplotlib.pyplot as plt
+    #         from io import BytesIO
+    #         import base64
+    #         import pandas as pd
+    #         import numpy as np
+    #         from datetime import datetime
+    #         from dateutil.relativedelta import relativedelta
+    #         from django.utils import timezone
+    #         from django.db.models import Sum
+    #         from django.db.models.functions import ExtractMonth, ExtractYear
+
+    #         # Manejo de timezone
+    #         tz = timezone.get_current_timezone()
             
-            año, mes = map(int, params['mes'].split('-'))
+    #         # Procesar parámetro mes
+    #         mes_str = request.POST.get('mes')
+    #         if not mes_str:
+    #             raise ValueError("Parámetro 'mes' requerido")
+                
+    #         año, mes = map(int, mes_str.split('-'))
+            
+    #         # Crear fechas con timezone
+    #         fecha_inicio = tz.localize(datetime(año, mes, 1))
+    #         last_day = calendar.monthrange(año, mes)[1]
+    #         fecha_fin = tz.localize(datetime(año, mes, last_day, 23, 59, 59))
+
+    #         # Consulta optimizada para ventas del mes
+    #         ventas_mes_actual = MovimientoProducto.objects.filter(
+    #             tipo_movimiento='venta',
+    #             fecha_movimiento__range=(fecha_inicio, fecha_fin)
+    #         ).aggregate(total=Sum('cantidad'))['total'] or 0
+
+    #         # Comparación interanual con manejo de timezone
+    #         fecha_inicio_prev = fecha_inicio - relativedelta(years=1)
+    #         fecha_fin_prev = fecha_fin - relativedelta(years=1)
+            
+    #         ventas_mes_anterior = MovimientoProducto.objects.filter(
+    #             tipo_movimiento='venta',
+    #             fecha_movimiento__range=(fecha_inicio_prev, fecha_fin_prev)
+    #         ).aggregate(total=Sum('cantidad'))['total'] or 0
+
+    #         # Gráfico de barras comparativo
+    #         bar_chart = None
+    #         diferencia = growth_percent = None
+    #         if ventas_mes_anterior > 0:
+    #             diferencia = ventas_mes_actual - ventas_mes_anterior
+    #             growth_percent = (diferencia / ventas_mes_anterior * 100)
+                
+    #             fig, ax = plt.subplots(figsize=(6, 4))
+    #             bars = ax.bar(['Actual', 'Anterior'], 
+    #                         [ventas_mes_actual, ventas_mes_anterior],
+    #                         color=['#3498db', '#e67e22'])
+                
+    #             ax.set_title('Comparación Interanual', fontsize=14)
+    #             ax.spines['top'].set_visible(False)
+    #             ax.spines['right'].set_visible(False)
+    #             bar_chart = self._plot_to_base64(fig)
+
+    #         # Modelo predictivo mejorado
+    #         line_chart = None
+    #         predicciones = []
+    #         ventas_hist = MovimientoProducto.objects.filter(
+    #             tipo_movimiento='venta',
+    #             fecha_movimiento__gte=fecha_inicio - relativedelta(months=24)
+    #         ).annotate(
+    #             year=ExtractYear('fecha_movimiento'),
+    #             month=ExtractMonth('fecha_movimiento')
+    #         ).values('year', 'month').annotate(total=Sum('cantidad')).order_by('year', 'month')
+
+    #         if ventas_hist.count() > 1:
+    #             df = pd.DataFrame(list(ventas_hist))
+    #             df['date'] = pd.to_datetime(df[['year', 'month']].assign(day=1))
+    #             df = df.set_index('date').asfreq('ME').fillna(0)
+                
+    #             # Modelo de promedio móvil
+    #             df['ma'] = df['total'].rolling(window=3, min_periods=1).mean()
+                
+    #             fig, ax = plt.subplots(figsize=(8, 4))
+    #             df['total'].plot(ax=ax, marker='o', label='Ventas')
+    #             df['ma'].plot(ax=ax, linestyle='--', label='Tendencia (MA)')
+    #             ax.set_title('Tendencia Histórica', fontsize=12)
+    #             ax.legend()
+    #             line_chart = self._plot_to_base64(fig)
+
+    #             # Predicciones simples
+    #             last_ma = df['ma'].iloc[-1]
+    #             predicciones = [
+    #                 (fecha_inicio + relativedelta(months=i), 
+    #                 int(last_ma * (1.05 ** i)))  # 5% de crecimiento
+    #                 for i in range(1, 4)
+    #             ]
+
+    #         # Gráfico de distribución financiera
+    #         pie_chart = None
+    #         if ventas_mes_actual > 0:
+    #             coste_unitario = 7.5  # Ejemplo: coste por unidad
+    #             ganancia_bruta = ventas_mes_actual * (10 - coste_unitario)  # Precio de venta 10
+    #             perdidas = ventas_mes_actual * coste_unitario * 0.1  # 10% de pérdidas
+                
+    #             fig, ax = plt.subplots(figsize=(6, 6))
+    #             sizes = [ganancia_bruta, perdidas]
+    #             labels = [f'Ganancias\n${ganancia_bruta:,.2f}', 
+    #                     f'Pérdidas\n${perdidas:,.2f}']
+    #             colors = ['#2ecc71', '#e74c3c']
+                
+    #             ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%',
+    #                 startangle=90, wedgeprops={'linewidth': 1, 'edgecolor': 'white'})
+    #             ax.set_title('Distribución Financiera', fontsize=14)
+    #             pie_chart = self._plot_to_base64(fig)
+
+    #         # Preparar contexto
+    #         contexto = {
+    #             'mes': fecha_inicio.strftime('%B %Y'),
+    #             'ventas_mes_actual': f"{ventas_mes_actual:,}",
+    #             'ventas_mes_anterior': f"{ventas_mes_anterior:,}",
+    #             'diferencia': f"{diferencia:,}" if diferencia else 'N/A',
+    #             'growth_percent': f"{growth_percent:.2f}%" if growth_percent else 'N/A',
+    #             'predicciones': predicciones,
+    #             'line_chart': line_chart,
+    #             'bar_chart': bar_chart,
+    #             'pie_chart': pie_chart,
+    #             'css': '''
+    #                 .grafico-container { 
+    #                     display: grid; 
+    #                     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    #                     gap: 2rem; 
+    #                     margin: 2rem 0;
+    #                 }
+    #                 .card {
+    #                     background: white;
+    #                     border-radius: 10px;
+    #                     padding: 1.5rem;
+    #                     margin-bottom: 2rem;
+    #                     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    #                 }
+    #                 .metrica {
+    #                     text-align: center;
+    #                     padding: 1rem;
+    #                     margin: 1rem 0;
+    #                     border-radius: 8px;
+    #                     background: #f8f9fa;
+    #                 }
+    #             '''
+    #         }
+            
+    #         return self._generar_pdf(contexto, config)
+
+    #     except Exception as e:
+    #         return self._generar_pdf({'error': str(e)}, config)
+
+    # def _plot_to_base64(self, fig):
+    #     """Convierte figura matplotlib a base64"""
+    #     buf = BytesIO()
+    #     fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    #     plt.close(fig)
+    #     return base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    def procesar_entradas(self, request, config):
+        """
+        Procesa el reporte de entradas.
+        """
+        try:
+            mes = request.POST.get('mes')
+            año, mes = map(int, mes.split('-'))
             fecha_inicio = datetime(año, mes, 1)
             fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
-            
+
             entradas = MovimientoProducto.objects.filter(
-                tipo_movimiento__in=['entrada', 'recepcion', 'devolucion'],
+                tipo_movimiento__in=['entrada', 'recepcion', 'devolucion', 'reparado'],
                 fecha_movimiento__range=[fecha_inicio, fecha_fin],
-                bodega_id=params['bodega_id'],
                 estado_producto__nombre='Disponible'
-            ).select_related('producto', 'empleado')
-            
+            ).select_related('producto', 'empleado', 'usuario')
+
             return self._generar_pdf({
                 'data': entradas,
                 'tipo': 'Entradas',
-                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
-                'bodega': Bodega.objects.get(id=params['bodega_id']).nombre
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}"
             }, config)
-        
+
         except Exception as e:
             return self._generar_pdf({'mensaje': str(e)}, config)
 
+    from django.db.models import Q
+
     def procesar_salidas(self, request, config):
+        """
+        Procesa el reporte de salidas.
+        """
         try:
-            params = {
-                'mes': request.POST.get('mes'),
-                'bodega_id': request.POST.get('bodega')
-            }
-            
-            # Parsear año y mes
-            año, mes = map(int, params['mes'].split('-'))
+            mes = request.POST.get('mes')
+            año, mes = map(int, mes.split('-'))
             fecha_inicio = datetime(año, mes, 1)
             fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
 
-            # Filtrar los movimientos pendientes de productos disponibles
+            # Obtener movimientos confirmados de salida, entrega, reparación o devolución
+            movimientos_productos = MovimientoProducto.objects.filter(
+                tipo_movimiento__in=['salida', 'entrega', 'reparacion', 'devolucion'],
+                fecha_movimiento__range=[fecha_inicio, fecha_fin]
+            ).select_related('producto', 'empleado', 'usuario', 'bodega', 'estado_producto')
+
+            # Obtener movimientos pendientes en el mismo rango de fechas
             movimientos_pendientes = MovimientoPendiente.objects.filter(
                 fecha__range=[fecha_inicio, fecha_fin],
-                bodega_id=params['bodega_id'],
-                estado='Pendiente'  # Solo pendientes
-            ).select_related('producto', 'empleado_recibio', 'empleado_entrego')  # Relacionar productos y empleados
+                estado='Pendiente'
+            ).select_related('producto', 'bodega', 'empleado_recibio', 'empleado_entrego')
 
-            # Obtener los productos que ya han sido registrados en MovimientoProducto
-            productos_en_movimiento = MovimientoProducto.objects.filter(
-                tipo_movimiento__in=['salida', 'entrega', 'reparacion', 'dañado'],
-                fecha_movimiento__range=[fecha_inicio, fecha_fin],
-                bodega_id=params['bodega_id']
-            ).values_list('producto', flat=True)
+            # Unificar y adaptar los datos para que sean consistentes en la plantilla HTML
+            salidas = list(movimientos_productos) + list(movimientos_pendientes)
 
-            # Filtrar solo los productos en pendiente que no estén en MovimientoProducto
-            salidas = movimientos_pendientes.exclude(producto__in=productos_en_movimiento)
+            for movimiento in salidas:
+                if isinstance(movimiento, MovimientoPendiente):  # Si es un movimiento pendiente
+                    movimiento.tipo_movimiento = "Pendiente"
+                    movimiento.fecha_movimiento = movimiento.fecha  # Unificar con MovimientoProducto
+                    movimiento.empleado = movimiento.empleado_recibio  # Asignar a empleado_recibio
 
-            # Generar reporte PDF
+            # Generar el PDF con los datos corregidos
             return self._generar_pdf({
                 'data': salidas,
                 'tipo': 'Salidas',
-                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
-                'bodega': Bodega.objects.get(id=params['bodega_id']).nombre
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}"
             }, config)
-        
+
         except Exception as e:
             return self._generar_pdf({'mensaje': str(e)}, config)
-
-
-
     def _generar_pdf(self, data, config):
+        """
+        Genera el PDF del reporte.
+        """
         contexto = {
             **data,
             'usuario': self.request.user.get_full_name(),
             'fecha_generacion': date.today().strftime('%d/%m/%Y')
         }
-        
+
         pdf = render_to_pdf(config['template'], contexto)
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{config["nombre"]}.pdf"'

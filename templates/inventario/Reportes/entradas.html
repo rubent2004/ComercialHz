@@ -1,52 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Entradas</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 2cm; }
-        .encabezado { text-align: center; margin-bottom: 2cm; }
-        .tabla { width: 100%; border-collapse: collapse; }
-        .tabla th { background: #2ecc71; color: white; padding: 12px; }
-        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
-        .resaltado { background: #f8f9fa; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 1.5cm;
+            font-size: 12px;
+            background-color: #fff;
+            color: #333;
+        }
+        .encabezado {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #2ecc71;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .subtitulo {
+            font-size: 12px;
+            color: #555;
+        }
+        .tabla-container {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .tabla {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+        .tabla th, .tabla td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .tabla th {
+            background: #2ecc71;
+            color: white;
+            font-size: 11px;
+        }
+        .tabla td {
+            font-size: 10px;
+        }
+        .resaltado {
+            background: #f9f9f9;
+        }
+        .mensaje-error {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .firma {
+            margin-top: 10px;
+            text-align: right;
+            font-size: 10px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
+
     <div class="encabezado">
         <h1>Reporte de Entradas</h1>
-        <p>Bodega: {{ bodega }}</p>
-        <p>Periodo: {{ rango_fechas }}</p>
+        <p class="subtitulo">Periodo: {{ rango_fechas }}</p>
     </div>
 
     {% if mensaje %}
         <div class="mensaje-error">{{ mensaje }}</div>
     {% else %}
-        <table class="tabla">
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Tipo Movimiento</th>
-                    <th>Fecha</th>
-                    <th>Responsable</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for movimiento in data %}
-                <tr class="{% cycle '' 'resaltado' %}">
-                    <td>{{ movimiento.producto.descripcion }}</td>
-                    <td>{{ movimiento.cantidad }}</td>
-                    <td>{{ movimiento.get_tipo_movimiento_display }}</td>
-                    <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</td>
-                    <td>{{ movimiento.empleado.nombre }} {{ movimiento.empleado.apellido }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="tabla-container">
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cant.</th>
+                        <th>Tipo Movimiento</th>
+                        <th>Fecha</th>
+                        <th>Empleado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimiento in data %}
+                    <tr class="{% cycle '' 'resaltado' %}">
+                        <td>{{ movimiento.producto.descripcion }}</td>
+                        <td>{{ movimiento.cantidad }}</td>
+                        <td>{{ movimiento.get_tipo_movimiento_display }}</td>
+                        <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                        <td>{{ movimiento.empleado.nombre }} {{ movimiento.empleado.apellido }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% endif %}
 
     <div class="firma">
-        <p>Generado por: {{ usuario }}</p>
-        <p>Fecha: {{ fecha_generacion }}</p>
+        <p><strong>Generado por:</strong> {{ usuario }}</p>
+        <p><strong>Fecha:</strong> {{ fecha_generacion }}</p>
     </div>
+
 </body>
 </html>

@@ -1421,7 +1421,7 @@ label,
           .item-list .item-actions-dropdown .item-actions-block .item-actions-list a.edit {
             color: #38424C; }
           .item-list .item-actions-dropdown .item-actions-block .item-actions-list a.check {
-            color: #40B726; }
+            color: #1ec8f7; }
           .item-list .item-actions-dropdown .item-actions-block .item-actions-list a.remove {
             color: #DB0E1E; }
 
@@ -1799,7 +1799,7 @@ span a {
     overflow-y: auto;
     overflow-x: hidden; }
     .sidebar .sidebar-container::-webkit-scrollbar-track {
-      background-color: #2c353e; }
+      background-color: #1981e8; }
   .sidebar .label {
     font-size: .75em;
     display: inline-block;

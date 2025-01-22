@@ -14,7 +14,6 @@
 <body>
     <div class="encabezado">
         <h1>Reporte de Ventas</h1>
-        <p>Bodega: {{ bodega }}</p>
         <p>Periodo: {{ rango_fechas }}</p>
     </div>
 
@@ -25,17 +24,20 @@
     <table class="tabla">
         <thead>
             <tr>
+                <th>Codigo</th>
                 <th>Producto</th>
                 <th>Unidades Vendidas</th>
-                <th>Participación</th>
-                <th>Gráfico</th>
+                <th>Fecha</th>
+                <th>Participacion</th>
             </tr>
         </thead>
         <tbody>
             {% for venta in data %}
             <tr class="{% cycle '' 'resaltado' %}">
+                <td>{{ venta.producto__id }}</td>
                 <td>{{ venta.producto__descripcion }}</td>
                 <td>{{ venta.total_vendido }}</td>
+                <td>{{ venta.fecha_movimiento}}</td>
                 <td>{{ venta.participacion|floatformat:2 }}%</td>
             </tr>
             {% endfor %}

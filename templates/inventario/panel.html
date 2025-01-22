@@ -51,6 +51,24 @@
                                     <div class="progress-bar" style="width: 100%; background-color: #ff5722;"></div>
                                 </div>
                             </div>
+                            <!-- inventario:reportes solo a usuarios con nivel 1 -->
+                            {% if nivel_usuario == 1 %}
+                            <div class="col-12 col-sm-6 stat-col">
+                                <a href="{% url 'inventario:reportes' %}" class="stat d-flex align-items-center">
+                                    <div class="stat-icon" style="background-color: #4caf50;">
+                                        <i class="fa fa-cogs" style="color: #ffffff;"></i>
+                                    </div>
+                                    <div class="stat-content" style="margin-left: 10px;">
+                                        <div class="value" style="font-size: 20px; font-weight: bold;">Reportes de inventario</div>
+                                        <div class="name">Solo para administradores</div>
+                                    </div>
+                                </a>
+                                <div class="progress stat-progress center">
+                                    <div class="progress-bar" style="width: 100%; background-color: #4caf50;"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+
                             <!-- Productos Vendidos -->
                             <div class="col-12 col-sm-6 stat-col">
                                 <div class="stat d-flex align-items-center">
