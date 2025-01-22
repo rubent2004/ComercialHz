@@ -463,26 +463,6 @@ class ReparacionFormulario(forms.ModelForm):
 class EntregaFormulario(forms.ModelForm):
     class Meta:
         model = Entrega
-        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_recibio', 'cantidad']
-        labels = {
-            'idproducto': 'Producto',
-            'idbodega': 'Bodega',
-            'id_empleado_autorizo': 'Empleado que Autoriza',
-            'id_empleado_recibio': 'Empleado que Recibe',
-            'cantidad': 'Cantidad',
-        }
-        widgets = {
-            'idproducto': forms.Select(attrs={'class': 'form-control'}),
-            'idbodega': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_autorizo': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
-        }
-
-# Formulario Recepción
-class EntregaFormulario(forms.ModelForm):
-    class Meta:
-        model = Entrega
         fields = ['idproducto', 'idbodega', 'id_empleado_recibio', 'cantidad']
         labels = {
             'idproducto': 'Producto',
@@ -510,7 +490,7 @@ class RecepcionFormulario(forms.Form):
     bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), widget=forms.HiddenInput())
     cantidad_vendida = forms.IntegerField(min_value=0)
     cantidad_devuelta = forms.IntegerField(min_value=0)
-
+    bodega_devuelta = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'productos_pendientes' in kwargs:

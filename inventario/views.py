@@ -6,7 +6,7 @@ from urllib import request
 from venv import logger
 from django.shortcuts import get_object_or_404, redirect, render
 # para redirigir a otras paginas
-from django.http import HttpResponseRedirect, HttpResponse,FileResponse
+from django.http import HttpResponseRedirect, HttpResponse,FileResponse, JsonResponse
 #el formulario de login
 from .forms import *
 # clase para crear vistas basadas en sub-clases
@@ -1885,7 +1885,6 @@ class AgregarInventario(LoginRequiredMixin, View):
         form = RegistroInventarioFormulario()
         contexto = {'form': form}
         return render(request, 'inventario/inventario/agregarInventario.html', contexto)
-    
 
 # VIEWS MAS PERRONAS AQUI XD# MovimientoProducto
 class ListarMovimientoProducto(LoginRequiredMixin, View):
@@ -1913,41 +1912,33 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
             contexto = complementarContexto(contexto, request.user)
             # Renderizar la página con el contexto adecuado
             return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
-class AgregarEntrega(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
 
+from django.db import transaction
+class AgregarEntrega(View):
     def post(self, request):
         form = EntregaFormulario(request.POST)
         if form.is_valid():
             try:
-                entrega = form.save(commit=False)
-                entrega.id_empleado_autorizo = request.user  # Usuario autenticado
-                entrega.save()  # Aquí se maneja todo (reducción de stock, movimiento, etc.)
+                with transaction.atomic():
+                    entrega = form.save(commit=False)
+                    entrega.id_empleado_autorizo = request.user
+                    # Validar stock al guardar la entrega
 
-                # Mensaje de éxito
+                    entrega.save()
+
                 messages.success(request, 'Entrega registrada y stock actualizado exitosamente.')
-
-                # Establecer la sesión indicando que la entrega fue procesada
-                request.session['entregaProcesada'] = 'registrada'
-                return HttpResponseRedirect("/inventario/agregarEntrega")
-
-            except Inventario.DoesNotExist:
-                messages.error(request, 'El producto no está disponible en la bodega seleccionada.')
-                return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
-
+                return redirect('inventario:agregarEntrega')
             except ValidationError as e:
                 messages.error(request, str(e))
-                return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
-
+            except Exception as e:
+                messages.error(request, f"Error inesperado: {e}")
         else:
-            return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
+            messages.error(request, "Por favor corrija los errores en el formulario.")
+        return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
 
     def get(self, request):
         form = EntregaFormulario()
-        contexto = {'form': form, 'modo': request.session.get('entregaProcesada')}
-        contexto = complementarContexto(contexto, request.user)
-        return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
+        return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
 # class AgregarRecepcion(LoginRequiredMixin, View):
 #     login_url = '/inventario/login'
 #     redirect_field_name = None
@@ -2021,14 +2012,18 @@ class AgregarEntrega(LoginRequiredMixin, View):
 #         return render(request, 'inventario/recepcion/agregarRecepcion.html', contexto)
 
 # views.py
+from django.template.loader import render_to_string
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 class ListarEmpleadosPendientes(LoginRequiredMixin, View):
     def get(self, request):
+        # Obtener los movimientos pendientes
         movimientos_pendientes = MovimientoProducto.objects.filter(
             estado_producto__nombre='Pendiente'
         ).select_related('producto', 'empleado')
 
-        # Organizar datos por empleado y eliminar duplicados
+        # Organizar datos por empleado
         empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
         for movimiento in movimientos_pendientes:
             empleado_id = movimiento.empleado.id
@@ -2039,80 +2034,147 @@ class ListarEmpleadosPendientes(LoginRequiredMixin, View):
                 empleados[empleado_id]['productos'][producto_id] = {
                     'descripcion': movimiento.producto.descripcion,
                     'cantidad': movimiento.cantidad,
+                    'movimiento_id': movimiento.id
                 }
 
-        logger.debug("Estructura de empleados: %s", dict(empleados))
-        contexto = {'empleados': dict(empleados)}
+        # Obtener las bodegas disponibles
+        bodegas = Bodega.objects.all()
+
+        # Asegurarse de que empleados es un diccionario normal
+        contexto = {
+            'empleados': dict(empleados),
+            'bodegas': bodegas,  # Agregar bodegas al contexto
+        }
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
-    
 
+    @method_decorator(csrf_exempt)
+    def post(self, request):
+        movimientos_pendientes = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente'
+        ).select_related('producto', 'empleado')
+
+        empleados = defaultdict(lambda: {'productos': []})
+        for movimiento in movimientos_pendientes:
+            empleado_id = movimiento.empleado.id
+            empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
+            empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
+            empleados[empleado_id]['productos'].append({
+                'descripcion': movimiento.producto.descripcion,
+                'cantidad': movimiento.cantidad,
+            })
+
+        contexto = {'empleados': empleados}
+        listado_html = render_to_string('inventario/recepcion/empleadosPendientes.html', contexto)
+        return JsonResponse({'success': True, 'listado_html': listado_html})
 @require_POST
 @transaction.atomic
 def recepcion_producto(request):
-    producto_id = request.POST.get('producto_id')
-    cantidad_vendida = int(request.POST.get('cantidad_vendida', 0))
-    cantidad_devuelta = int(request.POST.get('cantidad_devuelta', 0))
+    try:
+        # Obtener datos del formulario
+        producto_id = request.POST.get('producto_id')
+        movimiento_id = request.POST.get('movimiento_id')
+        print("Movimiento ID recibido:", movimiento_id) 
+        cantidad_vendida = int(request.POST.get('cantidad_vendida', 0))
+        cantidad_devuelta = int(request.POST.get('cantidad_devuelta', 0))
+        bodega_id = request.POST.get('bodega_id')  # Asegúrate de enviar este dato desde el formulario
+        # Verificar el ID del movimiento
+        # producto_pendiente = get_object_or_404(
+        #     MovimientoProducto,
+        #     id=movimiento_id,  # Usamos el ID del movimiento
+        #     estado_producto__nombre='Pendiente'
+        # )
+        # Verifica si los datos llegan correctamente
+        print(f"Producto ID: {producto_id}")
+        print(f"Cantidad Vendida: {cantidad_vendida}")
+        print(f"Cantidad Devuelta: {cantidad_devuelta}")
+        print(f"Bodega ID: {bodega_id}")
+        print(f"Producto Pendiente ID: {movimiento_id}")
 
-    # Validar que el producto existe y que pertenece al empleado
-    producto_pendiente = get_object_or_404(
-        MovimientoProducto, 
-        id=producto_id, 
-        estado_producto__nombre='Pendiente'
-    )
+        # Validar cantidades no negativas
+        if cantidad_vendida < 0 or cantidad_devuelta < 0:
+            raise ValueError("Las cantidades no pueden ser negativas.")
 
-    total_pendiente = producto_pendiente.cantidad
-
-    # Validar que la suma de vendida y devuelta no exceda la cantidad pendiente
-    if cantidad_vendida + cantidad_devuelta > total_pendiente:
-        messages.error(request, "La suma de productos vendidos y devueltos excede el total pendiente.")
-        contexto = complementarContexto({}, request.user)
-        return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
-
-    # Actualizar cantidades en función de los movimientos
-    if cantidad_vendida > 0:
-        MovimientoProducto.objects.create(
-            bodega=producto_pendiente.bodega,
-            producto=producto_pendiente.producto,
-            tipo_movimiento='venta',
-            cantidad=cantidad_vendida,
-            usuario=request.user,
-            empleado=producto_pendiente.empleado,
-            estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
+        # Obtener el movimiento pendiente
+        producto_pendiente = get_object_or_404(
+            MovimientoProducto,
+            id=producto_id,
+            estado_producto__nombre='Pendiente'
         )
+        total_pendiente = producto_pendiente.cantidad
 
-    if cantidad_devuelta > 0:
-        MovimientoProducto.objects.create(
-            bodega=producto_pendiente.bodega,
-            producto=producto_pendiente.producto,
-            tipo_movimiento='devolucion',
-            cantidad=cantidad_devuelta,
-            usuario=request.user,
-            empleado=producto_pendiente.empleado,
-            estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
-        )
+        # Validar que la suma de cantidades no exceda el pendiente
+        if cantidad_vendida + cantidad_devuelta > total_pendiente:
+            raise ValueError(f"La suma excede la cantidad pendiente ({total_pendiente}).")
 
-        # Ajustar stock en la bodega
-        inventario = RegistroInventario.objects.filter(
-            producto=producto_pendiente.producto,
-            bodega=producto_pendiente.bodega,
-            estado=get_object_or_404(EstadoProducto, nombre='Disponible')
-        ).first()
+        # Procesar venta
+        if cantidad_vendida > 0:
+            MovimientoProducto.objects.create(
+                bodega=producto_pendiente.bodega,
+                producto=producto_pendiente.producto,
+                tipo_movimiento='venta',
+                cantidad=cantidad_vendida,
+                usuario=request.user,
+                empleado=producto_pendiente.empleado,
+                estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
+            )
 
-        if inventario:
+        # Procesar devolución
+        if cantidad_devuelta > 0:
+            bodega = get_object_or_404(Bodega, id=bodega_id)
+            MovimientoProducto.objects.create(
+                bodega=bodega,
+                producto=producto_pendiente.producto,
+                tipo_movimiento='devolucion',
+                cantidad=cantidad_devuelta,
+                usuario=request.user,
+                empleado=producto_pendiente.empleado,
+                estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
+            )
+
+            # Ajustar stock en el inventario
+            inventario, created = RegistroInventario.objects.get_or_create(
+                producto=producto_pendiente.producto,
+                bodega=bodega,
+                estado=get_object_or_404(EstadoProducto, nombre='Disponible'),
+                defaults={'stock': 0}
+            )
             inventario.ajustar_stock(cantidad_devuelta)
 
-    # Actualizar la cantidad pendiente en el registro original
-    producto_pendiente.cantidad -= (cantidad_vendida + cantidad_devuelta)
-    if producto_pendiente.cantidad == 0:
-        producto_pendiente.delete()
-    else:
-        producto_pendiente.save()
+        # Actualizar o eliminar el movimiento pendiente
+        if cantidad_vendida + cantidad_devuelta == total_pendiente:
+            producto_pendiente.delete()
+        else:
+            producto_pendiente.cantidad -= (cantidad_vendida + cantidad_devuelta)
+            producto_pendiente.save()
 
-    messages.success(request, "Recepción de producto procesada correctamente.")
-    # Cambiar por la URL correspondiente
-    contexto = complementarContexto({}, request.user)
+        messages.success(request, "Recepción procesada correctamente.")
+    except ValueError as ve:
+        messages.error(request, f"Error de validación: {ve}")
+    except Exception as e:
+        messages.error(request, f"Error inesperado: {e}")
+
+    # Volver a listar los empleados pendientes
+    movimientos_pendientes = MovimientoProducto.objects.filter(
+        estado_producto__nombre='Pendiente'
+    ).select_related('producto', 'empleado')
+
+    empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
+    for movimiento in movimientos_pendientes:
+        empleado_id = movimiento.empleado.id
+        empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
+        empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
+        producto_id = movimiento.producto.id
+        if producto_id not in empleados[empleado_id]['productos']:
+            empleados[empleado_id]['productos'][producto_id] = {
+                'descripcion': movimiento.producto.descripcion,
+                'cantidad': movimiento.cantidad,
+                'movimiento_id': movimiento.id
+            }
+
+    contexto = {'empleados': dict(empleados)}
     return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+
 # class DetalleEmpleadoPendiente(LoginRequiredMixin, View):
 #     def get(self, request, empleado_id):
 #         empleado = Empleado.objects.get(id=empleado_id)

@@ -36,5 +36,5 @@ class ProveedorAdmin(admin.ModelAdmin):
 admin.site.register(Proveedor, ProveedorAdmin)
 #movimiento producto
 class MovimientoProductoAdmin(admin.ModelAdmin):
-     list_display = ['producto', 'cantidad', 'fecha_movimiento','empleado']
+     list_display = ['producto', 'cantidad', 'fecha_movimiento','empleado','estado_producto']
 admin.site.register(MovimientoProducto, MovimientoProductoAdmin)

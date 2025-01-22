@@ -1,4 +1,6 @@
 from datetime import timedelta
+from gettext import translation
+
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
@@ -319,20 +321,24 @@ class Inventario(models.Model):
     @classmethod
     def stock_total(cls, producto):
         """
-        Calcula la cantidad total de un producto en todas las bodegas.
+        Calcula el stock total de un producto sumando entradas y restando salidas.
         """
-        total_disponible = cls.objects.filter(producto=producto).aggregate(total=Sum('stock'))['total'] or 0
-        total_asignado = MovimientoProducto.objects.filter(producto=producto).aggregate(total=Sum('cantidad'))['total'] or 0
-        return total_disponible - total_asignado
+        total_entradas = MovimientoProducto.objects.filter(
+            producto=producto, tipo_movimiento='entrada'
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        total_salidas = MovimientoProducto.objects.filter(
+            producto=producto, tipo_movimiento='salida'
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        return total_entradas - total_salidas
 
-
+        super().save(*args, **kwargs)
 
 #------------------------------------NOTIFICACIONES------------------------------------
 class Notificaciones(models.Model):
     #id
     autor = models.ForeignKey(Usuario,to_field='username', on_delete=models.CASCADE)
     mensaje = models.TextField()
-#---------------------------------------------------------------------------------------class MovimientoProducto(models.Model):
+#---------------------------------------------------------------------------------------class MovimientoProducto(models.Model):class MovimientoProducto(models.Model):
 class MovimientoProducto(models.Model):    
     TIPO_MOVIMIENTO_CHOICES = [
         ('entrada', 'Entrada'),
@@ -344,7 +350,7 @@ class MovimientoProducto(models.Model):
         ('venta', 'Venta'),
         ('pendiente', 'Pendiente'),
     ]
-    
+
     bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     tipo_movimiento = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
@@ -354,59 +360,20 @@ class MovimientoProducto(models.Model):
     fecha_movimiento = models.DateTimeField(auto_now_add=True)
     estado_producto = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ('bodega', 'producto', 'fecha_movimiento')
+
     @classmethod
     def movimientos_por_fecha(cls, fecha_inicial, fecha_final):
-        """
-        Retorna los movimientos de productos en un rango de fechas.
-        """
         return cls.objects.filter(fecha_movimiento__range=[fecha_inicial, fecha_final])
-    #listar producto en Pendiente
+
     @classmethod
     def productosPendientes(cls):
-        """
-        Retorna los productos en estado 'Pendiente'.
-        """
         return cls.objects.filter(estado_producto__nombre='Pendiente')
+
     @classmethod
     def productos_pendientes_por_empleado(cls, empleado):
         return cls.objects.filter(empleado=empleado, estado_producto__nombre='Pendiente')
-    
-    def save(self, *args, **kwargs):
-        if self.tipo_movimiento == 'entrega':
-            # Solo considerar productos en estado 'disponible' para el cálculo de stock
-            stock_disponible = Inventario.objects.filter(
-                idproducto=self.producto,
-                idbodega=self.bodega,
-                estado__nombre='Disponible'  # Suponiendo que el estado "disponible" tiene ese nombre
-            ).aggregate(total=Sum('stock'))['total'] or 0
-            
-            # Sumar las entradas previas y restar las salidas previas, solo considerando productos en estado 'disponible'
-            total_entradas = MovimientoProducto.objects.filter(
-                producto=self.producto,
-                tipo_movimiento='entrada',
-                bodega=self.bodega,
-                estado_producto__nombre='Disponible'  # Filtrar solo productos en estado 'disponible'
-            ).aggregate(total=Sum('cantidad'))['total'] or 0
-            
-            total_salidas = MovimientoProducto.objects.filter(
-                producto=self.producto,
-                tipo_movimiento='salida',
-                bodega=self.bodega,
-                estado_producto__nombre='Disponible'  # Filtrar solo productos en estado 'disponible'
-            ).aggregate(total=Sum('cantidad'))['total'] or 0
-            
-            # Stock final considerando solo productos en estado 'disponible'
-            stock_final = stock_disponible + total_entradas - total_salidas
-
-            # Validación: si la cantidad de la entrega es mayor que el stock final, lanzar error
-            if self.cantidad > stock_final:
-                raise ValidationError(f"No hay suficiente stock disponible para realizar este movimiento. Stock disponible: {stock_final}")
-        
-        # Llamada al método `save` de la superclase
-        super().save(*args, **kwargs)
-
-    class Meta:
-        unique_together = ('bodega', 'producto', 'fecha_movimiento')
 
 #--------------------------------REGISTRO INVENTARIO------------------------------------
 class RegistroInventario(models.Model):
@@ -423,9 +390,10 @@ class RegistroInventario(models.Model):
         """
         Ajusta el stock del producto en la bodega.
         """
+        if self.cantidad + cantidad < 0:
+            raise ValidationError("No se puede reducir el stock por debajo de cero.")
         self.cantidad += cantidad
         self.save()
-
     @classmethod
     def productos_disponibles(cls):
         """
@@ -511,11 +479,13 @@ class Devolucion(models.Model):
     fecha_devolucion = models.DateTimeField(auto_now_add=True)
 
 #--------------------------------ENTREGA------------------------------------------------
+from django.db import models, transaction
+
 class Entrega(models.Model):
-    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
-    id_empleado_autorizo = models.ForeignKey(Usuario, related_name='autorizo_entregas', on_delete=models.CASCADE)
-    id_empleado_recibio = models.ForeignKey(Empleado, related_name='recibio_entregas', on_delete=models.CASCADE)
+    idproducto = models.ForeignKey('Producto', on_delete=models.CASCADE)
+    idbodega = models.ForeignKey('Bodega', on_delete=models.CASCADE)
+    id_empleado_autorizo = models.ForeignKey('Usuario', related_name='autorizo_entregas', on_delete=models.CASCADE)
+    id_empleado_recibio = models.ForeignKey('Empleado', related_name='recibio_entregas', on_delete=models.CASCADE)
     cantidad = models.IntegerField()
     fecha_entrega = models.DateTimeField(auto_now_add=True)
 
@@ -523,41 +493,18 @@ class Entrega(models.Model):
         if self.cantidad <= 0:
             raise ValidationError("La cantidad debe ser mayor que cero.")
 
-        # Verificar que hay suficiente stock en la bodega usando Inventario
-        inventario = Inventario.objects.get(idbodega=self.idbodega, idproducto=self.idproducto)
-        if inventario.stock < self.cantidad:
-            raise ValidationError("No hay suficiente stock en la bodega.")
-        
-        # Reducir el stock en el inventario
-        inventario.reducir_stock(self.cantidad)
+        with transaction.atomic():
+            # Verificar stock disponible
+            inventario = Inventario.objects.filter(idbodega=self.idbodega, idproducto=self.idproducto).first()
+            if not inventario:
+                raise ValidationError("El producto no existe en esta bodega.")
+            if inventario.stock < self.cantidad:
+                raise ValidationError(f"Stock insuficiente: disponible {inventario.stock}, solicitado {self.cantidad}.")
 
-        # Verificar y cambiar el estado del producto en inventario si está disponible
-        if inventario.estado.nombre == 'Disponible':
-            estado_pendiente = EstadoProducto.objects.get(nombre='Pendiente')
-            inventario.estado = estado_pendiente
-            inventario.save()
-
-        # Crear movimiento de producto, solo si no se ha creado previamente
-        if not MovimientoProducto.objects.filter(
-            bodega=self.idbodega,
-            producto=self.idproducto,
-            tipo_movimiento='salida',
-            cantidad=self.cantidad,
-            usuario=self.id_empleado_autorizo,
-            empleado=self.id_empleado_recibio
-        ).exists():
-            MovimientoProducto.objects.create(
-                bodega=self.idbodega,
-                producto=self.idproducto,
-                tipo_movimiento='salida',
-                cantidad=self.cantidad,
-                usuario=self.id_empleado_autorizo,
-                empleado=self.id_empleado_recibio,
-                estado_producto=inventario.estado  # Asegúrate de usar el estado correcto
-            )
-
-        # Guardar la entrega
-        super().save(*args, **kwargs)
+            # Reducir el stock
+            inventario.reducir_stock(self.cantidad)
+            # Guardar la entrega
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Entrega de {self.cantidad} {self.idproducto.descripcion} desde {self.idbodega.nombre}"
