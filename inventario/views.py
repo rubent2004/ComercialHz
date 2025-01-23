@@ -1683,10 +1683,26 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def get(self, request):
-        movimientoProductos = MovimientoProducto.objects.all()
-        contexto = {'tabla': movimientoProductos}
-        contexto = complementarContexto(contexto,request.user) 
-        return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+        form = MovimientoProductoFormulario(request.GET)
+        movimientos = MovimientoProducto.objects.all()
+
+        # Verifica si el formulario es válido y muestra los datos para depuración
+        if form.is_valid():
+            print(form.cleaned_data)  # Esto es solo para depuración
+            if form.cleaned_data['bodega']:
+                movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
+            if form.cleaned_data['producto']:
+                movimientos = movimientos.filter(producto=form.cleaned_data['producto'])
+            if form.cleaned_data['empleado']:
+                movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
+            if form.cleaned_data['estado_producto']:
+                movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
+            
+            # Preparar el contexto
+            contexto = {'tabla': movimientos, 'form': form}
+            contexto = complementarContexto(contexto, request.user)
+            # Renderizar la página con el contexto adecuado
+            return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
 
 #Reparacion
 class Reparacion(LoginRequiredMixin, View):
