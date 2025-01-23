@@ -4,7 +4,7 @@
 <script>
     function abrirModal(productoId, maxCantidad, movimientoId) {
         document.getElementById('productoId').value = productoId;
-        document.getElementById('movimientoId').innerText = movimientoId;  
+        document.getElementById('movimientoId').value = movimientoId;  
         console.log("Configurando producto ID:", productoId);
         console.log("Configurando Movimiento ID:", movimientoId);    
         document.getElementById('cantidadMaxima').innerText = maxCantidad;
@@ -17,10 +17,7 @@
         const modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
         modal.show();
     }
-    document.querySelector("form").onsubmit = function() {
-      console.log("Enviando Movimiento ID:", document.getElementById('movimientoId').value);
-  };
-  
+
     function validarSuma(maxCantidad) {
         const cantidadVendida = parseInt(document.getElementById('cantidadVendida').value || 0, 10);
         const cantidadDevuelta = parseInt(document.getElementById('cantidadDevuelta').value || 0, 10);
@@ -101,6 +98,7 @@
         </div>
     </section>
 </article>
+
 <!-- Modal para recepción -->
 <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -112,18 +110,30 @@
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
-                  <input type="hidden" name="producto_id" id="productoId">
-                  <input type="hidden" name="movimiento_id" id="movimientoId"> <!-- Campo oculto para movimiento_id -->
                   <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaxima"></span></p>
                   <div class="mb-3">
                       <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
                       <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" 
                              min="0" oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+                      {% if form.cantidad_vendida.errors %}
+                          <div class="invalid-feedback">
+                              {% for error in form.cantidad_vendida.errors %}
+                                  <p>{{ error }}</p>
+                              {% endfor %}
+                          </div>
+                      {% endif %}
                   </div>
                   <div class="mb-3">
                       <label for="cantidadDevuelta" class="form-label">Cantidad Devuelta</label>
                       <input type="number" class="form-control" name="cantidad_devuelta" id="cantidadDevuelta" 
                              min="0" oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+                      {% if form.cantidad_devuelta.errors %}
+                          <div class="invalid-feedback">
+                              {% for error in form.cantidad_devuelta.errors %}
+                                  <p>{{ error }}</p>
+                              {% endfor %}
+                          </div>
+                      {% endif %}
                   </div>
                   <div class="mb-3">
                       <label for="bodegaDevuelta" class="form-label">Bodega para devolución</label>
@@ -134,11 +144,25 @@
                           <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
                           {% endfor %}
                       </select>
+                      {% if form.bodega_id.errors %}
+                          <div class="invalid-feedback">
+                              {% for error in form.bodega_id.errors %}
+                                  <p>{{ error }}</p>
+                              {% endfor %}
+                          </div>
+                      {% endif %}
                   </div>
                   <!-- Mostrar el ID de Movimiento de forma discreta -->
                   <p style="font-size: 0.8em; color: #6c757d;">
-                      <strong>ID de Movimiento:</strong> <span id="movimientoId"></span>
-                  </p>
+                    <strong>ID de Movimiento:</strong>
+                    <input type="text" name="movimiento_id" id="movimientoId" value="" readonly 
+                           style="border: none; background: transparent; font-size: 1.2em; color: #6c757d;">
+                 </p>
+                  <p style="font-size: 0.8em; color: #6c757d;">
+                    <strong>ID de Producto:</strong>
+                    <input type="text" name="producto_id" id="productoId" value="" readonly 
+                          style="border: none; background: transparent; font-size: 1.2em; color: #6c757d;">
+                </p>
                   <p id="errorMensaje" class="text-danger"></p>
               </div>
               <div class="modal-footer">
@@ -149,6 +173,5 @@
       </div>
   </div>
 </div>
-
 
 {% endblock %}

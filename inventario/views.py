@@ -1866,16 +1866,35 @@ class AgregarInventario(LoginRequiredMixin, View):
     def post(self, request):
         form = RegistroInventarioFormulario(request.POST)
         if form.is_valid():
+            # Guardamos el registro de inventario, pero no confirmamos la base de datos aún
             registro = form.save(commit=False)
+
+            # Obtenemos el inventario o lo creamos si no existe
             inventario, _ = Inventario.objects.get_or_create(
                 idbodega=registro.bodega,
                 idproducto=registro.producto,
                 defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
             )
+
+            # Aumentamos el stock de inventario
             inventario.aumentar_stock(registro.cantidad)
             inventario.save()
+
+            # Actualizamos el estado del registro de inventario y ajustamos el stock
             registro.estado = EstadoProducto.objects.get(nombre='Disponible')
             registro.ajustar_stock(registro.cantidad)
+            # Registramos el movimiento de producto
+            MovimientoProducto.objects.create(
+                producto=registro.producto,
+                bodega=registro.bodega,
+                tipo_movimiento='entrada',  # Tipo de movimiento, 'entrada' para agregar productos
+                cantidad=registro.cantidad/2,
+                usuario=request.user,
+                empleado=None,
+                estado_producto=registro.estado
+            )
+
+            # Mensaje de éxito
             messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
             return HttpResponseRedirect("/inventario/agregarInventario")
         else:
@@ -1913,8 +1932,7 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
             # Renderizar la página con el contexto adecuado
             return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
 
-from django.db import transaction
-class AgregarEntrega(View):
+class AgregarEntrega(LoginRequiredMixin,View):
     def post(self, request):
         form = EntregaFormulario(request.POST)
         if form.is_valid():
@@ -1923,10 +1941,26 @@ class AgregarEntrega(View):
                     entrega = form.save(commit=False)
                     entrega.id_empleado_autorizo = request.user
                     # Validar stock al guardar la entrega
-
+                    
                     entrega.save()
 
-                messages.success(request, 'Entrega registrada y stock actualizado exitosamente.')
+                    # Crear un movimiento pendiente
+                    from .models import MovimientoProducto, EstadoProducto
+
+                    estado_pendiente, created = EstadoProducto.objects.get_or_create(nombre=EstadoProducto.PENDIENTE)
+                    
+                    movimiento = MovimientoProducto( # Ajusta esto según tu modelo
+                        producto=entrega.idproducto,
+                        cantidad=entrega.cantidad,  # Ajusta esto según tu formulario
+                        estado_producto=estado_pendiente,
+                        empleado=entrega.id_empleado_recibio,
+                        bodega=entrega.idbodega,
+                        tipo_movimiento='salida',
+                        usuario = request.user,
+                    )
+                    movimiento.save()
+
+                messages.success(request, 'Entrega registrada y stock actualizado exitosamente. Movimiento pendiente creado.')
                 return redirect('inventario:agregarEntrega')
             except ValidationError as e:
                 messages.error(request, str(e))
@@ -1939,77 +1973,6 @@ class AgregarEntrega(View):
     def get(self, request):
         form = EntregaFormulario()
         return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
-# class AgregarRecepcion(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def post(self, request):
-#         form = RecepcionForm(request.POST)
-        
-#         if form.is_valid():
-#             tipo_recepcion = form.cleaned_data['tipo_recepcion']
-#             cantidad_recibida = form.cleaned_data['cantidad_recibida']
-#             idproducto = form.cleaned_data['idproducto']
-
-#             try:
-#                 # Buscar el movimiento pendiente
-#                 movimiento_producto = MovimientoProducto.objects.get(
-#                     producto=idproducto,
-#                     estado="pendiente"
-#                 )
-
-#                 # Verificar si la cantidad recibida es mayor que la cantidad pendiente
-#                 if cantidad_recibida > movimiento_producto.cantidad:
-#                     messages.error(request, 'La cantidad recibida no puede ser mayor a la cantidad pendiente.')
-#                     return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
-
-#                 # Si fue vendido, actualizar el estado y reducir el inventario
-#                 if tipo_recepcion == 'vendido':
-#                     movimiento_producto.estado = 'vendido'
-#                     movimiento_producto.save()
-
-#                     # Reducir el stock del inventario
-#                     inventario = Inventario.objects.get(bodega=movimiento_producto.bodega, producto=idproducto)
-#                     inventario.reducir_stock(cantidad_recibida)
-#                     inventario.save()
-
-#                 # Si fue devuelto, actualizar el estado y aumentar el inventario
-#                 elif tipo_recepcion == 'devuelto':
-#                     movimiento_producto.estado = 'devuelto'
-#                     movimiento_producto.save()
-
-#                     # Aumentar el stock en el inventario
-#                     inventario = Inventario.objects.get(bodega=movimiento_producto.bodega, producto=idproducto)
-#                     inventario.aumentar_stock(cantidad_recibida)
-#                     inventario.save()
-
-#                     # Cambiar el estado del producto a "Disponible"
-#                     producto = Producto.objects.get(id=idproducto)
-#                     producto.estado = 'Disponible'
-#                     producto.save()
-
-#                 # Mensaje de éxito
-#                 messages.success(request, 'Recepción registrada y stock actualizado exitosamente.')
-                
-#                 # Establecer la sesión indicando que la recepción fue procesada
-#                 request.session['recepcionProcesada'] = 'registrada'
-#                 return HttpResponseRedirect("/inventario/agregarRecepcion")
-
-#             except MovimientoProducto.DoesNotExist:
-#                 messages.error(request, 'No se encontró el producto pendiente con ese estado.')
-#                 return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
-#             except Inventario.DoesNotExist:
-#                 messages.error(request, 'El producto no está disponible en la bodega seleccionada.')
-#                 return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
-
-#         else:
-#             return render(request, 'inventario/recepcion/agregarRecepcion.html', {'form': form})
-
-#     def get(self, request):
-#         form = RecepcionForm()
-#         contexto = {'form': form, 'modo': request.session.get('recepcionProcesada')}
-#         contexto = complementarContexto(contexto, request.user)
-#         return render(request, 'inventario/recepcion/agregarRecepcion.html', contexto)
 
 # views.py
 from django.template.loader import render_to_string
@@ -2067,6 +2030,7 @@ class ListarEmpleadosPendientes(LoginRequiredMixin, View):
         contexto = {'empleados': empleados}
         listado_html = render_to_string('inventario/recepcion/empleadosPendientes.html', contexto)
         return JsonResponse({'success': True, 'listado_html': listado_html})
+
 @require_POST
 @transaction.atomic
 def recepcion_producto(request):
@@ -2074,37 +2038,21 @@ def recepcion_producto(request):
         # Obtener datos del formulario
         producto_id = request.POST.get('producto_id')
         movimiento_id = request.POST.get('movimiento_id')
-        print("Movimiento ID recibido:", movimiento_id) 
-        cantidad_vendida = int(request.POST.get('cantidad_vendida', 0))
-        cantidad_devuelta = int(request.POST.get('cantidad_devuelta', 0))
-        bodega_id = request.POST.get('bodega_id')  # Asegúrate de enviar este dato desde el formulario
-        # Verificar el ID del movimiento
-        # producto_pendiente = get_object_or_404(
-        #     MovimientoProducto,
-        #     id=movimiento_id,  # Usamos el ID del movimiento
-        #     estado_producto__nombre='Pendiente'
-        # )
-        # Verifica si los datos llegan correctamente
-        #no
-        print(f"Producto ID: {producto_id}")
-        print(f"Cantidad Vendida: {cantidad_vendida}")
-        print(f"Cantidad Devuelta: {cantidad_devuelta}")
-        print(f"Bodega ID: {bodega_id}")
-        print(f"Producto Pendiente ID: {movimiento_id}")
+        cantidad_vendida = request.POST.get('cantidad_vendida', '0')  # Usamos '0' como valor predeterminado
+        cantidad_devuelta = request.POST.get('cantidad_devuelta', '0')
+        cantidad_devuelta = int(cantidad_devuelta) if cantidad_devuelta else 0
+        cantidad_vendida = int(cantidad_vendida) if cantidad_vendida else 0
+        bodega_id = request.POST.get('bodega_id')
 
-        # Validar cantidades no negativas
+        # Validaciones de cantidades
         if cantidad_vendida < 0 or cantidad_devuelta < 0:
             raise ValueError("Las cantidades no pueden ser negativas.")
 
-        # Obtener el movimiento pendiente
-        producto_pendiente = get_object_or_404(
-            MovimientoProducto,
-            id=producto_id,
-            estado_producto__nombre='Pendiente'
-        )
+        # Obtener movimiento pendiente
+        producto_pendiente = get_object_or_404(MovimientoProducto, id=movimiento_id, estado_producto__nombre='Pendiente')
         total_pendiente = producto_pendiente.cantidad
-
-        # Validar que la suma de cantidades no exceda el pendiente
+        
+        # Validar que la suma de cantidades no exceda la cantidad pendiente
         if cantidad_vendida + cantidad_devuelta > total_pendiente:
             raise ValueError(f"La suma excede la cantidad pendiente ({total_pendiente}).")
 
@@ -2133,14 +2081,20 @@ def recepcion_producto(request):
                 estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
             )
 
-            # Ajustar stock en el inventario
-            inventario, created = RegistroInventario.objects.get_or_create(
-                producto=producto_pendiente.producto,
-                bodega=bodega,
-                estado=get_object_or_404(EstadoProducto, nombre='Disponible'),
-                defaults={'stock': 0}
+            # Obtenemos el inventario o lo creamos si no existe
+            inventario, _ = Inventario.objects.get_or_create(
+                idbodega=bodega,
+                idproducto=producto_pendiente.producto,
+                defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
             )
-            inventario.ajustar_stock(cantidad_devuelta)
+
+            # Aumentamos el stock de inventario
+            inventario.aumentar_stock(cantidad_devuelta)
+            inventario.save()
+
+            #inventario.ajustar_stock(cantidad_devuelta)
+            # Mensaje de éxito
+            messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
 
         # Actualizar o eliminar el movimiento pendiente
         if cantidad_vendida + cantidad_devuelta == total_pendiente:
@@ -2176,52 +2130,3 @@ def recepcion_producto(request):
     contexto = {'empleados': dict(empleados)}
     return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
-# class DetalleEmpleadoPendiente(LoginRequiredMixin, View):
-#     def get(self, request, empleado_id):
-#         empleado = Empleado.objects.get(id=empleado_id)
-#         productos_pendientes = MovimientoProducto.objects.filter(
-#             empleado=empleado,
-#             estado_producto__nombre='Pendiente'
-#         )
-
-#         form = RecepcionFormulario(initial={'empleado': empleado})
-#         return render(request, 'inventario/recepcion/detalleEmpleadoPendiente.html', {'form': form, 'empleado': empleado, 'productos_pendientes': productos_pendientes})
-
-#     def post(self, request, empleado_id):
-#         form = RecepcionFormulario(request.POST)
-#         if form.is_valid():
-#             empleado = Empleado.objects.get(id=empleado_id)
-
-#             # Procesar los datos de cada producto
-#             for producto_id, cantidad_vendida in request.POST.items():
-#                 if cantidad_vendida:
-#                     cantidad_vendida = int(cantidad_vendida)
-#                     cantidad_devuelta = int(request.POST.get(f'cantidad_devuelta_{producto_id}', 0))
-
-#                     # Obtener el registro de inventario
-#                     inventario = RegistroInventario.objects.get(producto_id=producto_id, bodega=bodega)  # Reemplazar bodega con tu lógica
-
-#                     # Validaciones
-#                     if cantidad_vendida + cantidad_devuelta > inventario.cantidad:
-#                         # Manejar error: cantidad ingresada excede el stock
-#                         continue
-
-#                     # Actualizar inventario y registrar movimientos
-#                     inventario.reducir_stock(cantidad_vendida)
-#                     inventario.aumentar_stock(cantidad_devuelta)
-#                     inventario.save()
-
-#                     MovimientoProducto.objects.create(
-#                         producto_id=producto_id,
-#                         bodega=bodega,
-#                         empleado=empleado,
-#                         tipo_movimiento='venta' if cantidad_vendida > 0 else 'devolucion',
-#                         cantidad=cantidad_vendida if cantidad_vendida > 0 else cantidad_devuelta,
-#                         estado_producto=EstadoProducto.objects.get(nombre='Vendido' if cantidad_vendida > 0 else 'Disponible')
-#                     )
-
-#             messages.success(request, 'Recepción registrada exitosamente.')
-#             return redirect('detalleEmpleadoPendiente', empleado_id=empleado_id)
-#         else:
-#             # Manejar errores de validación
-#             return render(request, 'inventario/recepcion/detalleEmpleadoPendiente.html', {'form': form, 'empleado': empleado})

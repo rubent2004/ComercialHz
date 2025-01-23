@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Entrega, Inventario, Recepcion, MovimientoProducto, EstadoProducto
+from .models import Entrega, Inventario,  MovimientoProducto, EstadoProducto
 
 @receiver(post_save, sender=Entrega)
 def crear_movimiento_entrega(sender, instance, created, **kwargs):
@@ -18,14 +18,3 @@ def crear_movimiento_entrega(sender, instance, created, **kwargs):
             estado_producto=inventario.estado  # Usar el estado del inventario
         )
 
-@receiver(post_save, sender=Recepcion)
-def crear_movimiento_recepcion(sender, instance, created, **kwargs):
-    if created:
-        MovimientoProducto.objects.create(
-            bodega=instance.idbodega,
-            producto=instance.idproducto,
-            cantidad=instance.cantidad,
-            usuario=instance.id_empleado_autorizo,
-            empleado_recibio=instance.id_empleado_recibio,
-            estado_producto=instance.inventario.estado
-        )

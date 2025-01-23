@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import Sum, Count
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.db.models.signals import post_migrate
 
 
 
@@ -44,6 +45,7 @@ class Estado(models.Model):
         return self.nombre
 
 
+
 class EstadoProducto(models.Model):
     DISPONIBLE = 'Disponible'
     DAÑADO = 'Dañado'
@@ -63,6 +65,13 @@ class EstadoProducto(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    # Señal para agregar estados predeterminados
+    @receiver(post_migrate)
+    def crear_estados_predeterminados(sender, **kwargs):
+        estados = [EstadoProducto.DISPONIBLE, EstadoProducto.DAÑADO, EstadoProducto.EN_REPARACION, EstadoProducto.VENDIDO, EstadoProducto.PENDIENTE]
+        for estado in estados:
+            EstadoProducto.objects.get_or_create(nombre=estado)
 
 
 #--------------------------------MARCA--------------------------------------------------
@@ -330,9 +339,17 @@ class Inventario(models.Model):
             producto=producto, tipo_movimiento='salida'
         ).aggregate(total=Sum('cantidad'))['total'] or 0
         return total_entradas - total_salidas
-
         super().save(*args, **kwargs)
 
+    #ajustar stock
+    def ajustar_stock(self, cantidad):
+        """
+        Ajusta el stock del producto en la bodega.
+        """
+        if self.stock + cantidad < 0:
+            raise ValidationError("No se puede reducir el stock por debajo de cero.")
+        self.stock += cantidad
+        self.save()
 #------------------------------------NOTIFICACIONES------------------------------------
 class Notificaciones(models.Model):
     #id
@@ -356,7 +373,7 @@ class MovimientoProducto(models.Model):
     tipo_movimiento = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
     cantidad = models.IntegerField()
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
+    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, null=True)
     fecha_movimiento = models.DateTimeField(auto_now_add=True)
     estado_producto = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
 
@@ -382,6 +399,7 @@ class RegistroInventario(models.Model):
     estado = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField(default=0)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
+    
 
     def __str__(self):
         return f"{self.producto.descripcion} - {self.bodega.nombre} ({self.cantidad})"
@@ -427,36 +445,36 @@ class RegistroInventario(models.Model):
         if self.cantidad < 0:
             raise ValidationError("El stock no puede ser negativo.")
         
-    def recibir_producto(self, accion):
-        """
-        Actualiza el estado de un producto pendiente según la acción realizada.
-        :param accion: 'vendido' o 'devuelto'
-        """
-        if self.tipo_movimiento != 'pendiente':
-            raise ValidationError("Solo se pueden recibir productos con estado 'Pendiente'.")
+    # def recibir_producto(self, accion):
+    #     """
+    #     Actualiza el estado de un producto pendiente según la acción realizada.
+    #     :param accion: 'vendido' o 'devuelto'
+    #     """
+    #     if self.tipo_movimiento != 'pendiente':
+    #         raise ValidationError("Solo se pueden recibir productos con estado 'Pendiente'.")
 
-        if accion == 'vendido':
-            # Cambiar estado a "Vendido"
-            self.tipo_movimiento = 'venta'
-            self.estado_producto = EstadoProducto.objects.get(nombre='Vendido')
+    #     if accion == 'vendido':
+    #         # Cambiar estado a "Vendido"
+    #         self.tipo_movimiento = 'venta'
+    #         self.estado_producto = EstadoProducto.objects.get(nombre='Vendido')
 
-        elif accion == 'devuelto':
-            # Cambiar estado a "Disponible"
-            self.tipo_movimiento = 'devolucion'
-            self.estado_producto = EstadoProducto.objects.get(nombre='Disponible')
+    #     elif accion == 'devuelto':
+    #         # Cambiar estado a "Disponible"
+    #         self.tipo_movimiento = 'devolucion'
+    #         self.estado_producto = EstadoProducto.objects.get(nombre='Disponible')
 
-            # Ajustar el stock en el inventario
-            registro_inventario = RegistroInventario.objects.get(
-                producto=self.producto,
-                bodega=self.bodega,
-                estado=self.estado_producto
-            )
-            registro_inventario.ajustar_stock(self.cantidad)
-        else:
-            raise ValidationError("La acción debe ser 'vendido' o 'devuelto'.")
+    #         # Ajustar el stock en el inventario
+    #         registro_inventario = RegistroInventario.objects.get(
+    #             producto=self.producto,
+    #             bodega=self.bodega,
+    #             estado=self.estado_producto
+    #         )
+    #         registro_inventario.ajustar_stock(self.cantidad)
+    #     else:
+    #         raise ValidationError("La acción debe ser 'vendido' o 'devuelto'.")
 
-        # Guardar cambios
-        self.save()
+    #     # Guardar cambios
+    #     self.save()
 #--------------------------------REPARACION--------------------------------------------
 class Reparacion(models.Model):
     """
@@ -510,41 +528,3 @@ class Entrega(models.Model):
         return f"Entrega de {self.cantidad} {self.idproducto.descripcion} desde {self.idbodega.nombre}"
 
 #--------------------------------RECEPCION----------------------------------------------
-class Recepcion(models.Model):
-    TIPO_RECEPCION_CHOICES = [
-        ('vendido', 'Vendido'),
-        ('devuelto', 'Devuelto'),
-        ('recepcion', 'Recepcion'),
-    ]
-    idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
-    id_empleado_autorizo = models.ForeignKey(Usuario, related_name='autorizo_recepciones', on_delete=models.CASCADE)
-    id_empleado_recibio = models.ForeignKey(Usuario, related_name='recibio_recepciones', on_delete=models.CASCADE)
-    cantidad = models.IntegerField()
-    tipo_recepcion = models.CharField(max_length=9, choices=TIPO_RECEPCION_CHOICES)
-    fecha_recepcion = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        if self.cantidad <= 0:
-            raise ValidationError("La cantidad debe ser mayor que cero.")
-
-        if self.tipo_recepcion == 'devuelto':
-            inventario = Inventario.objects.get(bodega=self.idbodega, producto=self.idproducto)
-            inventario.aumentar_stock(self.cantidad)
-            self.idproducto.estado= EstadoProducto.objects.get(nombre='Disponible')
-            self.idproducto.save()
-
-
-        MovimientoProducto.objects.create(
-            bodega=self.idbodega,
-            producto=self.idproducto,
-            tipo_movimiento='entrada',
-            cantidad=self.cantidad,
-            usuario=self.id_empleado_autorizo,
-            estado_producto=self.idproducto.estado
-        )
-
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Recepción de {self.cantidad} {self.idproducto.descripcion} en {self.idbodega.nombre}"

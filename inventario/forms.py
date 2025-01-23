@@ -1,5 +1,5 @@
 from django import forms
-from .models import Bodega, Entrega, Estado, EstadoProducto, Inventario, Marca, MovimientoProducto, Producto, Empleado, Proveedor, Recepcion, RegistroInventario, Reparacion, Usuario
+from .models import Bodega, Entrega, Estado, EstadoProducto, Inventario, Marca, MovimientoProducto, Producto, Empleado, Proveedor, RegistroInventario, Reparacion, Usuario
 
 from django.forms import ModelChoiceField
 
