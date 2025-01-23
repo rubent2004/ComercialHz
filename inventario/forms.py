@@ -26,9 +26,9 @@ class LoginFormulario(forms.Form):
 class ProductoFormulario(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['codigo','descripcion', 'precio_unitario', 'precio_cash', 'proveedor', 'marca']
+        fields = ['descripcion', 'precio_unitario', 'precio_cash', 'proveedor', 'marca']
         labels = {
-            'codigo': 'Código',
+            #'codigo': 'Código',
             'descripcion': 'Descripción',
             'precio_unitario': 'Precio Unitario',
             'precio_cash': 'Precio Cash',
@@ -36,7 +36,7 @@ class ProductoFormulario(forms.ModelForm):
             'marca': 'Marca'
         }
         widgets = {
-            'codigo': forms.TextInput(attrs={'placeholder': 'Código del producto', 'class': 'form-control'}),
+            #'codigo': forms.TextInput(attrs={'placeholder': 'Código del producto', 'class': 'form-control'}),
             'descripcion': forms.TextInput(attrs={'placeholder': 'Descripción del producto', 'class': 'form-control'}),
             'precio_unitario': forms.NumberInput(attrs={'placeholder': 'Precio Unitario', 'class': 'form-control'}),
             'precio_cash': forms.NumberInput(attrs={'placeholder': 'Precio Cash', 'class': 'form-control'}),
