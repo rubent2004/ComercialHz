@@ -7,49 +7,49 @@
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
-        <h1 class="title">Listar productos</h1>
-        <p class="title-description">Verifique los productos agregados</p>
+        <h1 class="title">Listado de Productos</h1>
+        <p class="title-description">Verifique los productos agregados a inventario.</p>
     </div>
+
     <section class="section">
         <div class="row">
             <div class="col-md-12">
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="card card-primary">
-                            <div class="card-header">
-                                <div class="header-block">
-                                    <em class="fa fa-check"></em>
-                                    <p class="title">{{ message }}</p>
-                                </div>
-                            </div>
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <strong>{{ message }}</strong>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                         </div>
                     {% endfor %}
                 {% endif %}
+
                 <div class="card">
                     <div class="card-block">
-                        <div class="card-title-block">
-                            <h3 class="title">Productos</h3>
+                        <div class="card-title-block mb-4">
+                            <h3 class="title">Productos Disponibles</h3>
                         </div>
 
                         <!-- Botones para agregar producto e imprimir -->
-                        <div class="d-flex justify-content-end mb-3">
-                            <a href="{% url 'inventario:agregarProducto' %}" class="btn btn-success mr-2">
-                                <i class="fa fa-plus"></i> Agregar Producto
+                        <div class="d-flex justify-content-between mb-3">
+                            <a href="{% url 'inventario:agregarProducto' %}" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                                <i class="fa fa-plus-circle"></i> Agregar Producto
                             </a>
                             
-                            <button class="btn btn-primary" onclick="window.print()">
-                                <i class="fa fa-print"></i> Imprimir
-                            </button>
+
+                            <button class="btn btn-lg" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: box-shadow 0.2s ease;" onclick="window.print()"><i class="fa fa-print"></i> Imprimir</button>
+
                         </div>
 
                         <section class="example">
                             <div class="table-responsive">
                                 <table id="example2" class="table table-striped table-bordered table-hover">
-                                    <thead>
+                                    <thead class="thead-dark">
                                         <tr>
                                             <th>Item</th>
-                                            <td>Codigo</td>
-                                            <th>Descripcion</th>
+                                            <th>Código</th>
+                                            <th>Descripción</th>
                                             <th>Precio Unitario</th>
                                             <th>Precio Cash</th>
                                             <th>Proveedor</th>
@@ -59,31 +59,31 @@
                                     </thead>
                                     <tbody>
                                         {% for fila in tabla %}
-                                        <tr>
-                                            <td>{{ fila.id }}</td>
-                                            <td>{{ fila.codigo }}</td>
-                                            <td>{{ fila.descripcion }}</td>
-                                            <td>{{ fila.precio_unitario }}</td>
-                                            <td>{{ fila.precio_cash|default:"—" }}</td>
-                                            <td>{{ fila.proveedor.nombre }}</td>
-
-                                            <td>{{ fila.marca }}</td>
-                                            <td>
-                                                <div class="btn-group">
-                                                    <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                        <i class="fa fa-wrench"></i>
-                                                    </button>
-                                                    <div class="dropdown-menu">
-                                                        <a class="dropdown-item" href="{% url 'inventario:editarProducto' fila.id %}">Editar/Ver producto</a>
-
-
-
-                                                        <div class="dropdown-divider"></div>
-                                                        <a class="dropdown-item" onclick="eliminarEntrada({{ fila.id }}, 'producto')">Eliminar producto</a>
+                                            <tr>
+                                                <td>{{ fila.id }}</td>
+                                                <td>{{ fila.codigo }}</td>
+                                                <td>{{ fila.descripcion }}</td>
+                                                <td>{{ fila.precio_unitario }}</td>
+                                                <td>{{ fila.precio_cash|default:"—" }}</td>
+                                                <td>{{ fila.proveedor.nombre }}</td>
+                                                <td>{{ fila.marca }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="fa fa-cogs"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu">
+                                                            <a class="dropdown-item" href="{% url 'inventario:editarProducto' fila.id %}">
+                                                                <i class="fa fa-edit"></i> Editar/Ver Producto
+                                                            </a>
+                                                            <div class="dropdown-divider"></div>
+                                                            <a class="dropdown-item text-danger" onclick="eliminarEntrada({{ fila.id }}, 'producto')">
+                                                                <i class="fa fa-trash-alt"></i> Eliminar Producto
+                                                            </a>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                                </td>
+                                            </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
