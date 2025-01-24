@@ -1690,6 +1690,10 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
 
         # Verifica si el formulario es válido y muestra los datos para depuración
         if form.is_valid():
+<<<<<<< HEAD
+=======
+            print(form.cleaned_data)  # Esto es solo para depuración
+>>>>>>> 000b2a6f6ecf52b3c952e8bc0f8d0ad44e5eb2e5
             if form.cleaned_data['bodega']:
                 movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
             if form.cleaned_data['producto']:
@@ -1698,6 +1702,7 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
                 movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
             if form.cleaned_data['estado_producto']:
                 movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
+<<<<<<< HEAD
 
         # Recibe el parámetro de ordenación desde la URL
         orden = request.GET.get('orden', '-fecha_movimiento')  # Por defecto es descendente
@@ -1711,6 +1716,14 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
 
         # Renderizar la página con el contexto adecuado
         return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+=======
+            
+            # Preparar el contexto
+            contexto = {'tabla': movimientos, 'form': form}
+            contexto = complementarContexto(contexto, request.user)
+            # Renderizar la página con el contexto adecuado
+            return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+>>>>>>> 000b2a6f6ecf52b3c952e8bc0f8d0ad44e5eb2e5
 
 
 #Reparacion
