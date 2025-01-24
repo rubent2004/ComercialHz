@@ -71,37 +71,40 @@ class Login(View):
 
 
 
+from datetime import date
 
-#Panel de inicio y vista principal------------------------------------------------#
+# Panel de inicio y vista principal
+from django.shortcuts import render
+from .models import Producto, RegistroInventario, Empleado, Usuario, Bodega, Inventario, EstadoProducto
+
 class Panel(LoginRequiredMixin, View):
-    #De no estar logeado, el usuario sera redirigido a la pagina de Login
-    #Las dos variables son la pagina a redirigir y el campo adicional, respectivamente
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def get(self, request):
-        from datetime import date
-        #Recupera los datos del usuario despues del login
-        contexto = {'usuario': request.user.username,
-                    'id_usuario':request.user.id,
-                   'nombre': request.user.first_name,
-                   'apellido': request.user.last_name,
-                   'correo': request.user.email,
-                   'fecha':  date.today(),
-                   'productosRegistrados' : Producto.numeroRegistrados(),
-                   #'productosVendidos' :  DetalleFactura.productosVendidos(),
-                   'empleadosRegistrados' : Empleado.numeroRegistrados(),
-                   'usuariosRegistrados' : Usuario.numeroRegistrados(),
-                   #'facturasEmitidas' : Factura.numeroRegistrados(),
-                   #'ingresoTotal' : Factura.ingresoTotal(),
-                   #'ultimasVentas': DetalleFactura.ultimasVentas(),
-                   'administradores': Usuario.numeroUsuarios('administrador'),
-                   'usuarios': Usuario.numeroUsuarios('usuario')
-
+        # Recupera los datos del usuario después del login
+        contexto = {
+            'usuario': request.user.username,
+            'id_usuario': request.user.id,
+            'nombre': request.user.first_name,
+            'apellido': request.user.last_name,
+            'correo': request.user.email,
+            'fecha': date.today(),
+            'productosRegistrados': Producto.numeroRegistrados(),
+            'productosVendidos': RegistroInventario.productos_vendidos(),  # Recuento de productos vendidos
+            'empleadosRegistrados': Empleado.numeroRegistrados(),
+            'usuariosRegistrados': Usuario.numeroRegistrados(),
+            'administradores': Usuario.numeroUsuarios('administrador'),
+            'usuarios': Usuario.numeroUsuarios('usuario'),
+            'numeroBodegas': Bodega.numeroRegistrados(),  # Número de bodegas
+            'totalStock': Inventario.total_stock(),  # Total de stock de productos
+            'totalprecio': Producto.total_precio(),  # Suma del precio unitario de todos los productos
+            'totalvendidos': EstadoProducto.total_productos_vendidos(),  # Total de productos vendidos
+            'productosMasVendidos': EstadoProducto.producto_mas_vendido(),  # Producto más vendido
         }
 
+        return render(request, 'inventario/panel.html', contexto)
 
-        return render(request, 'inventario/panel.html',contexto)
 #Fin de vista----------------------------------------------------------------------#
 
 
@@ -1677,7 +1680,6 @@ class EditarBodega(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/bodega/agregarBodega.html', contexto)
 
-
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -1688,7 +1690,10 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
 
         # Verifica si el formulario es válido y muestra los datos para depuración
         if form.is_valid():
+<<<<<<< HEAD
+=======
             print(form.cleaned_data)  # Esto es solo para depuración
+>>>>>>> 000b2a6f6ecf52b3c952e8bc0f8d0ad44e5eb2e5
             if form.cleaned_data['bodega']:
                 movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
             if form.cleaned_data['producto']:
@@ -1697,12 +1702,29 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
                 movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
             if form.cleaned_data['estado_producto']:
                 movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
+<<<<<<< HEAD
+
+        # Recibe el parámetro de ordenación desde la URL
+        orden = request.GET.get('orden', '-fecha_movimiento')  # Por defecto es descendente
+
+        # Ordenar los movimientos según el parámetro 'orden'
+        movimientos = movimientos.order_by(orden)
+
+        # Preparar el contexto
+        contexto = {'tabla': movimientos, 'form': form}
+        contexto = complementarContexto(contexto, request.user)
+
+        # Renderizar la página con el contexto adecuado
+        return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+=======
             
             # Preparar el contexto
             contexto = {'tabla': movimientos, 'form': form}
             contexto = complementarContexto(contexto, request.user)
             # Renderizar la página con el contexto adecuado
             return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+>>>>>>> 000b2a6f6ecf52b3c952e8bc0f8d0ad44e5eb2e5
+
 
 #Reparacion
 class Reparacion(LoginRequiredMixin, View):
@@ -1921,7 +1943,10 @@ class AgregarInventario(LoginRequiredMixin, View):
         contexto = {'form': form}
         return render(request, 'inventario/inventario/agregarInventario.html', contexto)
 
-# VIEWS MAS PERRONAS AQUI XD# MovimientoProducto
+
+
+from django.utils.dateparse import parse_date
+
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
@@ -1930,9 +1955,20 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
         form = MovimientoProductoFormulario(request.GET)
         movimientos = MovimientoProducto.objects.all()
 
-        # Verifica si el formulario es válido y muestra los datos para depuración
+        # Obtener las fechas de inicio y fin desde los parámetros GET
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+
+        # Filtrar por fecha si ambas fechas están presentes y son válidas
+        if fecha_inicio and fecha_fin:
+            fecha_inicio = parse_date(fecha_inicio)
+            fecha_fin = parse_date(fecha_fin)
+            if fecha_inicio and fecha_fin:
+                # Filtra los movimientos donde la fecha de movimiento esté dentro del rango
+                movimientos = movimientos.filter(fecha_movimiento__range=[fecha_inicio, fecha_fin])
+
+        # Verificar otros filtros del formulario
         if form.is_valid():
-            print(form.cleaned_data)  # Esto es solo para depuración
             if form.cleaned_data['bodega']:
                 movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
             if form.cleaned_data['producto']:
@@ -1941,12 +1977,18 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
                 movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
             if form.cleaned_data['estado_producto']:
                 movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
-            
-            # Preparar el contexto
-            contexto = {'tabla': movimientos, 'form': form}
-            contexto = complementarContexto(contexto, request.user)
-            # Renderizar la página con el contexto adecuado
-            return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+
+        # Ordenar los movimientos según el parámetro 'orden'
+        orden = request.GET.get('orden', '-fecha_movimiento')
+        movimientos = movimientos.order_by(orden)
+
+        # Preparar el contexto
+        contexto = {'tabla': movimientos, 'form': form}
+        contexto = complementarContexto(contexto, request.user)
+
+        # Renderizar la página con el contexto adecuado
+        return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
+
 
 class AgregarEntrega(LoginRequiredMixin,View):
     def post(self, request):
