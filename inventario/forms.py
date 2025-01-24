@@ -200,7 +200,7 @@ class ProveedorFormulario(forms.ModelForm):
         'correo': 'Correo electronico del proveedor'
         }
         widgets = {
-        'dui': forms.TextInput(attrs={'placeholder': 'Inserte la dui de identidad del proveedor',
+        'dui': forms.TextInput(attrs={'placeholder': 'Inserte el dui de identidad del proveedor',
         'id':'dui','class':'form-control'} ),
         'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del proveedor',
         'id':'nombre','class':'form-control'}),

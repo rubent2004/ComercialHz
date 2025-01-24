@@ -6,7 +6,6 @@
 {% load static %}
 <script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
 <!-- FIN DE JAVASCRIPT ------------------------------------>
-
 <article class="content responsive-tables-page">
     <div class="title-block text-center mb-4">
         <h1 class="title">Listar Inventario</h1>
@@ -28,36 +27,46 @@
 
                 <div class="col-md-12">
                     <div class="card shadow-lg border-0 rounded">
-                        <!-- Formulario de búsqueda -->
-                        <form method="get" class="form-inline mb-4 justify-content-center">
-                            <div class="input-group">
-                                {{ form.as_p }}
-                                <button type="submit" class="btn btn-primary ml-3">
-                                    <i class="fa fa-search"></i> Buscar
-                                </button>
-                            </div>
-                        </form>
-                        <!-- Fin del formulario de búsqueda -->
-
                         <!-- Botones en la parte superior -->
-                        <div class="d-flex justify-content-end mt-3 mb-4">
-                            <!-- Botón para imprimir -->
-                            <button class="btn btn-secondary" onclick="window.print()">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <!-- Botón para agregar stock (esquina izquierda) -->
+                            <a href="{% url 'inventario:agregarInventario' %}" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                                <i class="fa fa-plus-circle"></i> Agregar Stock
+                            </a>
+
+                            <!-- Formulario de búsqueda centrado -->
+                            <form method="get" class="form-inline mb-4 justify-content-center">
+                                <div class="input-group">
+                                    {{ form.as_p }}
+                                    <button type="submit" class="btn btn-lg mt-2" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 4px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; margin-left: 10px;">
+                                        <i class="fa fa-search text-center" style="font-size: 16px;"></i> Buscar
+                                    </button>
+                                    
+                                    <!-- Botón para limpiar los campos -->
+                                    <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg mt-2" style="background-color: #dc3545; color: white; border: 2px solid #dc3545; border-radius: 25px; padding: 4px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; margin-left: 15px;">
+                                        <i class="fa fa-times" style="font-size: 16px;"></i> <span>Limpiar</span>
+                                    </a>
+                                </div>
+                            </form>
+                            
+
+                            <!-- Botón para imprimir (esquina derecha) -->
+                            <button class="btn btn-lg" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;" onclick="window.print()">
                                 <i class="fa fa-print"></i> Imprimir
                             </button>
                         </div>
-                        <!-- Fin de botones -->
+                        <!-- Fin de botones en la parte superior -->
 
                         <div class="card-body">
                             <div class="card-title-block">
                                 <h3 class="title text-info">Inventario</h3>
                             </div>
                             <section class="example">
-                                <div class="table-responsive">
+                                <div class="table-responsive text-center">
                                     <table id="example2" class="table table-striped table-hover table-bordered">
                                         <thead class="thead-dark">
                                             <tr>
-                                                <th>ID</th>
+                                               
                                                 <th>Producto</th>
                                                 <th>Bodega</th>
                                                 <th>Stock</th>
@@ -67,7 +76,7 @@
                                         <tbody>
                                             {% for fila in tabla %}
                                             <tr>
-                                                <td>{{ fila.id }}</td>
+                                               
                                                 <td>{{ fila.idproducto.descripcion }}</td>
                                                 <td>{{ fila.idbodega.nombre }}</td>
                                                 <td>{{ fila.stock }}</td>
@@ -93,6 +102,5 @@
     </section>
 </article>
 
+
 {% endblock %}
-
-

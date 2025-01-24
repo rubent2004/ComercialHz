@@ -30,11 +30,12 @@
                 {% endif %}
 
                 <div class="card card-block sameheight-item">
-                    <!-- Botón de Listar Productos -->
-                    <div class="d-flex justify-content-end mb-3">
-                        <a href="{% url 'inventario:listarProductos' %}" class="btn btn-secondary">
+                    <!-- Botones con el nuevo estilo -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <a href="{% url 'inventario:listarProductos' %}" class="btn btn-lg" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
                             <i class="fa fa-list"></i> Listar Productos
                         </a>
+                       
                     </div>
 
                     <form role="form" method="POST" enctype="multipart/form-data" onsubmit="return validarTodo('producto')">
@@ -49,13 +50,17 @@
                                 {{ field }}  <!-- Esto mostrará todos los campos -->
                                 
                                 {% if field.errors %}
-                                    <div class="text-danger">{{ field.errors }}</div>
+                                    <div class="text-danger" style="font-size: 0.9rem; padding-top: 5px;">
+                                        {{ field.errors }}
+                                    </div>
                                 {% endif %}
                             </div>
                         {% endfor %}
 
                         <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Guardar</button>
+                            <button type="submit" class="btn btn-lg" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                                Guardar
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -63,4 +68,5 @@
         </div>
     </section>
 </article>
+
 {% endblock %}

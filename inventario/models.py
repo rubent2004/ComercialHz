@@ -45,7 +45,6 @@ class Estado(models.Model):
         return self.nombre
 
 
-
 class EstadoProducto(models.Model):
     DISPONIBLE = 'Disponible'
     DAÑADO = 'Dañado'
@@ -73,6 +72,37 @@ class EstadoProducto(models.Model):
         for estado in estados:
             EstadoProducto.objects.get_or_create(nombre=estado)
 
+    # Método para contar los productos vendidos
+    @classmethod
+    def productos_vendidos(cls):
+        """
+        Retorna el número total de productos que están en estado 'Vendido'.
+        """
+        return RegistroInventario.objects.filter(estado__nombre=EstadoProducto.VENDIDO).count()
+
+    # Método para obtener el producto más vendido
+    @classmethod
+    def producto_mas_vendido(cls):
+        """
+        Retorna el producto más vendido, junto con la cantidad de ventas.
+        """
+        producto = RegistroInventario.objects.filter(estado__nombre=EstadoProducto.VENDIDO) \
+            .values('producto') \
+            .annotate(total_vendidos=Count('producto')) \
+            .order_by('-total_vendidos') \
+            .first()  # Toma el primero con la mayor cantidad de ventas
+
+        if producto:
+            producto_obj = Producto.objects.get(id=producto['producto'])
+            return {'nombre': producto_obj.descripcion, 'cantidadVendida': producto['total_vendidos']}
+        return None
+
+    @classmethod
+    def total_productos_vendidos(cls):
+        """
+        Retorna el número total de productos vendidos.
+        """
+        return RegistroInventario.objects.filter(estado__nombre=EstadoProducto.VENDIDO).aggregate(total=Sum('cantidad'))['total'] or 0
 
 #--------------------------------MARCA--------------------------------------------------
 class Marca(models.Model):
@@ -93,6 +123,13 @@ class Bodega(models.Model):
     ubicacion = models.CharField(max_length=50)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     estado = models.ForeignKey(Estado, on_delete=models.CASCADE)
+
+    @classmethod
+    def numeroRegistrados(cls):
+        """
+        Método de clase para obtener el número de bodegas registradas.
+        """
+        return cls.objects.count()
 
     def __str__(self):
         return f"{self.nombre}"
@@ -159,7 +196,7 @@ class Producto(models.Model):
     @classmethod
     def productosRegistrados(cls):
         return cls.objects.all().order_by('descripcion')
-
+    
     @classmethod
     def preciosProductos(cls):
         objetos = cls.objects.all().order_by('id')
@@ -181,12 +218,21 @@ class Producto(models.Model):
 
         return arreglo
 
+    @classmethod
+    def total_precio(cls):
+        """
+        Calcula la suma total del precio unitario de todos los productos.
+        """
+        total = cls.objects.all().aggregate(total=Sum('precio_unitario'))['total'] or 0
+        return total
+
 # Señal para autogenerar el código cuando el producto es guardado
 @receiver(pre_save, sender=Producto)
 def asignar_codigo(sender, instance, **kwargs):
     if not instance.codigo:  # Solo genera el código si aún no tiene uno asignado
         ultimo_id = Producto.objects.count() + 1  # Incrementa el ID actual
         instance.codigo = f"{ultimo_id:07d}"  # Genera un código como 0000001, 0000002, etc.
+
 
 #--------------------------------EMPLEADO-----------------------------------------------
 class Empleado(models.Model):
@@ -287,6 +333,8 @@ class DetalleFactura(models.Model):
 
 
 #--------------------------------INVENTARIO--------------------------------------------
+from django.db.models import Sum
+
 class Inventario(models.Model):
     """
     Modelo para representar el inventario de productos en las bodegas.
@@ -296,6 +344,7 @@ class Inventario(models.Model):
     stock = models.IntegerField()
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     estado = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)  # Asegúrate de tener esta relación
+
     @classmethod
     def productosEnBodega(cls):
         """
@@ -324,7 +373,11 @@ class Inventario(models.Model):
         Aumenta el stock del producto en la bodega.
         """
         self.actualizar_stock(cantidad, operacion='aumentar')
+
     def obtener_bodega(self):
+        """
+        Obtiene la bodega donde se encuentra el inventario.
+        """
         return self.idbodega
         
     @classmethod
@@ -339,9 +392,7 @@ class Inventario(models.Model):
             producto=producto, tipo_movimiento='salida'
         ).aggregate(total=Sum('cantidad'))['total'] or 0
         return total_entradas - total_salidas
-        super().save(*args, **kwargs)
 
-    #ajustar stock
     def ajustar_stock(self, cantidad):
         """
         Ajusta el stock del producto en la bodega.
@@ -350,6 +401,14 @@ class Inventario(models.Model):
             raise ValidationError("No se puede reducir el stock por debajo de cero.")
         self.stock += cantidad
         self.save()
+
+    @classmethod
+    def total_stock(cls):
+        """
+        Calcula el total de stock de todos los productos en todas las bodegas.
+        """
+        return cls.objects.aggregate(total_stock=Sum('stock'))['total_stock'] or 0
+
 #------------------------------------NOTIFICACIONES------------------------------------
 class Notificaciones(models.Model):
     #id

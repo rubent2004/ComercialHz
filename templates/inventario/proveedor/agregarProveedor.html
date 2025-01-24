@@ -15,7 +15,9 @@
 
     <!-- Botón para listar productos -->
     <div class="d-flex justify-content-end mb-3">
-        <a href="/inventario/listarProveedores" class="btn btn-info">
+        <a href="/inventario/listarProveedores" 
+           class="btn btn-lg" 
+           style="background-color: #028cc8; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
             <i class="fa fa-list"></i> Listar Proveedores
         </a>
     </div>
@@ -70,7 +72,7 @@
                     <form role="form" method="POST" onsubmit="return validarTodo('proveedor')">
                         {% csrf_token %}
 
-                        <!----------------   CAMPOS DE TIPO DE CEDULA Y CEDULA  ---------------------->
+                        <!----------------   CAMPOS DE TIPO DE Dui Y Nit  ---------------------->
                         <label for="{{ form.dui.name }}">
                             {{ form.dui.label }}
                         </label>
@@ -131,7 +133,11 @@
 
                         <!------------------------------- BOTON DE INGRESO ------------------------------------>
                         <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Ingresar</button>
+                            <button type="submit" 
+                                    class="btn btn-lg" 
+                                    style="background-color: #16f355; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
+                                <i class="fa fa-save"></i> Ingresar
+                            </button>
                         </div>
                         <!---------------------------------- FIN DE BOTON ---------------------------------->
                     </form>
