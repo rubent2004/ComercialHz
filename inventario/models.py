@@ -197,6 +197,8 @@ class Producto(models.Model):
     def productosRegistrados(cls):
         return cls.objects.all().order_by('descripcion')
     
+    
+    
     @classmethod
     def preciosProductos(cls):
         objetos = cls.objects.all().order_by('id')
@@ -225,6 +227,7 @@ class Producto(models.Model):
         """
         total = cls.objects.all().aggregate(total=Sum('precio_unitario'))['total'] or 0
         return total
+        
 
 # Señal para autogenerar el código cuando el producto es guardado
 @receiver(pre_save, sender=Producto)

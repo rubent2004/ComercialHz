@@ -379,6 +379,56 @@ class Eliminar(LoginRequiredMixin, View):
 
 #Fin de vista-------------------------------------------------------------------   
 
+class AgregarInventario(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request, producto_id):
+        producto = get_object_or_404(Producto, id=producto_id)  # Obtener producto por ID
+        
+        form = RegistroInventarioFormulario(request.POST)
+        if form.is_valid():
+            # Guardamos el registro de inventario, pero no confirmamos la base de datos aún
+            registro = form.save(commit=False)
+
+            # Obtenemos el inventario o lo creamos si no existe
+            inventario, _ = Inventario.objects.get_or_create(
+                idbodega=registro.bodega,
+                idproducto=producto,  # Usamos el producto recibido
+                defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
+            )
+
+            # Aumentamos el stock de inventario
+            inventario.aumentar_stock(registro.cantidad)
+            inventario.save()
+
+            # Actualizamos el estado del registro de inventario y ajustamos el stock
+            registro.estado = EstadoProducto.objects.get(nombre='Disponible')
+            registro.ajustar_stock(registro.cantidad)
+
+            # Registramos el movimiento de producto
+            MovimientoProducto.objects.create(
+                producto=producto,
+                bodega=registro.bodega,
+                tipo_movimiento='entrada',  # Tipo de movimiento, 'entrada' para agregar productos
+                cantidad=registro.cantidad / 2,
+                usuario=request.user,
+                empleado=None,
+                estado_producto=registro.estado
+            )
+
+            # Mensaje de éxito
+            messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
+            return HttpResponseRedirect("/inventario/agregarInventario")
+
+        else:
+            return render(request, 'inventario/inventario/agregarInventario.html', {'form': form, 'producto': producto})
+
+    def get(self, request, producto_id):
+        producto = get_object_or_404(Producto, id=producto_id)  # Obtener producto por ID
+        form = RegistroInventarioFormulario()
+        contexto = {'form': form, 'producto': producto}
+        return render(request, 'inventario/inventario/agregarInventario.html', contexto)
 
 
 #Muestra una lista de 10 productos por pagina----------------------------------------#
@@ -1690,10 +1740,7 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
 
         # Verifica si el formulario es válido y muestra los datos para depuración
         if form.is_valid():
-<<<<<<< HEAD
-=======
             print(form.cleaned_data)  # Esto es solo para depuración
->>>>>>> 000b2a6f6ecf52b3c952e8bc0f8d0ad44e5eb2e5
             if form.cleaned_data['bodega']:
                 movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
             if form.cleaned_data['producto']:
@@ -1702,7 +1749,6 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
                 movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
             if form.cleaned_data['estado_producto']:
                 movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
-<<<<<<< HEAD
 
         # Recibe el parámetro de ordenación desde la URL
         orden = request.GET.get('orden', '-fecha_movimiento')  # Por defecto es descendente
@@ -1716,15 +1762,6 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
 
         # Renderizar la página con el contexto adecuado
         return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
-=======
-            
-            # Preparar el contexto
-            contexto = {'tabla': movimientos, 'form': form}
-            contexto = complementarContexto(contexto, request.user)
-            # Renderizar la página con el contexto adecuado
-            return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
->>>>>>> 000b2a6f6ecf52b3c952e8bc0f8d0ad44e5eb2e5
-
 
 #Reparacion
 class Reparacion(LoginRequiredMixin, View):

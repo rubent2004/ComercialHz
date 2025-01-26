@@ -6,6 +6,7 @@
 {% load static %}
 <script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
 <!-- FIN DE JAVASCRIPT ------------------------------------>
+
 <article class="content responsive-tables-page">
     <div class="title-block text-center mb-4">
         <h1 class="title">Listar Inventario</h1>
@@ -48,7 +49,6 @@
                                     </a>
                                 </div>
                             </form>
-                            
 
                             <!-- Botón para imprimir (esquina derecha) -->
                             <button class="btn btn-lg" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;" onclick="window.print()">
@@ -62,36 +62,35 @@
                                 <h3 class="title text-info">Inventario</h3>
                             </div>
                             <section class="example">
-                                <div class="table-responsive text-center">
-                                    <table id="example2" class="table table-striped table-hover table-bordered">
-                                        <thead class="thead-dark">
-                                            <tr>
-                                               
-                                                <th>Producto</th>
-                                                <th>Bodega</th>
-                                                <th>Stock</th>
-                                                <th>Fecha de Actualización</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for fila in tabla %}
-                                            <tr>
-                                               
-                                                <td>{{ fila.idproducto.descripcion }}</td>
-                                                <td>{{ fila.idbodega.nombre }}</td>
-                                                <td>{{ fila.stock }}</td>
-                                                <td>{{ fila.fecha_actualizacion }}</td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                        <!-- Fila de Total -->
-                                        <tfoot>
-                                            <tr>
-                                                <td colspan="3" class="text-right"><strong>Total de Stock:</strong></td>
-                                                <td colspan="2"><strong>{{ total_stock }}</strong></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                <div class="row">
+                                    {% for fila in tabla %}
+                                    <div class="col-md-3 mb-4">
+                                        <div class="card shadow-sm product-card" style="border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;">
+                                            <!-- Icono en la esquina superior derecha -->
+                                            <div class="position-relative">
+                                                <i class="fa fa-cube" style="position: absolute; top: 10px; right: 10px; font-size: 24px; color: #007bff;"></i>
+                                            </div>
+                                            <div class="card-body">
+                                                <h5 class="card-title text-center">{{ fila.idproducto.descripcion }}</h5>
+                                                <p class="card-text"><strong>Bodega:</strong> {{ fila.idbodega.nombre }}</p>
+                                                <p class="card-text"><strong>Stock:</strong> {{ fila.stock }}</p>
+                                                <p class="card-text"><strong>Fecha de Actualización:</strong> {{ fila.fecha_actualizacion }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Tarjeta de Total de Stock -->
+                                <div class="row">
+                                    <div class="col-md-12 mb-4">
+                                        <div class="card shadow-sm" style="border: 2px solid #28a745; border-radius: 8px; background-color: #f8f9fa;">
+                                            <div class="card-body text-center">
+                                                <h5 class="card-title text-success">Total de Stock</h5>
+                                                <p class="card-text"><strong>{{ total_stock }}</strong></p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
                         </div>
@@ -102,7 +101,63 @@
     </section>
 </article>
 
+<style>
+    .product-card {
+        position: relative;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra por defecto */
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+
+    .product-card:hover {
+        transform: scale(1.05); /* Agranda la tarjeta al pasar el mouse */
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada al pasar el mouse */
+    }
+
+    .product-card .card-body {
+        padding: 15px;
+    }
+
+    .product-card .card-title {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+
+    .product-card .card-text {
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    .product-card:hover .card-title {
+        color: #007bff; /* Cambia el color del título al pasar el mouse */
+    }
+</style>
+<script>
+    function imprimirInventario() {
+        // Guardar los estilos de la página para restaurarlos después
+        var originalBody = document.body.innerHTML;
+
+        // Crear una sección solo para imprimir
+        var printContent = document.getElementById('content-to-print').innerHTML;
+
+        // Si hay una búsqueda, solo imprimimos lo que está visible
+        var filteredContent = document.getElementById('tabla-filtrada'); // Asegúrate de que la tabla filtrada tenga este id
+        if (filteredContent) {
+            printContent = filteredContent.innerHTML;
+        }
+
+        // Configuramos el contenido de la página de impresión
+        document.body.innerHTML = "<html><head><title>Imprimir Inventario</title></head><body>" + printContent + "</body></html>";
+
+        // Ejecutamos la función de impresión
+        window.print();
+
+        // Restauramos el contenido original de la página
+        document.body.innerHTML = originalBody;
+    }
+</script>
 
 {% endblock %}
-
 
