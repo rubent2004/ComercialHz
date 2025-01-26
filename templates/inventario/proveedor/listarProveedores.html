@@ -12,6 +12,7 @@
         <h1 class="title"> Listar proveedores </h1>
         <p class="title-description"> Verifique los proveedores agregados </p>
     </div>
+
     <section class="section">
         <div class="row">
             <div class="col-md-12">
@@ -27,82 +28,87 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-                <div class="col-md-12">
-                    <div class="card">
-                        
-                        <!-- Botones en una posición ligeramente más abajo -->
-                        <div class="d-flex justify-content-end mt-3 mb-4">
-                            <!-- Botón para agregar proveedor -->
-                            <a href="/inventario/agregarProveedor" 
-                               class="btn btn-lg" 
-                               style="background-color: #0b9c34; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
-                                <i class="fa fa-plus"></i> Agregar Proveedor
-                            </a>
-                            <!-- Botón para imprimir -->
-                            <button class="btn btn-lg" 
-                                    onclick="window.print()"
-                                    style="background-color: #028cc8; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
-                                <i class="fa fa-print"></i> Imprimir
-                            </button>
-                        </div>
-                        <!-- Fin de botones -->
 
-                        <div class="card-block">
-                            <div class="card-title-block">
-                                <h3 class="title">Proveedores</h3>
-                            </div>
-                            <section class="example">
-                                <div class="table-responsive">
-                                    <table id="example2" class="table table-striped table-bordered table-hover">
-                                        <thead style="background-color: #000; color: white; text-align: center;">
-                                            <div class="table-responsive text-center">
-                                                <tr>
-                                                    <th>ID</th>
-                                                    <th >Dui</th>
-                                                    <th >Nombre completo</th>
-                                                    <th >Teléfono</th>
-                                                    <th >Correo</th>
-                                                    <th >Opciones</th>
-                                                </tr>
-                                            </div>
-                                        </thead>
-                                        <tbody>
-                                            {% for fila in tabla %}
-                                           
-                                            <tr>
-                                                <div class="table-responsive text-center">
-                                                    <td>{{ fila.id }}</td>
-                                                    <td>{{ fila.dui }}</td>
-                                                    <td>{{ fila.nombre }} {{ fila.apellido }}</td>
-                                                    <td>{{ fila.telefono }}</td>
-                                                    <td>{{ fila.correo }}</td>
-                                                </div>
-                                               
-                                                <td>
-                                                    <div class="btn-group">
-                                                        <button type="button" class="btn btn-lg" 
-                                                                style="background-color: #028cc8; color: white; border: none; border-radius: 25px; padding: 5px 15px; font-size: 14px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;" 
-                                                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                            <i class="fa fa-wrench"></i>
-                                                        </button>
-                                                        <div class="dropdown-menu">
-                                                            <a class="dropdown-item" href="/inventario/editarProveedor/{{ fila.id }}">Editar/Ver proveedor</a>
-                                                            <div class="dropdown-divider"></div>
-                                                            <a class="dropdown-item" onclick="eliminarEntrada({{ fila.id }}, 'proveedor')">Eliminar Proveedor</a>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                <!-- Barra de búsqueda y botones -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="input-group" style="max-width: 400px;">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Buscar proveedor..." onkeyup="filterCards()">
+                        <div class="input-group-append">
+                            <span class="input-group-text"><i class="fa fa-search"></i></span>
                         </div>
                     </div>
+                    <div class="d-flex gap-3">
+                        <a href="/inventario/agregarProveedor" 
+                           class="btn btn-lg" 
+                           style="background-color: #0b9c34; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
+                            <i class="fa fa-plus"></i> Agregar Proveedor
+                        </a>
+                        <button class="btn btn-lg" 
+                                onclick="window.print()"
+                                style="background-color: #028cc8; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
+                            <i class="fa fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de proveedores -->
+                <div class="row" id="cardContainer">
+                    {% for fila in tabla %}
+                    <div class="col-md-4 mb-4 card-wrapper">
+                        <div class="card h-100" style="border-radius: 15px; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease;">
+                            <div class="card-header text-center text-black" style="background-color: #ffffff;">
+                                <h4 class="card-title mb-0 ">{{ fila.nombre }} {{ fila.apellido }}</h4>
+                            </div>
+                            <div class="card-body text-center">
+                                <p><strong>DUI:</strong> {{ fila.dui }}</p>
+                                <p><strong>Teléfono:</strong> {{ fila.telefono }}</p>
+                                <p><strong>Correo:</strong> {{ fila.correo }}</p>
+                            </div>
+                            <div class="card-footer d-flex justify-content-around" style="background-color: #f8f9fa;">
+                                <a href="/inventario/editarProveedor/{{ fila.id }}" class="btn btn-sm btn-primary" style="border-radius: 20px;">
+                                    <i class="fa fa-edit"></i> Editar
+                                </a>
+                                
+                                </a>
+                                <button class="btn btn-sm btn-danger" style="border-radius: 20px;" onclick="eliminarEntrada({{ fila.id }}, 'proveedor')">
+                                    <i class="fa fa-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </section>
 </article>
+
+<script>
+    function filterCards() {
+        const input = document.getElementById("searchInput").value.toLowerCase();
+        const cards = document.querySelectorAll(".card-wrapper");
+
+        cards.forEach(card => {
+            const cardText = card.textContent.toLowerCase();
+            if (cardText.includes(input)) {
+                card.style.display = "block";
+            } else {
+                card.style.display = "none";
+            }
+        });
+    }
+
+    // Agrega animación de escala al pasar el mouse sobre las tarjetas
+    document.querySelectorAll(".card").forEach(card => {
+        card.addEventListener("mouseover", () => {
+            card.style.transform = "scale(1.05)";
+            card.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.2)";
+        });
+        card.addEventListener("mouseout", () => {
+            card.style.transform = "scale(1)";
+            card.style.boxShadow = "none";
+        });
+    });
+</script>
+
 {% endblock %}

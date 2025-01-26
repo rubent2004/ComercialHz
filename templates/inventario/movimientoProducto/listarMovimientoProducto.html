@@ -50,19 +50,15 @@
                                         <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin }}">
                                     </div>
 
-                                    <!-- Agrupar los botones en el mismo contenedor y alinearlos -->
-                                    <div class="form-group ml-3">
-                                        <button type="submit" 
-                                                class="btn btn-lg" 
-                                                style="background-color: #16f355; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
-                                            <i class="fa fa-search"></i> Buscar
-                                        </button>
-                                        <a href="/inventario/listarMovimientoProducto" 
-                                           class="btn btn-lg ml-3" 
-                                           style="background-color: #f55e16; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
-                                            <i class="fa fa-eraser"></i> Limpiar
-                                        </a>
-                                    </div>
+                                    <!-- Botón de filtro -->
+                                    <button type="submit" class="btn btn-lg btn-buscar">
+                                        <i class="fa fa-search"></i> Filtrar
+                                    </button>
+
+                                    <!-- Botón de Limpiar -->
+                                    <a href="/inventario/listarMovimientoProducto" class="btn btn-lg btn-limpiar">
+                                        <i class="fa fa-eraser"></i> Limpiar
+                                    </a>
                                 </form>
                             </section>
                         </div>
@@ -74,49 +70,28 @@
                         <div class="card-block">
                             <div class="card-title-block">
                                 <h3 class="title">Movimientos Registrados</h3>
-                                <!-- Selector de ordenación -->
-                                <div class="text-right mb-3">
-                                    <form method="get" class="d-inline">
-                                        <div class="form-group d-flex align-items-center">
-                                            <label for="orden" class="mr-2">Ordenar por:</label>
-                                            <select name="orden" id="orden" class="form-control" onchange="this.form.submit()">
-                                                <option value="-fecha_movimiento" {% if request.GET.orden == '-fecha_movimiento' %}selected{% endif %}>Más reciente</option>
-                                                <option value="fecha_movimiento" {% if request.GET.orden == 'fecha_movimiento' %}selected{% endif %}>Más antiguo</option>
-                                            </select>
-                                        </div>
-                                    </form>
-                                </div>
                             </div>
-                            <table class="table table-striped text-center">
-                                <thead>
-                                    <tr class="thead-dark">
-                                        <th>Bodega</th>
-                                        <th>Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Empleado</th>
-                                        <th>Usuario</th>
-                                        <th>Fecha Movimiento</th>
-                                        <th>Estado del Producto</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for movimiento in tabla %}
-                                        <tr class="text-center">
-                                            <td>{{ movimiento.bodega }}</td>
-                                            <td>{{ movimiento.producto }}</td>
-                                            <td>{{ movimiento.cantidad }}</td>
-                                            <td>{{ movimiento.empleado }}</td>
-                                            <td>{{ movimiento.usuario }}</td>
-                                            <td>{{ movimiento.fecha_movimiento }}</td>
-                                            <td>{{ movimiento.estado_producto }}</td>
-                                        </tr>
-                                    {% empty %}
-                                        <tr>
-                                            <td colspan="8" class="text-center">No se encontraron movimientos</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            <div class="row">
+                                {% for movimiento in tabla %}
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card movimiento-card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ movimiento.producto }}</h5>
+                                                <p class="card-text">Bodega: {{ movimiento.bodega }}</p>
+                                                <p class="card-text">Cantidad: {{ movimiento.cantidad }}</p>
+                                                <p class="card-text">Empleado: {{ movimiento.empleado }}</p>
+                                                <p class="card-text">Usuario: {{ movimiento.usuario }}</p>
+                                                <p class="card-text">Fecha: {{ movimiento.fecha_movimiento }}</p>
+                                                <p class="card-text">Estado: {{ movimiento.estado_producto }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="col-12">
+                                        <div class="alert alert-info text-center">No se encontraron movimientos</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,5 +99,109 @@
         </div>
     </section>
 </article>
+
+<style>
+/* Estilo de los botones */
+.btn-lg {
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Botón de Buscar */
+.btn-lg i {
+    margin-right: 8px;
+}
+
+.btn-lg:hover {
+    transform: scale(1.05);
+}
+
+.btn-buscar {
+    background-color: #16f355;
+    color: white;
+    border: none;
+}
+
+.btn-buscar:hover {
+    background-color: #14d047;
+}
+
+/* Botón de Limpiar */
+.btn-limpiar {
+    background-color: #f55e16;
+    color: white;
+    border: none;
+}
+
+.btn-limpiar:hover {
+    background-color: #e14b12;
+}
+
+/* Estilo para las tarjetas */
+.movimiento-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.movimiento-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.card-text {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+/* Estilo para las tarjetas con un marco oscuro */
+.movimiento-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 3px solid #e0e0e0; /* Borde oscuro alrededor de la tarjeta */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); /* Sombra suave alrededor de la tarjeta */
+    border-radius: 10px;
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: white; /* Fondo blanco para las tarjetas */
+}
+
+.movimiento-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0 25px rgba(208, 208, 208, 0.2); /* Sombra más fuerte al hacer hover */
+    border-color: #a39f9f; /* Cambia el borde a un color más oscuro cuando se hace hover */
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
+}
+
+.card-text {
+    font-size: 14px;
+    color: #302f2f;
+    margin-bottom: 8px;
+}
+</style>
 
 {% endblock %}
