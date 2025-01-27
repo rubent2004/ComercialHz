@@ -35,7 +35,7 @@ class Usuario(AbstractUser):
         """
         if tipo == 'administrador':
             return cls.objects.filter(is_superuser=True).count()
-        elif tipo == 'usuario' or tipo == 'encargado_bodega':
+        elif tipo == 'usuario':
             return cls.objects.filter(is_superuser=False).count()
         return 0
 class Estado(models.Model):
@@ -79,30 +79,6 @@ class EstadoProducto(models.Model):
         Retorna el número total de productos que están en estado 'Vendido'.
         """
         return RegistroInventario.objects.filter(estado__nombre=EstadoProducto.VENDIDO).count()
-
-    # Método para obtener el producto más vendido
-    @classmethod
-    def producto_mas_vendido(cls):
-        """
-        Retorna el producto más vendido, junto con la cantidad de ventas.
-        """
-        producto = RegistroInventario.objects.filter(estado__nombre=EstadoProducto.VENDIDO) \
-            .values('producto') \
-            .annotate(total_vendidos=Count('producto')) \
-            .order_by('-total_vendidos') \
-            .first()  # Toma el primero con la mayor cantidad de ventas
-
-        if producto:
-            producto_obj = Producto.objects.get(id=producto['producto'])
-            return {'nombre': producto_obj.descripcion, 'cantidadVendida': producto['total_vendidos']}
-        return None
-
-    @classmethod
-    def total_productos_vendidos(cls):
-        """
-        Retorna el número total de productos vendidos.
-        """
-        return RegistroInventario.objects.filter(estado__nombre=EstadoProducto.VENDIDO).aggregate(total=Sum('cantidad'))['total'] or 0
 
 #--------------------------------MARCA--------------------------------------------------
 class Marca(models.Model):
@@ -153,8 +129,8 @@ class Proveedor(models.Model):
         for indice, objeto in enumerate(objetos):
             arreglo.append([])
             arreglo[indice].append(objeto.dui)
-            nombre_empleado = objeto.nombre + " " + objeto.empleado
-            arreglo[indice].append("%s. C.I: %s" % (nombre_empleado, self.formateardui(objeto.dui)))
+            nombre_proveedor = objeto.nombre + " " + objeto.proveedor
+            arreglo[indice].append("%s. C.I: %s" % (nombre_proveedor, self.formateardui(objeto.dui)))
         return arreglo
 
     @staticmethod
@@ -453,7 +429,38 @@ class MovimientoProducto(models.Model):
     @classmethod
     def productos_pendientes_por_empleado(cls, empleado):
         return cls.objects.filter(empleado=empleado, estado_producto__nombre='Pendiente')
+    
+    #REPORTESSS
 
+
+    
+    # REPORTES
+
+    @classmethod
+    def productos_mas_vendidos(cls):
+        """
+        Retorna una lista de productos más vendidos, con la cantidad de ventas para cada uno.
+        """
+        productos = MovimientoProducto.objects.filter(estado_producto__nombre=EstadoProducto.VENDIDO) \
+            .select_related('producto') \
+            .values('producto') \
+            .annotate(total_vendidos=Count('producto')) \
+            .order_by('-total_vendidos')
+
+        productos_vendidos = [
+            {'nombre': Producto.objects.get(id=producto['producto']).descripcion, 'cantidadVendida': producto['total_vendidos']}
+            for producto in productos
+        ]
+        return productos_vendidos
+
+    @classmethod
+    def total_productos_vendidos(cls):
+        """
+        Retorna el número total de productos vendidos.
+        """
+        total = MovimientoProducto.objects.filter(estado_producto__nombre=EstadoProducto.VENDIDO) \
+            .aggregate(total=Sum('cantidad'))['total']
+        return total if total is not None else 0
 #--------------------------------REGISTRO INVENTARIO------------------------------------
 class RegistroInventario(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
@@ -496,47 +503,10 @@ class RegistroInventario(models.Model):
         ultimo_mes = timezone.now() - timedelta(days=30)
         return cls.objects.filter(estado__nombre=EstadoProducto.VENDIDO, fecha_actualizacion__gte=ultimo_mes)
 
-    @classmethod
-    def productos_mas_vendidos(cls):
-        """
-        Retorna los productos más vendidos.
-        """
-        return cls.objects.filter(estado__nombre=EstadoProducto.VENDIDO).annotate(total_vendidos=Count('producto')).order_by('-total_vendidos')
-    
     def clean(self):
         if self.cantidad < 0:
             raise ValidationError("El stock no puede ser negativo.")
-        
-    # def recibir_producto(self, accion):
-    #     """
-    #     Actualiza el estado de un producto pendiente según la acción realizada.
-    #     :param accion: 'vendido' o 'devuelto'
-    #     """
-    #     if self.tipo_movimiento != 'pendiente':
-    #         raise ValidationError("Solo se pueden recibir productos con estado 'Pendiente'.")
 
-    #     if accion == 'vendido':
-    #         # Cambiar estado a "Vendido"
-    #         self.tipo_movimiento = 'venta'
-    #         self.estado_producto = EstadoProducto.objects.get(nombre='Vendido')
-
-    #     elif accion == 'devuelto':
-    #         # Cambiar estado a "Disponible"
-    #         self.tipo_movimiento = 'devolucion'
-    #         self.estado_producto = EstadoProducto.objects.get(nombre='Disponible')
-
-    #         # Ajustar el stock en el inventario
-    #         registro_inventario = RegistroInventario.objects.get(
-    #             producto=self.producto,
-    #             bodega=self.bodega,
-    #             estado=self.estado_producto
-    #         )
-    #         registro_inventario.ajustar_stock(self.cantidad)
-    #     else:
-    #         raise ValidationError("La acción debe ser 'vendido' o 'devuelto'.")
-
-    #     # Guardar cambios
-    #     self.save()
 #--------------------------------REPARACION--------------------------------------------
 class Reparacion(models.Model):
     """
@@ -588,5 +558,3 @@ class Entrega(models.Model):
 
     def __str__(self):
         return f"Entrega de {self.cantidad} {self.idproducto.descripcion} desde {self.idbodega.nombre}"
-
-#--------------------------------RECEPCION----------------------------------------------

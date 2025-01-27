@@ -76,7 +76,6 @@
                                                     {% for producto_id, producto_data in empleado_data.productos.items %}
                                                     <li>
                                                         {{ producto_data.descripcion }} 
-                                                        {{ producto_data.movimiento_id }} 
                                                         (Cantidad: {{ producto_data.cantidad }})
                                                         <button class="btn btn-primary btn-sm" 
                                                                 onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }})">

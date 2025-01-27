@@ -99,8 +99,8 @@ class Panel(LoginRequiredMixin, View):
             'numeroBodegas': Bodega.numeroRegistrados(),  # Número de bodegas
             'totalStock': Inventario.total_stock(),  # Total de stock de productos
             'totalprecio': Producto.total_precio(),  # Suma del precio unitario de todos los productos
-            'totalvendidos': EstadoProducto.total_productos_vendidos(),  # Total de productos vendidos
-            'productosMasVendidos': EstadoProducto.producto_mas_vendido(),  # Producto más vendido
+            'totalvendidos': MovimientoProducto.total_productos_vendidos(),  # Total de productos vendidos
+            'productosMasVendidos': MovimientoProducto.productos_mas_vendidos(),  # Producto más vendido
         }
 
         return render(request, 'inventario/panel.html', contexto)
@@ -129,20 +129,20 @@ class Perfil(LoginRequiredMixin, View):
 
     #se accede al modo adecuado y se valida al usuario actual para ver si puede modificar al otro usuario-
     #-el cual es obtenido por la variable 'p'
-    def get(self, request, modo, p):
+    def get(self, request, modo, pk):
         if modo == 'editar':
             perf = Usuario.objects.get(id=pk)
             editandoSuperAdmin = False
 
-            if p == 1:
+            if pk == 1:
                 if request.user.nivel != 2:
                     messages.error(request, 'No puede editar el perfil del administrador por no tener los permisos suficientes')
-                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % p)
+                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % pk)
                 editandoSuperAdmin = True
             else:
                 if request.user.is_superuser != True: 
                     messages.error(request, 'No puede cambiar el perfil por no tener los permisos suficientes')
-                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % p) 
+                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % pk) 
 
                 else:
                     if perf.is_superuser == True:
@@ -152,7 +152,7 @@ class Perfil(LoginRequiredMixin, View):
                         elif perf.id != request.user.id:
                             messages.error(request, 'No puedes cambiar el perfil de un usuario de tu mismo nivel')
 
-                            return HttpResponseRedirect('/inventario/perfil/ver/%s' % p) 
+                            return HttpResponseRedirect('/inventario/perfil/ver/%s' % pk) 
 
             if editandoSuperAdmin:
                 form = UsuarioFormulario()
@@ -178,15 +178,15 @@ class Perfil(LoginRequiredMixin, View):
 
         elif modo == 'clave':  
             perf = Usuario.objects.get(id=pk)
-            if p == 1:
+            if pk == 1:
                 if request.user.nivel != 2:
                    
                     messages.error(request, 'No puede cambiar la clave del administrador por no tener los permisos suficientes')
-                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % p)  
+                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % pk)  
             else:
                 if request.user.is_superuser != True: 
                     messages.error(request, 'No puede cambiar la clave de este perfil por no tener los permisos suficientes')
-                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % p) 
+                    return HttpResponseRedirect('/inventario/perfil/ver/%s' % pk) 
 
                 else:
                     if perf.is_superuser == True:
@@ -195,7 +195,7 @@ class Perfil(LoginRequiredMixin, View):
 
                         elif perf.id != request.user.id:
                             messages.error(request, 'No puedes cambiar la clave de un usuario de tu mismo nivel')
-                            return HttpResponseRedirect('/inventario/perfil/ver/%s' % p) 
+                            return HttpResponseRedirect('/inventario/perfil/ver/%s' % pk) 
 
 
             form = ClaveFormulario(request.POST)
@@ -214,7 +214,7 @@ class Perfil(LoginRequiredMixin, View):
 
 
 
-    def post(self,request,modo,p):
+    def post(self,request,modo,pk):
         if modo ==  'editar':
             # Crea una instancia del formulario y la llena con los datos:
             form = UsuarioFormulario(request.POST)
@@ -223,7 +223,7 @@ class Perfil(LoginRequiredMixin, View):
             if form.is_valid():
                 perf = Usuario.objects.get(id=pk)
                 # Procesa y asigna los datos con form.cleaned_data como se requiere
-                if p != 1:
+                if pk != 1:
                     level = form.cleaned_data['level']        
                     perf.nivel = level
                     perf.is_superuser = level
@@ -241,7 +241,7 @@ class Perfil(LoginRequiredMixin, View):
                 perf.save()
                 
                 form = UsuarioFormulario()
-                messages.success(request, 'Actualizado exitosamente el perfil de ID %s.' % p)
+                messages.success(request, 'Actualizado exitosamente el perfil de ID %s.' % pk)
                 request.session['perfilProcesado'] = True           
                 return HttpResponseRedirect("/inventario/perfil/ver/%s" % perf.id)
             else:
@@ -288,7 +288,7 @@ class Perfil(LoginRequiredMixin, View):
                     return HttpResponseRedirect("/inventario/login")
 
                 else:
-                    return HttpResponseRedirect("/inventario/perfil/clave/%s" % p)
+                    return HttpResponseRedirect("/inventario/perfil/clave/%s" % pk)
     
 
 
@@ -1978,6 +1978,8 @@ class AgregarInventario(LoginRequiredMixin, View):
     def get(self, request):
         form = RegistroInventarioFormulario()
         contexto = {'form': form}
+        
+        contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/inventario/agregarInventario.html', contexto)
 
 
@@ -2038,23 +2040,6 @@ class AgregarEntrega(LoginRequiredMixin,View):
                     # Validar stock al guardar la entrega
                     
                     entrega.save()
-
-                    # Crear un movimiento pendiente
-                    from .models import MovimientoProducto, EstadoProducto
-
-                    estado_pendiente, created = EstadoProducto.objects.get_or_create(nombre=EstadoProducto.PENDIENTE)
-                    
-                    movimiento = MovimientoProducto( # Ajusta esto según tu modelo
-                        producto=entrega.idproducto,
-                        cantidad=entrega.cantidad,  # Ajusta esto según tu formulario
-                        estado_producto=estado_pendiente,
-                        empleado=entrega.id_empleado_recibio,
-                        bodega=entrega.idbodega,
-                        tipo_movimiento='salida',
-                        usuario = request.user,
-                    )
-                    movimiento.save()
-
                 messages.success(request, 'Entrega registrada y stock actualizado exitosamente. Movimiento pendiente creado.')
                 return redirect('inventario:agregarEntrega')
             except ValidationError as e:
@@ -2063,7 +2048,11 @@ class AgregarEntrega(LoginRequiredMixin,View):
                 messages.error(request, f"Error inesperado: {e}")
         else:
             messages.error(request, "Por favor corrija los errores en el formulario.")
-        return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
+        
+        contexto = {'form': form}
+        
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
 
     def get(self, request):
         form = EntregaFormulario()
@@ -2124,6 +2113,8 @@ class ListarEmpleadosPendientes(LoginRequiredMixin, View):
 
         contexto = {'empleados': empleados}
         listado_html = render_to_string('inventario/recepcion/empleadosPendientes.html', contexto)
+        
+        contexto = complementarContexto(contexto, request.user)
         return JsonResponse({'success': True, 'listado_html': listado_html})
 
 @require_POST
@@ -2221,7 +2212,10 @@ def recepcion_producto(request):
                 'cantidad': movimiento.cantidad,
                 'movimiento_id': movimiento.id
             }
-
-    contexto = {'empleados': dict(empleados)}
+    bodegas = Bodega.objects.all()
+    contexto = {'empleados': dict(empleados),
+            'bodegas': bodegas,  # Agregar bodegas al contexto
+                }
+    contexto = complementarContexto(contexto, request.user)
     return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
