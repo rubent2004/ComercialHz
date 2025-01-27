@@ -2,33 +2,34 @@
 
 {% block content %}
 <script>
-    function abrirModal(productoId, maxCantidad, movimientoId) {
+    function abrirModal(productoId, maxCantidad, movimientoId, esDevuelto) {
         document.getElementById('productoId').value = productoId;
         document.getElementById('movimientoId').value = movimientoId;  
         console.log("Configurando producto ID:", productoId);
         console.log("Configurando Movimiento ID:", movimientoId);    
         document.getElementById('cantidadMaxima').innerText = maxCantidad;
         document.getElementById('cantidadVendida').max = maxCantidad;
-        document.getElementById('cantidadDevuelta').max = maxCantidad;
+        document.getElementById('cantidadRecibida').max = maxCantidad;
         document.getElementById('cantidadVendida').value = '';
-        document.getElementById('cantidadDevuelta').value = '';
+        document.getElementById('cantidadRecibida').value = '';
         document.getElementById('bodegaDevuelta').value = '';
         document.getElementById('errorMensaje').innerText = ''; // Limpiar mensaje de error
+        document.getElementById('esDevuelto').value = esDevuelto;
         const modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
         modal.show();
     }
 
     function validarSuma(maxCantidad) {
         const cantidadVendida = parseInt(document.getElementById('cantidadVendida').value || 0, 10);
-        const cantidadDevuelta = parseInt(document.getElementById('cantidadDevuelta').value || 0, 10);
+        const cantidadRecibida = parseInt(document.getElementById('cantidadRecibida').value || 0, 10);
         const bodegaDevuelta = document.getElementById('bodegaDevuelta').value;
-        const suma = cantidadVendida + cantidadDevuelta;
+        const suma = cantidadVendida + cantidadRecibida;
 
         if (suma > maxCantidad) {
             document.getElementById('errorMensaje').innerText = 
                 `La suma de vendidos y devueltos (${suma}) no puede exceder la cantidad máxima (${maxCantidad}).`;
             document.getElementById('guardarBtn').disabled = true;
-        } else if (cantidadDevuelta > 0 && !bodegaDevuelta) {
+        } else if (cantidadRecibida > 0 && !bodegaDevuelta) {
             document.getElementById('errorMensaje').innerText = 
                 "Debe seleccionar una bodega para los productos devueltos.";
             document.getElementById('guardarBtn').disabled = true;
@@ -48,10 +49,11 @@
     <section class="section">
         <div class="row">
             <div class="col-md-12">
-                <div class="card">
+                <div class="card shadow-sm border-light">
                     <div class="card-block">
-                        <div class="card-title-block">
+                        <div class="card-title-block d-flex justify-content-between align-items-center">
                             <h3 class="title">Empleados Pendientes</h3>
+                            <i class="fas fa-boxes" style="font-size: 1.5em;"></i> <!-- Icono de cajas -->
                         </div>
                         <section class="example">
                             {% if messages %}
@@ -59,28 +61,42 @@
                                     <div class="alert alert-info">{{ message }}</div>
                                 {% endfor %}
                             {% endif %}
-                            <div class="row">
-                                {% for empleado_id, empleado_data in empleados.items %}
-                                    <div class="col-md-4 mb-4">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title">{{ empleado_data.nombre }} {{ empleado_data.apellido }}</h5>
-                                                <ul class="list-group list-group-flush">
+                            <div class="table-responsive">
+                                <table id="listarEmpleadosPendientes" class="table table-striped table-bordered table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Productos Pendientes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for empleado_id, empleado_data in empleados.items %}
+                                        <tr>
+                                            <td>{{ empleado_data.nombre }} {{ empleado_data.apellido }}</td>
+                                            <td>
+                                                <ul class="list-unstyled">
                                                     {% for producto_id, producto_data in empleado_data.productos.items %}
-                                                        <li class="list-group-item">
-                                                            <strong>{{ producto_data.descripcion }}</strong> 
+                                                    <li class="d-flex justify-content-between align-items-center mb-3">
+                                                        <span>
+                                                            <i class="fas fa-box-open"></i> {{ producto_data.descripcion }} 
                                                             (Cantidad: {{ producto_data.cantidad }})
-                                                            <button class="btn btn-primary btn-sm float-end" 
-                                                                    onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }})">
-                                                              Recepcionar
-                                                            </button>
-                                                        </li>
+                                                        </span>
+                                                        <button class="btn btn-info btn-sm" 
+                                                                onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }}, false)">
+                                                          <i class="fas fa-check-circle"></i> Recepcionar
+                                                        </button>
+                                                        <button class="btn btn-warning btn-sm" 
+                                                                onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }}, true)">
+                                                          <i class="fas fa-undo-alt"></i> Trae Devolucion
+                                                        </button>
+                                                    </li>
                                                     {% endfor %}
                                                 </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
                         </section>
                     </div>
@@ -92,11 +108,11 @@
 
 <!-- Modal para recepción -->
 <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
       <div class="modal-content">
           <form method="POST" action="{% url 'inventario:recepcion_producto' %}">
               {% csrf_token %}
-              <div class="modal-header">
+              <div class="modal-header bg-info text-white">
                   <h5 class="modal-title" id="recepcionModalLabel">Recepción de Producto</h5>
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
@@ -115,12 +131,12 @@
                       {% endif %}
                   </div>
                   <div class="mb-3">
-                      <label for="cantidadDevuelta" class="form-label">Cantidad Devuelta</label>
-                      <input type="number" class="form-control" name="cantidad_devuelta" id="cantidadDevuelta" 
+                      <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
+                      <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" 
                              min="0" oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-                      {% if form.cantidad_devuelta.errors %}
+                      {% if form.cantidad_recibida.errors %}
                           <div class="invalid-feedback">
-                              {% for error in form.cantidad_devuelta.errors %}
+                              {% for error in form.cantidad_recibida.errors %}
                                   <p>{{ error }}</p>
                               {% endfor %}
                           </div>
@@ -155,10 +171,14 @@
                           style="border: none; background: transparent; font-size: 1.2em; color: #6c757d;">
                 </p>
                   <p id="errorMensaje" class="text-danger"></p>
+                  <!-- Campo adicional para indicar si el producto es devuelto -->
+                  <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
               </div>
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                  <button type="submit" class="btn btn-primary" id="guardarBtn" disabled>Guardar</button>
+                  <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
+                    <i class="fas fa-save"></i> Guardar
+                  </button>
               </div>
           </form>
       </div>

@@ -340,10 +340,13 @@ class Inventario(models.Model):
         Actualiza el stock del producto en la bodega.
         """
         if operacion == 'reducir':
+            if self.stock - cantidad < 0:
+                raise ValidationError("No se puede reducir el stock por debajo de cero.")
             self.stock -= cantidad
         elif operacion == 'aumentar':
             self.stock += cantidad
         self.save()
+
 
     def reducir_stock(self, cantidad):
         """
@@ -516,38 +519,39 @@ class Reparacion(models.Model):
     idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     bodega_origen = models.ForeignKey(Bodega, on_delete=models.CASCADE)
     idempleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
-    descripcion_problema = models.TextField()
+    motivo = models.TextField()
     fecha_envio = models.DateTimeField(auto_now_add=True)
     fecha_retorno = models.DateTimeField(null=True, blank=True)
     estado = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
-
+    desde_devolucion = models.BooleanField(default=False)  # Nuevo campo para identificar devoluciones
     @classmethod
     def totalReparacionesPendientes(cls):
-        return cls.objects.filter(estado__nombre="pendiente").count()  # Ajustar según el campo 'nombre'
+        return cls.objects.filter(estado__nombre="pendiente").count()
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
-            # Verificar stock disponible en la bodega
-            inventario = Inventario.objects.filter(
-                idbodega=self.bodega_origen,
-                idproducto=self.idproducto
-            ).first()
+            # Si la reparación no viene de una devolución, verificar y reducir el stock
+            if not self.desde_devolucion:
+                # Verificar stock disponible en la bodega
+                inventario = Inventario.objects.filter(
+                    idbodega=self.bodega_origen,
+                    idproducto=self.idproducto
+                ).first()
 
-            if not inventario:
-                raise ValidationError("El producto no existe en esta bodega.")
-            
-            if inventario.stock < 1:
-                raise ValidationError(f"Stock insuficiente: disponible {inventario.stock}, solicitado {1}.")
-
-            # Reducir el stock en el inventario
-            inventario.reducir_stock(1)
+                if not inventario:
+                    raise ValidationError("El producto no existe en esta bodega.")
+                
+                if inventario.stock < 1:
+                    raise ValidationError(f"Stock insuficiente: disponible {inventario.stock}, solicitado {1}.")
+                
+                # Reducir el stock en el inventario
+                inventario.reducir_stock(1)
 
             # Guardar la reparación
             super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Reparación {self.idproducto} - {self.estado}"
-
     
 
 #--------------------------------DEVOLUCION--------------------------------------------
@@ -556,9 +560,35 @@ class Devolucion(models.Model):
     Modelo para representar las devoluciones de productos.
     """
     idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    idempleado = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    idempleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
+    idempleado_recibio = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    idbodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
     motivo = models.TextField()
+    dañado = models.BooleanField(default=False)
     fecha_devolucion = models.DateTimeField(auto_now_add=True)
+    enviado_a_reparacion = models.BooleanField(default=False)
+   
+   #si dañado es igual a false se le sumara la cantidad al inventario
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            inventario = Inventario.objects.filter(idbodega=self.idbodega, idproducto=self.idproducto).first()
+            if self.dañado:
+                # Reducir el stock en el inventario
+                inventario.reducir_stock(self.cantidad)
+            else:
+                # Aumentar el stock en el inventario
+                inventario.aumentar_stock(self.cantidad)
+
+            # Guardar la devolución
+            super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Devolución {self.idproducto} - {self.cantidad} unidades"
+    #total devoluciones
+    @classmethod
+    def totalDevoluciones(cls):
+        return cls.objects.count()
 
 #--------------------------------ENTREGA------------------------------------------------
 from django.db import models, transaction

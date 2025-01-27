@@ -197,7 +197,7 @@ class Migration(migrations.Migration):
             name='Reparacion',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('descripcion_problema', models.TextField()),
+                ('motivo', models.TextField()),
                 ('fecha_envio', models.DateTimeField(auto_now_add=True)),
                 ('fecha_retorno', models.DateTimeField(blank=True, null=True)),
                 ('estado', models.CharField(choices=[('pendiente', 'Pendiente'), ('reparado', 'Reparado')], default='pendiente', max_length=9)),

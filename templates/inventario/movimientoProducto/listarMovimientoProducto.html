@@ -76,7 +76,9 @@
                                     <div class="col-md-4 mb-4">
                                         <div class="card movimiento-card">
                                             <div class="card-body">
+                                                <p class="card-subtitle">Tipo de movimiento: {{ movimiento.tipo_movimiento }}</p>
                                                 <h5 class="card-title">{{ movimiento.producto }}</h5>
+                                                <h5 class="card-text">Proveedor: {{ movimiento.producto.proveedor }}</h5>
                                                 <p class="card-text">Bodega: {{ movimiento.bodega }}</p>
                                                 <p class="card-text">Cantidad: {{ movimiento.cantidad }}</p>
                                                 <p class="card-text">Empleado: {{ movimiento.empleado }}</p>

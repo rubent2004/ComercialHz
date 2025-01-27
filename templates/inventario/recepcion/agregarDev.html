@@ -1,0 +1,62 @@
+{% extends "inventario/comun/base.html" %}
+
+{% block content %}
+<!-- NO MODIFICAR ---------------------------------->
+{% load static %}
+<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
+<!-- FIN DE JAVASCRIPT ------------------------------------>
+
+<article class="content responsive-tables-page">
+    <div class="title-block text-center">
+        <h1 class="title">Registrar Devolución</h1>
+        <p class="title-description">Registra los detalles de la devolución del producto</p>
+    </div>
+    <section class="section">
+        <div class="row">
+            <div class="col-md-12">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="card card-primary">
+                            <div class="card-header">
+                                <div class="header-block">
+                                    <em class="fa fa-check"></em>
+                                    <p class="title">{{ message }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-block">
+                            <div class="card-title-block">
+                                <h3 class="title">Formulario de Devolución</h3>
+                            </div>
+                            
+                            <!-- Botón para listar devoluciones en la esquina superior derecha -->
+                            <a href="{% url 'inventario:listarDev' %}" class="btn btn-lg" style="position: absolute; top: 20px; right: 20px; background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                                <i class="fa fa-list"></i> Listar Devoluciones
+                            </a>
+
+                            <section class="example">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ form.as_p }}
+                                    <div class="d-flex justify-content-between">
+                                        <!-- Botón para registrar devolución -->
+                                        <button type="submit" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                                            <i class="fa fa-check"></i> Registrar Devolución
+                                        </button>
+                                    </div>
+                                </form>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+
+{% endblock %}

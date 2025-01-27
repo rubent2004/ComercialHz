@@ -83,7 +83,11 @@ path('listarEmpleadosPendientes/', views.ListarEmpleadosPendientes.as_view(), na
 path('recepcion_producto/', views.recepcion_producto, name='recepcion_producto'),
 #Reparaciones
 path('listarRep', views.ListarRep.as_view(), name='listarRep'),
-path('agregarRep', views.AgregarRep.as_view(), name='agregarRep'),
+path('agregarRep/', views.AgregarRep.as_view(), name='agregarRep'),
 path('marcarRep/<int:pk>', views.MarcarRep.as_view(), name='marcarRep'),
+
+#devoluciones
+path('listarDev', views.ListarDev.as_view(), name='listarDev'),
+path('agregarDev', views.AgregarDev.as_view(), name='agregarDev'),
 ]
 

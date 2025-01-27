@@ -1670,6 +1670,7 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
         # Verifica si el formulario es válido y muestra los datos para depuración
         if form.is_valid():
             print(form.cleaned_data)  # Esto es solo para depuración
+
             if form.cleaned_data['bodega']:
                 movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
             if form.cleaned_data['producto']:
@@ -1678,6 +1679,12 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
                 movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
             if form.cleaned_data['estado_producto']:
                 movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
+            
+            # Filtrar tipo_movimiento solo si no está vacío
+            tipo_movimiento = form.cleaned_data['tipo_movimiento']
+            if tipo_movimiento:
+                if tipo_movimiento != '':  # Asegurarse de que no sea la opción vacía
+                    movimientos = movimientos.filter(tipo_movimiento=tipo_movimiento)
 
         # Recibe el parámetro de ordenación desde la URL
         orden = request.GET.get('orden', '-fecha_movimiento')  # Por defecto es descendente
@@ -1737,6 +1744,14 @@ class ListarRep(LoginRequiredMixin, View):
 class AgregarRep(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
+    
+
+    def get(self, request):
+        form = ReparacionFormulario()
+        contexto = {'form': form}
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/reparacion/agregarRep.html', contexto)
+
 
     def post(self, request):
         form = ReparacionFormulario(request.POST)
@@ -1747,7 +1762,14 @@ class AgregarRep(LoginRequiredMixin, View):
                     bodega_origen = form.cleaned_data['bodega_origen']
                     idempleado = form.cleaned_data['idempleado']
                     fecha_retorno = form.cleaned_data['fecha_retorno']
-                    descripcion_problema = form.cleaned_data['descripcion_problema']
+                    motivo = form.cleaned_data['motivo']
+                    desde_devolucion = request.POST.get('desde_devolucion', 'false') == 'true'
+
+                    if desde_devolucion:
+                        devolucion = Devolucion.objects.get(idproducto=idproducto, idempleado=idempleado,motivo=motivo)
+                        devolucion.enviado_a_reparacion = True
+                        devolucion.cantidad -= 1
+                        devolucion.save()
 
                     # Crear la reparación
                     rep = Reparacion(
@@ -1756,7 +1778,8 @@ class AgregarRep(LoginRequiredMixin, View):
                         idempleado=idempleado,
                         fecha_retorno=fecha_retorno,
                         estado=EstadoProducto.objects.get(nombre='En reparación'),
-                        descripcion_problema=descripcion_problema,
+                        motivo=motivo,
+                        desde_devolucion=desde_devolucion,
                     )
                     rep.save()
 
@@ -1778,23 +1801,13 @@ class AgregarRep(LoginRequiredMixin, View):
                 return redirect('inventario:agregarRep')
 
             except ValidationError as e:
-                # Captura errores de validación
                 messages.error(request, f"Error de validación: {e}")
             except Exception as e:
-                # Captura errores inesperados
                 messages.error(request, f"Error inesperado: {e}")
         else:
-            # Si el formulario no es válido
             messages.error(request, "Por favor, corrija los errores en el formulario.")
 
-        # Renderiza la misma página con el formulario y errores
         contexto = {'form': form}
-        contexto = complementarContexto(contexto, request.user)
-        return render(request, 'inventario/reparacion/agregarRep.html', contexto)
-
-    def get(self, request):
-        form = ReparacionFormulario()
-        contexto = {'form': form, 'modo': request.session.get('repProcesado')}
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/reparacion/agregarRep.html', contexto)
 
@@ -1920,8 +1933,6 @@ class ListarInventario(LoginRequiredMixin, View):
                 inventarios = inventarios.filter(idbodega=form.cleaned_data['bodega'])
             if form.cleaned_data['producto']:
                 inventarios = inventarios.filter(idproducto=form.cleaned_data['producto'])
-            if form.cleaned_data['estado']:
-                inventarios = inventarios.filter(estado__nombre=form.cleaned_data['estado'])
 
         # Calcular el total de stock
         total_stock = sum(item.stock for item in inventarios)
@@ -2129,13 +2140,13 @@ def recepcion_producto(request):
         producto_id = request.POST.get('producto_id')
         movimiento_id = request.POST.get('movimiento_id')
         cantidad_vendida = request.POST.get('cantidad_vendida', '0')  # Usamos '0' como valor predeterminado
-        cantidad_devuelta = request.POST.get('cantidad_devuelta', '0')
-        cantidad_devuelta = int(cantidad_devuelta) if cantidad_devuelta else 0
+        cantidad_recibida = request.POST.get('cantidad_recibida', '0')
+        cantidad_recibida = int(cantidad_recibida) if cantidad_recibida else 0
         cantidad_vendida = int(cantidad_vendida) if cantidad_vendida else 0
         bodega_id = request.POST.get('bodega_id')
 
         # Validaciones de cantidades
-        if cantidad_vendida < 0 or cantidad_devuelta < 0:
+        if cantidad_vendida < 0 or cantidad_recibida < 0:
             raise ValueError("Las cantidades no pueden ser negativas.")
 
         # Obtener movimiento pendiente
@@ -2143,7 +2154,7 @@ def recepcion_producto(request):
         total_pendiente = producto_pendiente.cantidad
         
         # Validar que la suma de cantidades no exceda la cantidad pendiente
-        if cantidad_vendida + cantidad_devuelta > total_pendiente:
+        if cantidad_vendida + cantidad_recibida > total_pendiente:
             raise ValueError(f"La suma excede la cantidad pendiente ({total_pendiente}).")
 
         # Procesar venta
@@ -2158,14 +2169,14 @@ def recepcion_producto(request):
                 estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
             )
 
-        # Procesar devolución
-        if cantidad_devuelta > 0:
+        # Procesar recepcion 
+        if cantidad_recibida > 0:
             bodega = get_object_or_404(Bodega, id=bodega_id)
             MovimientoProducto.objects.create(
                 bodega=bodega,
                 producto=producto_pendiente.producto,
                 tipo_movimiento='recepcion',
-                cantidad=cantidad_devuelta,
+                cantidad=cantidad_recibida,
                 usuario=request.user,
                 empleado=producto_pendiente.empleado,
                 estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
@@ -2179,18 +2190,18 @@ def recepcion_producto(request):
             )
 
             # Aumentamos el stock de inventario
-            inventario.aumentar_stock(cantidad_devuelta)
+            inventario.aumentar_stock(cantidad_recibida)
             inventario.save()
 
-            #inventario.ajustar_stock(cantidad_devuelta)
+            #inventario.ajustar_stock(cantidad_recibida)
             # Mensaje de éxito
             messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
 
         # Actualizar o eliminar el movimiento pendiente
-        if cantidad_vendida + cantidad_devuelta == total_pendiente:
+        if cantidad_vendida + cantidad_recibida == total_pendiente:
             producto_pendiente.delete()
         else:
-            producto_pendiente.cantidad -= (cantidad_vendida + cantidad_devuelta)
+            producto_pendiente.cantidad -= (cantidad_vendida + cantidad_recibida)
             producto_pendiente.save()
 
         messages.success(request, "Recepción procesada correctamente.")
@@ -2223,3 +2234,81 @@ def recepcion_producto(request):
     contexto = complementarContexto(contexto, request.user)
     return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
+#Devoluciones
+class ListarDev(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    #con filtros
+    def get(self, request):
+        form = FiltrosDev(request.GET)
+        devoluciones = Devolucion.objects.all()
+
+        if form.is_valid():
+            if form.cleaned_data.get('idproducto'):
+                devoluciones = devoluciones.filter(idproducto=form.cleaned_data['idproducto'])
+            fecha_devolucion = form.cleaned_data.get('fecha_devolucion')
+            if fecha_devolucion:
+                devoluciones = devoluciones.annotate(fecha_solo_fecha=TruncDate('fecha_devolucion')).filter(fecha_solo_fecha=fecha_devolucion)
+            if form.cleaned_data.get('idbodega'):
+                devoluciones = devoluciones.filter(idbodega=form.cleaned_data['idbodega'])
+            if form.cleaned_data.get('dañado'):
+                devoluciones = devoluciones.filter(dañado=form.cleaned_data['dañado'])
+        #total de elementos listados para el html
+        total = Devolucion.totalDevoluciones()
+        contexto = {'tabla': devoluciones, 'form': form, 'total': total}
+
+        contexto = complementarContexto(contexto, request.user)
+
+        return render(request, 'inventario/recepcion/listarDev.html', contexto)
+class AgregarDev(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def post(self, request):
+        form = DevolucionFormulario(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    devolucion = form.save(commit=False)
+                    devolucion.idempleado_recibio = request.user
+                    #movimiento de devolucion
+                    if form.cleaned_data['dañado']:
+                        movimiento = MovimientoProducto(
+                            producto=devolucion.idproducto,
+                            empleado=devolucion.idempleado,
+                            usuario=request.user,
+                            bodega=devolucion.idbodega,
+                            estado_producto=EstadoProducto.objects.get(nombre='Dañado'),
+                            cantidad=devolucion.cantidad,
+                            tipo_movimiento='Devolucion',
+                        )
+                    else:
+                        movimiento = MovimientoProducto(
+                            producto=devolucion.idproducto,
+                            empleado=devolucion.idempleado,
+                            usuario=request.user,
+                            bodega=devolucion.idbodega,
+                            estado_producto=EstadoProducto.objects.get(nombre='Disponible'),
+                            cantidad=devolucion.cantidad,
+                            tipo_movimiento='Devolucion',
+                        )
+                    movimiento.save()
+                    devolucion.save()
+                messages.success(request, 'Devolución registrada exitosamente.')
+                return redirect('inventario:agregarDev')
+            except ValidationError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"Error inesperado: {e}")
+        else:
+            messages.error(request, "Por favor corrija los errores en el formulario.")
+        
+        contexto = {'form': form}
+        
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/recepcion/agregarDev.html', contexto)
+
+    def get(self, request):
+        form = DevolucionFormulario()
+        return render(request, 'inventario/recepcion/agregarDev.html', {'form': form})
