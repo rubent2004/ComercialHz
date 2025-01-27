@@ -24,6 +24,8 @@ class Usuario(AbstractUser):
     last_name = models.CharField(max_length=60)
     nivel = models.IntegerField(null=True) 
 
+    #si es admin sera nivel 1 si es usurio nivel 2 
+
     @classmethod
     def numeroRegistrados(self):
         return int(self.objects.all().count() )   
@@ -49,6 +51,7 @@ class EstadoProducto(models.Model):
     DISPONIBLE = 'Disponible'
     DAÑADO = 'Dañado'
     EN_REPARACION = 'En reparación'
+    REPARADO = 'Reparado'
     VENDIDO = 'Vendido'
     PENDIENTE = 'Pendiente'
 
@@ -56,6 +59,7 @@ class EstadoProducto(models.Model):
         (DISPONIBLE, 'Disponible'),
         (DAÑADO, 'Dañado'),
         (EN_REPARACION, 'En reparación'),
+        (REPARADO, 'Reparado'),
         (VENDIDO, 'Vendido'),
         (PENDIENTE, 'Pendiente'),
     ]
@@ -68,7 +72,7 @@ class EstadoProducto(models.Model):
     # Señal para agregar estados predeterminados
     @receiver(post_migrate)
     def crear_estados_predeterminados(sender, **kwargs):
-        estados = [EstadoProducto.DISPONIBLE, EstadoProducto.DAÑADO, EstadoProducto.EN_REPARACION, EstadoProducto.VENDIDO, EstadoProducto.PENDIENTE]
+        estados = [EstadoProducto.DISPONIBLE, EstadoProducto.DAÑADO, EstadoProducto.EN_REPARACION, EstadoProducto.VENDIDO, EstadoProducto.PENDIENTE,EstadoProducto.REPARADO]
         for estado in estados:
             EstadoProducto.objects.get_or_create(nombre=estado)
 
@@ -429,10 +433,7 @@ class MovimientoProducto(models.Model):
     @classmethod
     def productos_pendientes_por_empleado(cls, empleado):
         return cls.objects.filter(empleado=empleado, estado_producto__nombre='Pendiente')
-    
-    #REPORTESSS
-
-
+  
     
     # REPORTES
 
@@ -513,10 +514,41 @@ class Reparacion(models.Model):
     Modelo para representar las reparaciones de productos.
     """
     idproducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    bodega_origen = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    idempleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
     descripcion_problema = models.TextField()
     fecha_envio = models.DateTimeField(auto_now_add=True)
     fecha_retorno = models.DateTimeField(null=True, blank=True)
-    estado = models.CharField(max_length=9, choices=[('pendiente', 'Pendiente'), ('reparado', 'Reparado')], default='pendiente')
+    estado = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
+
+    @classmethod
+    def totalReparacionesPendientes(cls):
+        return cls.objects.filter(estado__nombre="pendiente").count()  # Ajustar según el campo 'nombre'
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            # Verificar stock disponible en la bodega
+            inventario = Inventario.objects.filter(
+                idbodega=self.bodega_origen,
+                idproducto=self.idproducto
+            ).first()
+
+            if not inventario:
+                raise ValidationError("El producto no existe en esta bodega.")
+            
+            if inventario.stock < 1:
+                raise ValidationError(f"Stock insuficiente: disponible {inventario.stock}, solicitado {1}.")
+
+            # Reducir el stock en el inventario
+            inventario.reducir_stock(1)
+
+            # Guardar la reparación
+            super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Reparación {self.idproducto} - {self.estado}"
+
+    
 
 #--------------------------------DEVOLUCION--------------------------------------------
 class Devolucion(models.Model):

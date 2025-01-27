@@ -59,36 +59,28 @@
                                     <div class="alert alert-info">{{ message }}</div>
                                 {% endfor %}
                             {% endif %}
-                            <div class="table-responsive">
-                                <table id="listarEmpleadosPendientes" class="table table-striped table-bordered table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Nombre</th>
-                                            <th>Productos Pendientes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for empleado_id, empleado_data in empleados.items %}
-                                        <tr>
-                                            <td>{{ empleado_data.nombre }} {{ empleado_data.apellido }}</td>
-                                            <td>
-                                                <ul>
+                            <div class="row">
+                                {% for empleado_id, empleado_data in empleados.items %}
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ empleado_data.nombre }} {{ empleado_data.apellido }}</h5>
+                                                <ul class="list-group list-group-flush">
                                                     {% for producto_id, producto_data in empleado_data.productos.items %}
-                                                    <li>
-                                                        {{ producto_data.descripcion }} 
-                                                        (Cantidad: {{ producto_data.cantidad }})
-                                                        <button class="btn btn-primary btn-sm" 
-                                                                onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }})">
-                                                          Recepcionar
-                                                        </button>
-                                                    </li>
+                                                        <li class="list-group-item">
+                                                            <strong>{{ producto_data.descripcion }}</strong> 
+                                                            (Cantidad: {{ producto_data.cantidad }})
+                                                            <button class="btn btn-primary btn-sm float-end" 
+                                                                    onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }})">
+                                                              Recepcionar
+                                                            </button>
+                                                        </li>
                                                     {% endfor %}
                                                 </ul>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             </div>
                         </section>
                     </div>

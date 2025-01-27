@@ -34,7 +34,7 @@ from django.core import serializers
 from django.core.files.storage import FileSystemStorage
 from django.views.decorators.http import require_POST
 from django.db import transaction
-
+from django.db.models.functions import TruncDate
 #Vistas endogenas.
 
 
@@ -102,6 +102,7 @@ class Panel(LoginRequiredMixin, View):
             'totalvendidos': MovimientoProducto.total_productos_vendidos(),  # Total de productos vendidos
             'productosMasVendidos': MovimientoProducto.productos_mas_vendidos(),  # Producto más vendido
         }
+        contexto = complementarContexto(contexto,request.user)
 
         return render(request, 'inventario/panel.html', contexto)
 
@@ -1153,110 +1154,38 @@ class EditarProveedor(LoginRequiredMixin, View):
 #Fin de vista--------------------------------------------------------------------------------#
 
 
-#Agrega un compra-----------------------------------------------------------------------------------#      
-class AgregarCompra(View):
-    def get(self, request):
-        compra_form = CompraFormulario()
-        CompraItemFormSet = modelformset_factory(CompraItem, form=CompraItemFormulario, extra=1)
-        formset = CompraItemFormSet(queryset=CompraItem.objects.none())
-        return render(request, 'inventario/compra/agregarCompra.html', {'compra_form': compra_form, 'formset': formset})
 
-    def post(self, request):
-        compra_form = CompraFormulario(request.POST)
-        CompraItemFormSet = modelformset_factory(CompraItem, form=CompraItemFormulario, extra=1)
-        formset = CompraItemFormSet(request.POST)
-        
-        if compra_form.is_valid() and formset.is_valid():
-            compra = compra_form.save()
-            for form in formset:
-                compra_item = form.save(commit=False)
-                compra_item.compra = compra
-                compra_item.save()
-            compra.procesar_compra()  # Procesar la compra para actualizar el inventario y el estado del producto
-            messages.success(request, 'Compra agregada exitosamente.')
-            return redirect('listar_compras')  # Redirige a la vista de listar compras
-        else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
-        
-        return render(request, 'inventario/compra/agregarCompra.html', {'compra_form': compra_form, 'formset': formset})
+# #Genera el compra en PDF--------------------------------------------------------------------------#
+# class GenerarCompraPDF(LoginRequiredMixin, View):
+#     login_url = '/inventario/login'
+#     redirect_field_name = None
 
-#Lista todos los compras---------------------------------------------------------------------------# 
-class ListarCompras(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
+#     def get(self, request, p):
 
-    def get(self, request):
-        #Lista de productos de la BDD
-        compras = Compra.objects.all()
-        #Crea el paginador
-                               
-        contexto = {'tabla': compras}
-        contexto = complementarContexto(contexto,request.user) 
-
-        return render(request, 'inventario/compra/listarCompras.html', contexto)
-#------------------------------------------------------------------------------------------------#
-
-#Genera el compra en CSV--------------------------------------------------------------------------
-class GenerarCompra(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request, p):
-        import csv
-
-        compra = Compra.objects.get(id=pk)
-        detalles = DetalleCompra.objects.filter(id_compra_id=pk) 
-
-        nombre_compra = "compra_%s.csv" % (compra.id)
-
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % nombre_compra
-        writer = csv.writer(response)
-
-        writer.writerow(['Producto', 'Cantidad', 'Sub-total', 'Total'])
-
-        for producto in detalles:            
-            writer.writerow([producto.id_producto.descripcion,producto.cantidad,producto.sub_total,producto.total])
-
-        writer.writerow(['Total general:','', compra.monto_general])
-
-        return response
-
-        #Fin de vista--------------------------------------------------------------------------------------#
+#         compra = Compra.objects.get(id=pk)
+#         general = Opciones.objects.get(id=1)
+#         detalles = DetalleCompra.objects.filter(id_compra_id=pk)
 
 
+#         data = {
+#              'fecha': compra.fecha, 
+#              'monto_general': compra.monto_general,
+#             'nombre_proveedor': compra.proveedor.nombre + " " + compra.proveedor.apellido,
+#             'dui_proveedor': compra.proveedor.dui,
+#             'id_reporte': compra.id,
+#             'detalles': detalles,
+#             'modo' : 'compra',
+#             'general': general
+#         }
 
-#Genera el compra en PDF--------------------------------------------------------------------------#
-class GenerarCompraPDF(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
+#         nombre_compra = "compra_%s.pdf" % (compra.id)
 
-    def get(self, request, p):
+#         pdf = render_to_pdf('inventario/PDF/prueba.html', data)
+#         response = HttpResponse(pdf,content_type='application/pdf')
+#         response['Content-Disposition'] = 'attachment; filename="%s"' % nombre_compra
 
-        compra = Compra.objects.get(id=pk)
-        general = Opciones.objects.get(id=1)
-        detalles = DetalleCompra.objects.filter(id_compra_id=pk)
-
-
-        data = {
-             'fecha': compra.fecha, 
-             'monto_general': compra.monto_general,
-            'nombre_proveedor': compra.proveedor.nombre + " " + compra.proveedor.apellido,
-            'dui_proveedor': compra.proveedor.dui,
-            'id_reporte': compra.id,
-            'detalles': detalles,
-            'modo' : 'compra',
-            'general': general
-        }
-
-        nombre_compra = "compra_%s.pdf" % (compra.id)
-
-        pdf = render_to_pdf('inventario/PDF/prueba.html', data)
-        response = HttpResponse(pdf,content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % nombre_compra
-
-        return response 
-        #Fin de vista--------------------------------------------------------------------------------------#
+#         return response 
+#         #Fin de vista--------------------------------------------------------------------------------------#
 
 
 #Crea un nuevo usuario--------------------------------------------------------------#
@@ -1764,22 +1693,46 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
         return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
 
 #Reparacion
-class Reparacion(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request):
-        return render(request, 'inventario/reparacion.html')
 #listar Rep
+
 class ListarRep(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def get(self, request):
+        # Crear el formulario con los datos GET
+        form = FiltrosRep(request.GET)
+
+        # Obtener todas las reparaciones
         reparaciones = Reparacion.objects.all()
-        contexto = {'tabla': reparaciones}
-        contexto = complementarContexto(contexto,request.user) 
+
+        # Aplicar filtros si el formulario es válido
+        if form.is_valid():
+            if form.cleaned_data.get('idproducto'):
+                reparaciones = reparaciones.filter(idproducto=form.cleaned_data['idproducto'])
+            # Filtro por fecha_retorno
+            fecha_retorno = form.cleaned_data.get('fecha_retorno')
+            if fecha_retorno:
+                reparaciones = reparaciones.annotate(fecha_solo_fecha=TruncDate('fecha_retorno')).filter(fecha_solo_fecha=fecha_retorno)
+
+            if form.cleaned_data.get('estado'):
+                reparaciones = reparaciones.filter(estado=form.cleaned_data['estado'])
+
+        # Ordenar por fecha de retorno (descendente por defecto)
+        orden = request.GET.get('orden', '-fecha_retorno')
+        reparaciones = reparaciones.order_by(orden)
+
+        # Preparar el contexto para la plantilla
+        contexto = {
+            'reparaciones': reparaciones,
+            'form': form,
+        }
+
+        # Complementar con datos adicionales (si aplica)
+        contexto = complementarContexto(contexto, request.user)
+
         return render(request, 'inventario/reparacion/listarRep.html', contexto)
+
 #Agregar Rep
 class AgregarRep(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1788,49 +1741,95 @@ class AgregarRep(LoginRequiredMixin, View):
     def post(self, request):
         form = ReparacionFormulario(request.POST)
         if form.is_valid():
-            nombre = form.cleaned_data['nombre']
-            descripcion = form.cleaned_data['descripcion']
-            rep = Reparacion(nombre=nombre,descripcion=descripcion)
-            rep.save()
-            form = ReparacionFormulario()
-            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % rep.id)
-            request.session['repProcesado'] = 'agregado'
-            return HttpResponseRedirect("/inventario/agregarRep")
-        else:
-            return render(request, 'inventario/reparacion/agregarRep.html', {'form': form})        
+            try:
+                with transaction.atomic():
+                    idproducto = form.cleaned_data['idproducto']
+                    bodega_origen = form.cleaned_data['bodega_origen']
+                    idempleado = form.cleaned_data['idempleado']
+                    fecha_retorno = form.cleaned_data['fecha_retorno']
+                    descripcion_problema = form.cleaned_data['descripcion_problema']
 
-    def get(self,request):
+                    # Crear la reparación
+                    rep = Reparacion(
+                        idproducto=idproducto,
+                        bodega_origen=bodega_origen,
+                        idempleado=idempleado,
+                        fecha_retorno=fecha_retorno,
+                        estado=EstadoProducto.objects.get(nombre='En reparación'),
+                        descripcion_problema=descripcion_problema,
+                    )
+                    rep.save()
+
+                    # Crear el movimiento
+                    movimiento = MovimientoProducto(
+                        producto=idproducto,
+                        empleado=idempleado,
+                        usuario=request.user,
+                        bodega=bodega_origen,
+                        estado_producto=EstadoProducto.objects.get(nombre='En reparación'),
+                        cantidad=1,
+                        tipo_movimiento='Reparacion',
+                    )
+                    movimiento.save()
+
+                # Mensaje de éxito
+                messages.success(request, f'Reparación registrada exitosamente bajo la ID {rep.id}.')
+                request.session['repProcesado'] = 'agregado'
+                return redirect('inventario:agregarRep')
+
+            except ValidationError as e:
+                # Captura errores de validación
+                messages.error(request, f"Error de validación: {e}")
+            except Exception as e:
+                # Captura errores inesperados
+                messages.error(request, f"Error inesperado: {e}")
+        else:
+            # Si el formulario no es válido
+            messages.error(request, "Por favor, corrija los errores en el formulario.")
+
+        # Renderiza la misma página con el formulario y errores
+        contexto = {'form': form}
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/reparacion/agregarRep.html', contexto)
+
+    def get(self, request):
         form = ReparacionFormulario()
-        contexto = {'form':form , 'modo':request.session.get('repProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
+        contexto = {'form': form, 'modo': request.session.get('repProcesado')}
+        contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/reparacion/agregarRep.html', contexto)
 
-#editar Rep
-class EditarRep(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
+class MarcarRep(View):
+    def post(self, request, pk):
+        # Obtener la reparación correspondiente
+        reparacion = get_object_or_404(Reparacion, id=pk)
 
-    def post(self,request,pk):
-        rep = Reparacion.objects.get(id=pk)
-        form = ReparacionFormulario(request.POST, instance=rep)
-        if form.is_valid():           
-            nombre = form.cleaned_data['nombre']
-            descripcion = form.cleaned_data['descripcion']
-            rep.nombre = nombre
-            rep.descripcion = descripcion
-            rep.save()
-            form = ReparacionFormulario(instance=rep)
-            messages.success(request, 'Actualizado exitosamente la reparacion de ID %s.' % p)
-            request.session['repProcesado'] = 'editado'            
-            return HttpResponseRedirect("/inventario/editarRep/%s" % rep.id)
+        # Asegurarse de que el artículo esté reparado
+        if reparacion.estado != EstadoProducto.objects.get(nombre='Reparado'):
+            reparacion.estado = EstadoProducto.objects.get(nombre='Reparado')
+            
+
+            # Actualizar el inventario: Aumentar el stock del producto reparado
+            inventario = Inventario.objects.get(idproducto=reparacion.idproducto, idbodega=reparacion.bodega_origen)
+            inventario.aumentar_stock(1)
+
+            # Registrar el movimiento como reparado
+            movimiento= MovimientoProducto.objects.create(
+                producto=reparacion.idproducto,
+                empleado = reparacion.idempleado,
+                usuario = request.user,
+                bodega=reparacion.bodega_origen,
+                cantidad=1,
+                estado_producto=EstadoProducto.objects.get(nombre='Reparado'),
+                tipo_movimiento="Entrada",  # O lo que corresponda
+            )
+            movimiento.save()
+            reparacion.save()
+            messages.success(request, "El artículo ha sido marcado como reparado y el inventario actualizado.")
         else:
-            return render(request, 'inventario/reparacion/agregarRep.html', {'form': form})
-    def get(self, request,pk): 
-        rep = Reparacion.objects.get(id=pk)
-        form = ReparacionFormulario(instance=rep)
-        contexto = {'form':form , 'modo':request.session.get('repProcesado'),'editar':True} 
-        contexto = complementarContexto(contexto,request.user)     
-        return render(request, 'inventario/reparacion/agregarRep.html', contexto)
+            messages.warning(request, "Este artículo ya está marcado como reparado.")
+
+        # Redirigir a la página de listar reparaciones
+        return redirect('inventario:listarRep')
     
 #Estado producto
 class ListarEstadoProducto(LoginRequiredMixin, View):
@@ -1998,13 +1997,18 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
 
-        # Filtrar por fecha si ambas fechas están presentes y son válidas
-        if fecha_inicio and fecha_fin:
+        # Filtrar por fecha si las fechas están presentes
+        if fecha_inicio:
             fecha_inicio = parse_date(fecha_inicio)
+            if fecha_inicio:
+                # Si solo se seleccionó fecha_inicio, filtrar desde esa fecha hasta el final
+                movimientos = movimientos.annotate(fecha_solo_fecha=TruncDate('fecha_movimiento')).filter(fecha_solo_fecha__gte=fecha_inicio)
+
+        if fecha_fin:
             fecha_fin = parse_date(fecha_fin)
-            if fecha_inicio and fecha_fin:
-                # Filtra los movimientos donde la fecha de movimiento esté dentro del rango
-                movimientos = movimientos.filter(fecha_movimiento__range=[fecha_inicio, fecha_fin])
+            if fecha_fin:
+                # Si solo se seleccionó fecha_fin, filtrar desde el inicio hasta esa fecha
+                movimientos = movimientos.annotate(fecha_solo_fecha=TruncDate('fecha_movimiento')).filter(fecha_solo_fecha__lte=fecha_fin)
 
         # Verificar otros filtros del formulario
         if form.is_valid():
@@ -2160,7 +2164,7 @@ def recepcion_producto(request):
             MovimientoProducto.objects.create(
                 bodega=bodega,
                 producto=producto_pendiente.producto,
-                tipo_movimiento='devolucion',
+                tipo_movimiento='recepcion',
                 cantidad=cantidad_devuelta,
                 usuario=request.user,
                 empleado=producto_pendiente.empleado,

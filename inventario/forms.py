@@ -446,19 +446,31 @@ class RegistroInventarioFormulario(forms.ModelForm):
 class ReparacionFormulario(forms.ModelForm):
     class Meta:
         model = Reparacion
-        fields = ['idproducto', 'descripcion_problema', 'fecha_retorno', 'estado']
+        fields = ['idproducto','bodega_origen','idempleado', 'descripcion_problema', 'fecha_retorno']
         labels = {
             'idproducto': 'Producto',
+            'bodega_origen': 'Bodega de origen',
+            'idempleado': 'Empleado',
             'descripcion_problema': 'Descripción del problema',
-            'fecha_retorno': 'Fecha de retorno',
-            'estado': 'Estado',
+            'fecha_retorno': 'Fecha de retorno'
         }
         widgets = {
             'idproducto': forms.Select(attrs={'class': 'form-control'}),
+            'bodega_origen': forms.Select(attrs={'class': 'form-control'}),
+            'idempleado': forms.Select(attrs={'class': 'form-control'}),
             'descripcion_problema': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Descripción del problema'}),
-            'fecha_retorno': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'estado': forms.Select(attrs={'class': 'form-control'}),
+            'fecha_retorno': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
         }
+class FiltrosRep(forms.Form):
+    bodega_origen = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
+    idproducto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    fecha_retorno = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    estado = forms.ModelChoiceField(
+        queryset=EstadoProducto.objects.filter(nombre__in=['En reparación', 'Reparado']),
+        required=False,
+        label='Estado',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
 # Formulario Entrega
 class EntregaFormulario(forms.ModelForm):
     class Meta:
@@ -476,6 +488,7 @@ class EntregaFormulario(forms.ModelForm):
             'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
         }
+
 
 # Formulario Movimiento Producto
 class MovimientoProductoFormulario(forms.Form):

@@ -26,13 +26,13 @@ path('importarProveedores', views.ImportarProveedores.as_view(), name='importarP
 #path('exportarProveedores', views.ExportarProveedores.as_view(), name='exportarProveedores'),
 path('editarProveedor/<int:pk>', views.EditarProveedor.as_view(), name='editarProveedor'),
 
-path('agregarCompra', views.AgregarCompra.as_view(), name='agregarCompra'),
-path('listarCompras', views.ListarCompras.as_view(), name='listarCompras'),
+# path('agregarCompra', views.AgregarCompra.as_view(), name='agregarCompra'),
+# path('listarCompras', views.ListarCompras.as_view(), name='listarCompras'),
 # path('detallesCompra', views.DetallesCompra.as_view(), name='detallesCompra'),
 # path('verCompra/<int:p>',views.VerCompra.as_view(), name='verCompra'),
 # path('validarCompra/<int:p>',views.ValidarCompra.as_view(), name='validarCompra'),
-path('generarCompra/<int:p>',views.GenerarCompra.as_view(), name='generarCompra'),
-path('generarCompraPDF/<int:pk>',views.GenerarCompraPDF.as_view(), name='generarCompraPDF'),
+# path('generarCompra/<int:p>',views.GenerarCompra.as_view(), name='generarCompra'),
+# path('generarCompraPDF/<int:pk>',views.GenerarCompraPDF.as_view(), name='generarCompraPDF'),
 
 path('listarEmpleados', views.ListarEmpleados.as_view(), name='listarEmpleados'),
 path('agregarEmpleado', views.AgregarEmpleado.as_view(), name='agregarEmpleado'),
@@ -81,5 +81,9 @@ path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name=
 #listado empleado pendeinte
 path('listarEmpleadosPendientes/', views.ListarEmpleadosPendientes.as_view(), name='listarEmpleadosPendientes'),
 path('recepcion_producto/', views.recepcion_producto, name='recepcion_producto'),
+#Reparaciones
+path('listarRep', views.ListarRep.as_view(), name='listarRep'),
+path('agregarRep', views.AgregarRep.as_view(), name='agregarRep'),
+path('marcarRep/<int:pk>', views.MarcarRep.as_view(), name='marcarRep'),
 ]
 

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import LoginFormulario
-from .models import  Empleado, EstadoProducto, Marca, MovimientoProducto, Proveedor, Usuario, Producto
+from .models import  Empleado, EstadoProducto, Marca, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto
 
 class UsuarioAdmin(UserAdmin):
     add_form = LoginFormulario
@@ -38,3 +38,8 @@ admin.site.register(Proveedor, ProveedorAdmin)
 class MovimientoProductoAdmin(admin.ModelAdmin):
      list_display = ['producto', 'cantidad', 'fecha_movimiento','empleado','estado_producto']
 admin.site.register(MovimientoProducto, MovimientoProductoAdmin)
+
+#reparacion 
+class ReparacionAdmin(admin.ModelAdmin):
+     list_display = ['idproducto', 'fecha_retorno', 'idempleado','estado']
+admin.site.register(Reparacion, ReparacionAdmin)
