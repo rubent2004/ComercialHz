@@ -574,13 +574,16 @@ class Devolucion(models.Model):
         with transaction.atomic():
             inventario = Inventario.objects.filter(idbodega=self.idbodega, idproducto=self.idproducto).first()
             if self.dañado:
-                # Reducir el stock en el inventario
-                inventario.reducir_stock(self.cantidad)
+                # # Reducir el stock en el inventario
+                # inventario.reducir_stock(self.cantidad)
+                #mensaje de notificacion
+                mensaje = f"Se ha devuelto {self.cantidad} unidades del producto {self.idproducto.descripcion} por daño."
             else:
                 # Aumentar el stock en el inventario
                 inventario.aumentar_stock(self.cantidad)
-
+                #mensaje de notificacion
             # Guardar la devolución
+
             super().save(*args, **kwargs)
 
     def __str__(self):

@@ -1767,7 +1767,8 @@ class AgregarRep(LoginRequiredMixin, View):
 
                     if desde_devolucion:
                         devolucion = Devolucion.objects.get(idproducto=idproducto, idempleado=idempleado,motivo=motivo)
-                        devolucion.enviado_a_reparacion = True
+                        if devolucion.cantidad == 1:
+                            devolucion.enviado_a_reparacion = True
                         devolucion.cantidad -= 1
                         devolucion.save()
 
@@ -1782,7 +1783,7 @@ class AgregarRep(LoginRequiredMixin, View):
                         desde_devolucion=desde_devolucion,
                     )
                     rep.save()
-
+                    
                     # Crear el movimiento
                     movimiento = MovimientoProducto(
                         producto=idproducto,
@@ -1798,7 +1799,10 @@ class AgregarRep(LoginRequiredMixin, View):
                 # Mensaje de éxito
                 messages.success(request, f'Reparación registrada exitosamente bajo la ID {rep.id}.')
                 request.session['repProcesado'] = 'agregado'
-                return redirect('inventario:agregarRep')
+                if desde_devolucion:
+                    return redirect('inventario:listarDev')
+                else:
+                    return redirect('inventario:agregarRep')
 
             except ValidationError as e:
                 messages.error(request, f"Error de validación: {e}")
@@ -2254,6 +2258,9 @@ class ListarDev(LoginRequiredMixin, View):
                 devoluciones = devoluciones.filter(idbodega=form.cleaned_data['idbodega'])
             if form.cleaned_data.get('dañado'):
                 devoluciones = devoluciones.filter(dañado=form.cleaned_data['dañado'])
+        #ordenar por fecha de devolucion
+        orden = request.GET.get('orden', '-fecha_devolucion')
+        devoluciones = devoluciones.order_by(orden)
         #total de elementos listados para el html
         total = Devolucion.totalDevoluciones()
         contexto = {'tabla': devoluciones, 'form': form, 'total': total}
