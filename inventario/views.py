@@ -1,6 +1,9 @@
 #renderiza las vistas al usuario
 from collections import defaultdict
 import datetime
+import json
+from .services import EntregaService
+
 from time import timezone
 from urllib import request
 from venv import logger
@@ -1659,46 +1662,6 @@ class EditarBodega(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/bodega/agregarBodega.html', contexto)
 
-class ListarMovimientoProducto(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def get(self, request):
-        form = MovimientoProductoFormulario(request.GET)
-        movimientos = MovimientoProducto.objects.all()
-
-        # Verifica si el formulario es válido y muestra los datos para depuración
-        if form.is_valid():
-            print(form.cleaned_data)  # Esto es solo para depuración
-
-            if form.cleaned_data['bodega']:
-                movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
-            if form.cleaned_data['producto']:
-                movimientos = movimientos.filter(producto=form.cleaned_data['producto'])
-            if form.cleaned_data['empleado']:
-                movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
-            if form.cleaned_data['estado_producto']:
-                movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
-            
-            # Filtrar tipo_movimiento solo si no está vacío
-            tipo_movimiento = form.cleaned_data['tipo_movimiento']
-            if tipo_movimiento:
-                if tipo_movimiento != '':  # Asegurarse de que no sea la opción vacía
-                    movimientos = movimientos.filter(tipo_movimiento=tipo_movimiento)
-
-        # Recibe el parámetro de ordenación desde la URL
-        orden = request.GET.get('orden', '-fecha_movimiento')  # Por defecto es descendente
-
-        # Ordenar los movimientos según el parámetro 'orden'
-        movimientos = movimientos.order_by(orden)
-
-        # Preparar el contexto
-        contexto = {'tabla': movimientos, 'form': form}
-        contexto = complementarContexto(contexto, request.user)
-
-        # Renderizar la página con el contexto adecuado
-        return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
-
 #Reparacion
 #listar Rep
 
@@ -2002,81 +1965,129 @@ from django.utils.dateparse import parse_date
 
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
-    redirect_field_name = None
+    template_name = 'inventario/movimientoproducto/listarMovimientoProducto.html'
 
     def get(self, request):
         form = MovimientoProductoFormulario(request.GET)
-        movimientos = MovimientoProducto.objects.all()
-
-        # Obtener las fechas de inicio y fin desde los parámetros GET
+        movimientos = MovimientoProducto.objects.all().order_by('-fecha_movimiento')
+        
+        # Manejo de fechas
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
-
-        # Filtrar por fecha si las fechas están presentes
+        
         if fecha_inicio:
             fecha_inicio = parse_date(fecha_inicio)
             if fecha_inicio:
-                # Si solo se seleccionó fecha_inicio, filtrar desde esa fecha hasta el final
-                movimientos = movimientos.annotate(fecha_solo_fecha=TruncDate('fecha_movimiento')).filter(fecha_solo_fecha__gte=fecha_inicio)
-
+                movimientos = movimientos.filter(fecha_movimiento__date__gte=fecha_inicio)
+        
         if fecha_fin:
             fecha_fin = parse_date(fecha_fin)
             if fecha_fin:
-                # Si solo se seleccionó fecha_fin, filtrar desde el inicio hasta esa fecha
-                movimientos = movimientos.annotate(fecha_solo_fecha=TruncDate('fecha_movimiento')).filter(fecha_solo_fecha__lte=fecha_fin)
+                movimientos = movimientos.filter(fecha_movimiento__date__lte=fecha_fin)
 
-        # Verificar otros filtros del formulario
+        # Aplicar filtros
         if form.is_valid():
-            if form.cleaned_data['bodega']:
-                movimientos = movimientos.filter(bodega=form.cleaned_data['bodega'])
-            if form.cleaned_data['producto']:
-                movimientos = movimientos.filter(producto=form.cleaned_data['producto'])
-            if form.cleaned_data['empleado']:
-                movimientos = movimientos.filter(empleado=form.cleaned_data['empleado'])
-            if form.cleaned_data['estado_producto']:
-                movimientos = movimientos.filter(estado_producto=form.cleaned_data['estado_producto'])
+            data = form.cleaned_data
+            if data['bodega']: movimientos = movimientos.filter(bodega=data['bodega'])
+            if data['producto']: movimientos = movimientos.filter(producto=data['producto'])
+            if data['empleado']: movimientos = movimientos.filter(empleado=data['empleado'])
+            if data['estado_producto']: movimientos = movimientos.filter(estado_producto=data['estado_producto'])
+            if data['tipo_movimiento']: movimientos = movimientos.filter(tipo_movimiento=data['tipo_movimiento'])
 
-        # Ordenar los movimientos según el parámetro 'orden'
-        orden = request.GET.get('orden', '-fecha_movimiento')
-        movimientos = movimientos.order_by(orden)
+        # Nuevo agrupamiento por empleado y fecha
+        grupos = defaultdict(lambda: {
+            'empleado': None,
+            'fecha': None,
+            'detalles': [],
+            'resumen': {
+                'total_movimientos': 0,
+                'total_cantidad': 0,
+                'tipos_movimiento': set()
+            }
+        })
 
-        # Preparar el contexto
-        contexto = {'tabla': movimientos, 'form': form}
-        contexto = complementarContexto(contexto, request.user)
+        for movimiento in movimientos:
+            clave = (movimiento.empleado, movimiento.fecha_movimiento.date())
+            grupo = grupos[clave]
+            
+            if not grupo['empleado']:
+                grupo['empleado'] = movimiento.empleado
+                grupo['fecha'] = movimiento.fecha_movimiento.date()
+            
+            grupo['detalles'].append(movimiento)
+            grupo['resumen']['total_movimientos'] += 1
+            grupo['resumen']['total_cantidad'] += movimiento.cantidad
+            grupo['resumen']['tipos_movimiento'].add(movimiento.get_tipo_movimiento_display())
 
-        # Renderizar la página con el contexto adecuado
-        return render(request, 'inventario/movimientoProducto/listarMovimientoProducto.html', contexto)
-
-
-class AgregarEntrega(LoginRequiredMixin,View):
-    def post(self, request):
-        form = EntregaFormulario(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    entrega = form.save(commit=False)
-                    entrega.id_empleado_autorizo = request.user
-                    # Validar stock al guardar la entrega
-                    
-                    entrega.save()
-                messages.success(request, 'Entrega registrada y stock actualizado exitosamente. Movimiento pendiente creado.')
-                return redirect('inventario:agregarEntrega')
-            except ValidationError as e:
-                messages.error(request, str(e))
-            except Exception as e:
-                messages.error(request, f"Error inesperado: {e}")
-        else:
-            messages.error(request, "Por favor corrija los errores en el formulario.")
+        # Preparar datos para template
+        grupos_ordenados = sorted(grupos.values(), key=lambda x: x['fecha'], reverse=True)
         
-        contexto = {'form': form}
-        
-        contexto = complementarContexto(contexto, request.user)
-        return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
-
-    def get(self, request):
-        form = EntregaFormulario()
-        return render(request, 'inventario/entrega/agregarEntrega.html', {'form': form})
-
+        context = {
+            'grupos_movimientos': grupos_ordenados,
+            'form': form,
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': fecha_fin
+        }
+        context = complementarContexto(context, request.user)
+        return render(request, self.template_name, context)
+    
+    
+def verificar_stock(request):
+    bodega_id = request.GET.get('bodega')
+    producto_id = request.GET.get('producto')
+    cantidad = int(request.GET.get('cantidad', 0))
+    print('cantidad :' , cantidad)
+    try:
+        inventario = Inventario.objects.get(
+            idbodega_id=bodega_id,
+            idproducto_id=producto_id
+        )
+        return JsonResponse({
+            'disponible': inventario.stock >= cantidad,
+            'stock_actual': inventario.stock
+        })
+    except Inventario.DoesNotExist:
+        return JsonResponse({'disponible': False, 'error': 'Producto no encontrado'})
+@transaction.atomic
+def agregarEntrega(request):
+    if request.method == "POST":
+        try:
+            detalles = json.loads(request.POST.get('detalles', '[]'))
+            if not detalles:
+                raise ValidationError("Debe agregar al menos un producto")
+            
+            with transaction.atomic():
+                entrega = Entrega.objects.create(
+                    id_empleado_recibio_id=request.POST.get('empleado'),
+                    id_empleado_autorizo=request.user
+                )
+                
+                # Crear detalles
+                detalles_a_crear = [
+                    DetalleEntrega(
+                        entrega=entrega,
+                        producto_id=detalle['producto'],
+                        bodega_id=detalle['bodega'],
+                        cantidad=detalle['cantidad']
+                    ) for detalle in detalles
+                ]
+                DetalleEntrega.objects.bulk_create(detalles_a_crear)
+                
+                # Procesar entrega
+                entrega.procesar_entrega()
+            
+            messages.success(request, 'Entrega registrada exitosamente!')
+            return redirect('inventario:agregarEntrega')
+            
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+            return redirect('inventario:agregarEntrega')
+    
+    return render(request, 'inventario/entrega/agregarEntrega.html', {
+        'bodegas': Bodega.objects.all(),
+        'empleados': Empleado.objects.all(),
+        'productos': Producto.objects.all()
+    })
 # views.py
 from django.template.loader import render_to_string
 from django.utils.decorators import method_decorator

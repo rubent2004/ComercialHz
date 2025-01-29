@@ -472,35 +472,43 @@ class FiltrosRep(forms.Form):
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
 # Formulario Entrega
-class EntregaFormulario(forms.ModelForm):
+# class EntregaFormulario(forms.ModelForm):
+#     class Meta:
+#         model = Entrega
+#         fields = ['idproducto', 'idbodega', 'id_empleado_recibio', 'cantidad']
+#         labels = {
+#             'idproducto': 'Producto',
+#             'idbodega': 'Bodega',
+#             'id_empleado_recibio': 'Empleado que Recibe',
+#             'cantidad': 'Cantidad',
+#         }
+#         widgets = {
+#             'idproducto': forms.Select(attrs={'class': 'form-control'}),
+#             'idbodega': forms.Select(attrs={'class': 'form-control'}),
+#             'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
+#             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+#         }rio Movimiento Producto
+
+class EntregaForm(forms.ModelForm ):
     class Meta:
         model = Entrega
-        fields = ['idproducto', 'idbodega', 'id_empleado_recibio', 'cantidad']
+        fields = ['id_empleado_recibio']
         labels = {
-            'idproducto': 'Producto',
-            'idbodega': 'Bodega',
-            'id_empleado_recibio': 'Empleado que Recibe',
-            'cantidad': 'Cantidad',
+            'id_empleado_recibio': 'Empleado que Recibe'
         }
         widgets = {
-            'idproducto': forms.Select(attrs={'class': 'form-control'}),
-            'idbodega': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'})
         }
-
-
-# Formulario Movimiento Producto
 class MovimientoProductoFormulario(forms.Form):
     bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
     producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
     empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False, label='Empleado', widget=forms.Select(attrs={'class': 'form-control'}))
     estado_producto = forms.ModelChoiceField(queryset=EstadoProducto.objects.all(), required=False, label='Estado del Producto', widget=forms.Select(attrs={'class': 'form-control'}))
     tipo_movimiento = forms.ChoiceField(
-        choices=[('', '---------')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES,  # Agregar opción en blanco
-        required=False,
-        label='Tipo de Movimiento',
-        widget=forms.Select(attrs={'class': 'form-control'})
+    choices=[('', 'Seleccione...')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES,  # Opción en blanco
+    required=False,
+    label='Tipo de Movimiento',
+    widget=forms.Select(attrs={'class': 'form-control'})
     )
 class RecepcionFormulario(forms.Form):
     empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), widget=forms.HiddenInput())

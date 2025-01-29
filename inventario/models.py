@@ -405,8 +405,8 @@ class MovimientoProducto(models.Model):
     TIPO_MOVIMIENTO_CHOICES = [
         ('entrada', 'Entrada'),
         ('salida', 'Salida'),
-        ('reparacion', 'Reparación'),
-        ('devolucion', 'Devolución'),
+        ('reparacion', 'Reparacion'),
+        ('devolucion', 'Devolucion'),
         ('entrega', 'Entrega'),
         ('recepcion', 'Recepción'),
         ('venta', 'Venta'),
@@ -597,29 +597,38 @@ class Devolucion(models.Model):
 from django.db import models, transaction
 
 class Entrega(models.Model):
-    idproducto = models.ForeignKey('Producto', on_delete=models.CASCADE)
-    idbodega = models.ForeignKey('Bodega', on_delete=models.CASCADE)
-    id_empleado_autorizo = models.ForeignKey('Usuario', related_name='autorizo_entregas', on_delete=models.CASCADE)
-    id_empleado_recibio = models.ForeignKey('Empleado', related_name='recibio_entregas', on_delete=models.CASCADE)
-    cantidad = models.IntegerField()
+    id_empleado_autorizo = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_empleado_recibio = models.ForeignKey(Empleado, on_delete=models.CASCADE)
     fecha_entrega = models.DateTimeField(auto_now_add=True)
 
-    def save(self, *args, **kwargs):
-        if self.cantidad <= 0:
-            raise ValidationError("La cantidad debe ser mayor que cero.")
+    @transaction.atomic
+    def procesar_entrega(self):
+        estado_pendiente = EstadoProducto.objects.get(nombre= EstadoProducto.PENDIENTE)
+        for detalle in self.detalles.select_related('producto', 'bodega'):
+            inventario = Inventario.objects.select_for_update().get(
+                idbodega=detalle.bodega,
+                idproducto=detalle.producto
+            )
+            if inventario.stock < detalle.cantidad:
+                raise ValidationError(f"Stock insuficiente para {detalle.producto.descripcion}")
+            
+            inventario.reducir_stock(detalle.cantidad)
+            
+            MovimientoProducto.objects.create(
+                producto=detalle.producto,
+                bodega=detalle.bodega,
+                tipo_movimiento='salida',
+                cantidad=detalle.cantidad,
+                usuario=self.id_empleado_autorizo,
+                empleado=self.id_empleado_recibio,
+                estado_producto=estado_pendiente
+            )
 
-        with transaction.atomic():
-            # Verificar stock disponible
-            inventario = Inventario.objects.filter(idbodega=self.idbodega, idproducto=self.idproducto).first()
-            if not inventario:
-                raise ValidationError("El producto no existe en esta bodega.")
-            if inventario.stock < self.cantidad:
-                raise ValidationError(f"Stock insuficiente: disponible {inventario.stock}, solicitado {self.cantidad}.")
+class DetalleEntrega(models.Model):
+    entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name='detalles')
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
 
-            # Reducir el stock
-            inventario.reducir_stock(self.cantidad)
-            # Guardar la entrega
-            super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Entrega de {self.cantidad} {self.idproducto.descripcion} desde {self.idbodega.nombre}"
+    class Meta:
+        unique_together = ('entrega', 'producto', 'bodega')

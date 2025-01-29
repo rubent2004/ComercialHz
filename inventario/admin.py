@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import LoginFormulario
-from .models import  Devolucion, Empleado, EstadoProducto, Marca, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto
+from .models import  Devolucion, Empleado, Entrega, EstadoProducto, Marca, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto
 
 class UsuarioAdmin(UserAdmin):
     add_form = LoginFormulario
@@ -48,3 +48,15 @@ admin.site.register(Reparacion, ReparacionAdmin)
 class DevolucionAdmin(admin.ModelAdmin):
      list_display = ['idproducto', 'fecha_devolucion', 'idempleado','dañado']
 admin.site.register(Devolucion, DevolucionAdmin)
+
+#entrega
+
+# class DetalleEntregaInline(admin.TabularInline):  # O también puedes usar admin.StackedInline
+#     model = DetalleEntrega
+#     extra = 1  # Número de formularios vacíos a mostrar
+
+# class EntregaAdmin(admin.ModelAdmin):
+#     inlines = [DetalleEntregaInline]  # Mostrar DetalleEntrega en la página de Entrega
+
+# admin.site.register(Entrega, EntregaAdmin)
+# admin.site.register(DetalleEntrega)  

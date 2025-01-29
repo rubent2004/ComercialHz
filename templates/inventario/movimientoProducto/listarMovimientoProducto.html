@@ -1,100 +1,344 @@
 {% extends "inventario/comun/base.html" %}
+{% load static %}
 
 {% block content %}
-
-<!-- NO MODIFICAR ---------------------------------->
-{% load static %}
-<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
-<!-- FIN DE JAVASCRIPT ------------------------------------>
+<style>
+    /* Estilos generales */
+    .movimiento-card {
+        border-radius: 10px;
+        margin-bottom: 12px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .movimiento-header {
+        padding: 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .movimiento-badge {
+        font-size: 0.85rem;
+        padding: 5px 10px;
+        border-radius: 20px;
+    }
+    
+    .detalle-item {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Estilos para la tabla */
+    .table {
+        font-size: 0.95rem;
+        border-collapse: separate;
+        border-spacing: 0 3px;
+    }
+    
+    .group-header td {
+        background-color: #f8f9fa !important;
+        border-bottom: 2px solid #dee2e6;
+        padding: 1rem !important;
+    }
+    
+    .movement-detail td {
+        background-color: white;
+        border-top: none;
+        vertical-align: middle;
+        padding: 0.75rem !important;
+    }
+    
+    .movement-detail:hover td {
+        background-color: #fbfcfd;
+    }
+    
+    .movement-detail:not(:last-child) td {
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .table-hover tbody tr:hover td {
+        background-color: #f8f9fa;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .movimiento-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .resumen-container {
+            margin-top: 10px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .filter-group {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .table-responsive {
+            border: none;
+        }
+        
+        .group-header td {
+            padding: 0.75rem !important;
+        }
+    }
+    .btn-filter {
+        min-width: 100px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-filter.active {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-entrada {
+        background: #28a745;
+        border-color: #28a745;
+        color: white;
+    }
+    
+    .btn-entrada:hover {
+        background: #218838;
+        border-color: #1e7e34;
+    }
+    
+    .btn-salida {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-salida:hover {
+        background: #c82333;
+        border-color: #bd2130;
+    }
+</style>
 
 <article class="content responsive-tables-page">
-    <div class="title-block text-center">
-        <h1 class="title">Listado de Movimientos de Producto</h1>
-        <p class="title-description">Filtra y visualiza los movimientos de los productos</p>
+    <!-- Encabezado Principal -->
+    <div class="title-block text-center mb-4">
+        <h1 class="title display-4"><i class="fas fa-boxes"></i> Movimientos de Producto</h1>
+        <p class="title-description lead">Gestión y seguimiento de inventario</p>
     </div>
+    
     <section class="section">
-        <div class="row">
-            <div class="col-md-12">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="card card-primary">
-                            <div class="card-header"> 
-                                <div class="header-block">
-                                    <em class="fa fa-check"></em>
-                                    <p class="title">{{ message }}</p>
+        <!-- Sección de Filtros -->
+        <div class="card filter-card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-filter"></i> Filtros Avanzados</h3>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-center">
+                    <!-- Filtros en línea -->
+                    <div class="col-12 col-md-6 col-lg-3 filter-group">
+                        <label class="form-label"><i class="fas fa-warehouse"></i> Bodega</label>
+                        {{ form.bodega }}
+                    </div>
+                    
+                    <div class="col-12 col-md-6 col-lg-3 filter-group">
+                        <label class="form-label"><i class="fas fa-cube"></i> Producto</label>
+                        {{ form.producto }}
+                    </div>
+                    
+                    <div class="col-12 col-md-6 col-lg-3 filter-group">
+                        <label class="form-label"><i class="fas fa-user-tie"></i> Empleado</label>
+                        {{ form.empleado }}
+                    </div>
+                    
+                    <div class="col-12 col-md-6 col-lg-3 filter-group">
+                        <label class="form-label"><i class="fas fa-calendar-day"></i> Fechas</label>
+                        <div class="input-daterange input-group">
+                            <input type="date" name="fecha_inicio" class="form-control" 
+                                   value="{{ request.GET.fecha_inicio }}" placeholder="Inicio">
+                            <span class="input-group-text">a</span>
+                            <input type="date" name="fecha_fin" class="form-control" 
+                                   value="{{ request.GET.fecha_fin }}" placeholder="Fin">
+                        </div>
+                    </div>
+                     <!-- Filtros por tipo de movimiento -->
+                     <div class="col-12">
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <a href="?tipo_movimiento=entrada{% if request.GET.fecha_inicio %}&fecha_inicio={{ request.GET.fecha_inicio }}{% endif %}{% if request.GET.fecha_fin %}&fecha_fin={{ request.GET.fecha_fin }}{% endif %}" 
+                               class="btn btn-filter btn-entrada {% if request.GET.tipo_movimiento == 'entrada' %}active{% endif %}">
+                                <i class="fas fa-arrow-down"></i> Entradas
+                            </a>
+                            
+                            <a href="?tipo_movimiento=salida{% if request.GET.fecha_inicio %}&fecha_inicio={{ request.GET.fecha_inicio }}{% endif %}{% if request.GET.fecha_fin %}&fecha_fin={{ request.GET.fecha_fin }}{% endif %}" 
+                               class="btn btn-filter btn-salida {% if request.GET.tipo_movimiento == 'salida' %}active{% endif %}">
+                                <i class="fas fa-arrow-up"></i> Salidas
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Botones de Acción -->
+                    <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="{% url 'inventario:listarMovimientoProducto' %}" 
+                           class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-eraser"></i> Limpiar
+                        </a>
+                        <button type="button" class="btn btn-dark btn-lg" id="toggleViewBtn">
+                            <i class="fas fa-table"></i> Vista Tabla
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Vista de Tarjetas -->
+        <div id="cardView">
+            <div class="container-fluid">
+                {% for grupo in grupos_movimientos %}
+                <div class="movimiento-card">
+                    <div class="movimiento-header" onclick="toggleDetalle(this)">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="fas fa-user-tie"></i> 
+                                {% if grupo.empleado %}
+                                    {{ grupo.empleado.nombre }}
+                                {% else %}
+                                    {{ movimiento.usuario.username }}
+                                {% endif %}
+                            </h5>
+                            
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-day"></i> {{ grupo.fecha|date:"d M Y" }}
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex gap-2 resumen-container">
+                            <span class="movimiento-badge bg-primary text-white">
+                                {{ grupo.resumen.total_movimientos }} movimientos
+                            </span>
+                            <span class="movimiento-badge bg-info text-white">
+                                {{ grupo.resumen.tipos_movimiento|join:", " }}
+                            </span>
+                            <span class="movimiento-badge bg-success text-white">
+                                <i class="fas fa-boxes"></i> {{ grupo.resumen.total_cantidad }} total
+                            </span>
+                        </div>
+                    </div>
+        
+                    <div class="detalles-container" style="display: none;">
+                        {% for movimiento in grupo.detalles %}
+                        <div class="detalle-item">
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge 
+                                            {% if movimiento.tipo_movimiento == 'entrada' %}bg-success
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ movimiento.get_tipo_movimiento_display }}
+                                        </span>
+                                        <strong class="ml-2">{{ movimiento.producto.descripcion }}</strong>
+                                    </div>
+                                    <span class="badge bg-warning text-dark">
+                                        {{ movimiento.cantidad }} unidades
+                                    </span>
+                                </div>
+                                <div class="text-muted small mt-1">
+                                    <i class="fas fa-warehouse"></i> {{ movimiento.bodega.nombre }} •
+                                    <i class="fas fa-tag"></i> {{ movimiento.estado_producto.nombre }} •
+                                    <i class="fas fa-user"></i> {{ movimiento.usuario.username }}
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
-                {% endif %}
-
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-block">
-                            <div class="card-title-block">
-                                <h3 class="title">Filtrar Movimientos</h3>
-                            </div>
-                            <section class="example">
-                                <form method="get" class="form-inline mb-4 d-flex justify-content-center align-items-center">
-                                    <div class="form-group mr-3">
-                                        {{ form.as_p }}
-                                    </div>
-
-                                    <!-- Campos para seleccionar el rango de fechas -->
-                                    <div class="form-group mr-3">
-                                        <label for="fecha_inicio" class="mr-2">Fecha de Inicio:</label>
-                                        <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio }}">
-                                    </div>
-                                    <div class="form-group mr-3">
-                                        <label for="fecha_fin" class="mr-2">Fecha de Fin:</label>
-                                        <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin }}">
-                                    </div>
-
-                                    <!-- Botón de filtro -->
-                                    <button type="submit" class="btn btn-lg btn-buscar">
-                                        <i class="fa fa-search"></i> Filtrar
-                                    </button>
-
-                                    <!-- Botón de Limpiar -->
-                                    <a href="/inventario/listarMovimientoProducto" class="btn btn-lg btn-limpiar">
-                                        <i class="fa fa-eraser"></i> Limpiar
-                                    </a>
-                                </form>
-                            </section>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
+                {% empty %}
+                <div class="alert alert-info text-center py-4">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h4>No se encontraron movimientos</h4>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-block">
-                            <div class="card-title-block">
-                                <h3 class="title">Movimientos Registrados</h3>
-                            </div>
-                            <div class="row">
-                                {% for movimiento in tabla %}
-                                    <div class="col-md-4 mb-4">
-                                        <div class="card movimiento-card">
-                                            <div class="card-body">
-                                                <p class="card-subtitle">Tipo de movimiento: {{ movimiento.tipo_movimiento }}</p>
-                                                <h5 class="card-title">{{ movimiento.producto }}</h5>
-                                                <h5 class="card-text">Proveedor: {{ movimiento.producto.proveedor }}</h5>
-                                                <p class="card-text">Bodega: {{ movimiento.bodega }}</p>
-                                                <p class="card-text">Cantidad: {{ movimiento.cantidad }}</p>
-                                                <p class="card-text">Empleado: {{ movimiento.empleado }}</p>
-                                                <p class="card-text">Usuario: {{ movimiento.usuario }}</p>
-                                                <p class="card-text">Fecha: {{ movimiento.fecha_movimiento }}</p>
-                                                <p class="card-text">Estado: {{ movimiento.estado_producto }}</p>
+        <!-- Vista de Tabla (Oculta inicialmente) -->
+        <div id="tableView" style="display: none;">
+            <div class="card border-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width: 25%">Empleado/Fecha</th>
+                                    <th>Tipo Movimiento</th>
+                                    <th>Productos</th>
+                                    <th>Total Unidades</th>
+                                    <th>Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grupo in grupos_movimientos %}
+                                    <tr class="group-header">
+                                        <td colspan="5" class="bg-light">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong class="text-primary">{{ grupo.empleado.nombre }}</strong>
+                                                    <div class="text-muted small">
+                                                        <i class="fas fa-calendar-day"></i> 
+                                                        {{ grupo.fecha|date:"d M Y" }}
+                                                    </div>
+                                                </div>
+                                                <div class="text-muted">
+                                                    <i class="fas fa-cubes"></i> {{ grupo.resumen.total_productos }} productos
+                                                    <span class="mx-2">|</span>
+                                                    <i class="fas fa-boxes"></i> {{ grupo.resumen.total_cantidad }} unidades
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    {% for movimiento in grupo.detalles %}
+                                    <tr class="movement-detail">
+                                        <td>
+                                            <span class="badge 
+                                                {% if movimiento.tipo_movimiento == 'entrada' %}bg-success
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ movimiento.get_tipo_movimiento_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="text-dark">{{ movimiento.producto.descripcion }}</div>
+                                            <small class="text-muted">{{ movimiento.bodega.nombre }}</small>
+                                        </td>
+                                        <td>{{ movimiento.cantidad }}</td>
+                                        <td>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user"></i> {{ movimiento.usuario.username }}<br>
+                                                <i class="fas fa-tag"></i> {{ movimiento.estado_producto.nombre }}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
                                 {% empty %}
-                                    <div class="col-12">
-                                        <div class="alert alert-info text-center">No se encontraron movimientos</div>
-                                    </div>
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5">
+                                            <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                                            <h4 class="text-muted">No se encontraron registros</h4>
+                                        </td>
+                                    </tr>
                                 {% endfor %}
-                            </div>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -102,108 +346,57 @@
     </section>
 </article>
 
-<style>
-/* Estilo de los botones */
-.btn-lg {
-    font-size: 16px;
-    font-weight: 600;
-    text-transform: uppercase;
-    padding: 12px 24px;
-    border-radius: 30px;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+<script>
+// Toggle entre vistas
+document.getElementById('toggleViewBtn').addEventListener('click', function() {
+    const cardView = document.getElementById('cardView');
+    const tableView = document.getElementById('tableView');
+    const btnIcon = this.querySelector('i');
+    
+    if (cardView.style.display === 'none') {
+        cardView.style.display = 'block';
+        tableView.style.display = 'none';
+        btnIcon.className = 'fas fa-table';
+        this.innerHTML = '<i class="fas fa-table"></i> Vista Tabla';
+    } else {
+        cardView.style.display = 'none';
+        tableView.style.display = 'block';
+        btnIcon.className = 'fas fa-th-large';
+        this.innerHTML = '<i class="fas fa-th-large"></i> Vista Tarjetas';
+    }
+});
+
+// Función para mostrar/ocultar detalles
+function toggleDetalle(element) {
+    const detalles = element.nextElementSibling;
+    const isVisible = detalles.style.display === 'block';
+    
+    // Cerrar todos los detalles
+    document.querySelectorAll('.detalles-container').forEach(d => d.style.display = 'none');
+    
+    // Alternar estado actual con animación
+    if (!isVisible) {
+        detalles.style.display = 'block';
+        detalles.style.animation = 'slideDown 0.3s ease';
+        if(window.innerWidth < 768) detalles.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        detalles.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => detalles.style.display = 'none', 250);
+    }
 }
 
-/* Botón de Buscar */
-.btn-lg i {
-    margin-right: 8px;
-}
-
-.btn-lg:hover {
-    transform: scale(1.05);
-}
-
-.btn-buscar {
-    background-color: #16f355;
-    color: white;
-    border: none;
-}
-
-.btn-buscar:hover {
-    background-color: #14d047;
-}
-
-/* Botón de Limpiar */
-.btn-limpiar {
-    background-color: #f55e16;
-    color: white;
-    border: none;
-}
-
-.btn-limpiar:hover {
-    background-color: #e14b12;
-}
-
-/* Estilo para las tarjetas */
-.movimiento-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-}
-
-.movimiento-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.card-title {
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.card-text {
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-/* Estilo para las tarjetas con un marco oscuro */
-.movimiento-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 3px solid #e0e0e0; /* Borde oscuro alrededor de la tarjeta */
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); /* Sombra suave alrededor de la tarjeta */
-    border-radius: 10px;
-    margin-bottom: 20px;
-    padding: 20px;
-    background-color: white; /* Fondo blanco para las tarjetas */
-}
-
-.movimiento-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 0 25px rgba(208, 208, 208, 0.2); /* Sombra más fuerte al hacer hover */
-    border-color: #a39f9f; /* Cambia el borde a un color más oscuro cuando se hace hover */
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.card-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #000000;
-}
-
-.card-text {
-    font-size: 14px;
-    color: #302f2f;
-    margin-bottom: 8px;
-}
-</style>
-
+// Animaciones CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideUp {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+`;
+document.head.appendChild(style);
+</script>
 {% endblock %}

@@ -75,7 +75,8 @@ path('agregarInventario', views.AgregarInventario.as_view(), name='agregarInvent
 #movimiento producto
 path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
 #Agregar entrega
-path('agregarEntrega', views.AgregarEntrega.as_view(), name='agregarEntrega'),
+path('agregarEntrega', views.agregarEntrega, name='agregarEntrega'),
+path('verificar-stock/', views.verificar_stock, name='verificar_stock'),
 #movimiento producto
 path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
 #listado empleado pendeinte

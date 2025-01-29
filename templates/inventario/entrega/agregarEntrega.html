@@ -1,79 +1,230 @@
 {% extends "inventario/comun/base.html" %}
 
 {% block content %}
-<!-- NO MODIFICAR ---------------------------------->
 {% load static %}
-<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
-<!-- FIN DE JAVASCRIPT ------------------------------------>
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
-        <h1 class="title">Salida de producto de stock</h1>
-        <p class="title-description">Entrega de Producto</p>
+        <h1 class="title">Registrar Entrega</h1>
+        <p class="title-description">Registra los productos entregados al empleado</p>
     </div>
-
+    
     <section class="section">
         <div class="row">
             <div class="col-md-12">
-                <!-- Mostrar mensajes de éxito o error -->
-                {% if messages %}
-                    <div class="alert-container">
-                        {% for message in messages %}
-                            {% if message.tags == 'success' %}
-                                <div class="alert alert-success alert-dismissible fade show">
-                                    <em class="fa fa-check"></em>
-                                    {{ message }}
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                            {% elif message.tags == 'error' %}
-                                <div class="alert alert-danger alert-dismissible fade show">
-                                    <em class="fa fa-exclamation-triangle"></em>
-                                    {{ message }}
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <!-- Botón para listar inventario -->
-                <div class="d-flex justify-content-end mb-3">
-                    <a href="/inventario/listarInventario" class="btn btn-lg" style="background-color: #02bff9; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
-                        <i class="fa fa-list"></i> Listar Inventario
-                    </a>
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-block">
-                            <div class="card-title-block">
-                                <h3 class="title">Producto Entregado</h3>
+                {% endfor %}
+                
+                <div class="card">
+                    <div class="card-block">
+                        <div class="card-title-block">
+                            <h3 class="title">Formulario de Entrega</h3>
+                            <a href="{% url 'inventario:listarMovimientoProducto' %}" class="btn btn-info btn-sm float-right">
+                                <i class="fa fa-list"></i> Ver Historial
+                            </a>
+                        </div>
+                        
+                        <form method="post" id="entrega-form">
+                            {% csrf_token %}
+                            
+                            <!-- Selección de Empleado -->
+                            <div class="form-group">
+                                <label for="empleado">Empleado Receptor:</label>
+                                <select name="empleado" id="empleado" class="form-control" required>
+                                    <option value="">Seleccione un empleado</option>
+                                    {% for empleado in empleados %}
+                                        <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}  </option>
+                                    {% endfor %}
+                                </select>
                             </div>
 
-                            <section class="example">
-                                <!-- Formulario de registro de productos -->
-                                <form method="post" class="form-horizontal">
-                                    {% csrf_token %}
-                                    <div class="form-group">
-                                        {{ form.as_p }}
+                            <!-- Selectores de Productos -->
+                            <div class="card my-3">
+                                <div class="card-body">
+                                    <h4 class="card-title">Agregar Productos</h4>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <select class="form-control" id="producto-select">
+                                                <option value="">Producto</option>
+                                                {% for producto in productos %}
+                                                    <option value="{{ producto.id }}">{{ producto.descripcion }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <select class="form-control" id="bodega-select">
+                                                <option value="">Bodega</option>
+                                                {% for bodega in bodegas %}
+                                                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <input type="number" id="cantidad-input" 
+                                                   class="form-control" min="1" value="1" 
+                                                   placeholder="Cantidad">
+                                        </div>
+                                        
+                                        <div class="col-md-2">
+                                            <button type="button" id="agregar-producto" 
+                                                    class="btn btn-success btn-block">
+                                                <i class="fa fa-cart-plus"></i> Agregar
+                                            </button>
+                                        </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Lista de Productos -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <h4 class="card-title">Productos Seleccionados</h4>
+                                    <div id="stock-alert" class="alert alert-danger d-none"></div>
+                                    <ul id="lista-productos" class="list-group mb-3"></ul>
+                                    <input type="hidden" name="detalles" id="detalles-json">
                                     
-                                    <div class="d-flex justify-content-end">
-                                        <button type="submit" class="btn btn-lg" style="background-color: #16f355; color: white; border: none; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: transform 0.2s ease;">
-                                            <i class="fa fa-save"></i> Aceptar
-                                        </button>
-                                    </div>
-                                </form>
-                            </section>
-                        </div>
+                                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                                        <i class="fa fa-check-circle"></i> Registrar Entrega
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 </article>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productos = [];
+    const productoSelect = document.getElementById('producto-select');
+    const bodegaSelect = document.getElementById('bodega-select');
+    const cantidadInput = document.getElementById('cantidad-input');
+    const listaProductos = document.getElementById('lista-productos');
+    const stockAlert = document.getElementById('stock-alert');
+
+    async function verificarStock(productoId, bodegaId, cantidad) {
+        try {
+            const response = await fetch(
+                `/inventario/verificar-stock/?bodega=${bodegaId}&producto=${productoId}&cantidad=${cantidad}`
+            );
+            return await response.json();
+        } catch(error) {
+            console.error('Error:', error);
+            return { disponible: false };
+        }
+    }
+
+    function limpiarCampos() {
+        productoSelect.value = '';
+        bodegaSelect.value = '';
+        cantidadInput.value = 1;
+    }
+
+    function actualizarLista() {
+        listaProductos.innerHTML = productos.map((item, index) => `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${item.nombre}</strong><br>
+                    <small class="text-muted">
+                        Bodega: ${item.bodega_nombre} | 
+                        Cantidad: ${item.cantidad}
+                    </small>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" 
+                        onclick="eliminarProducto(${index})">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </li>
+        `).join('');
+        
+        document.getElementById('detalles-json').value = JSON.stringify(
+            productos.map(p => ({
+                producto: p.producto,
+                bodega: p.bodega_id,
+                cantidad: p.cantidad
+            }))
+        );
+    }
+
+    document.getElementById('agregar-producto').addEventListener('click', async function() {
+        const productoId = productoSelect.value;
+        const productoNombre = productoSelect.options[productoSelect.selectedIndex].text;
+        const bodegaId = bodegaSelect.value;
+        const bodegaNombre = bodegaSelect.options[bodegaSelect.selectedIndex].text;
+        const cantidad = parseInt(cantidadInput.value);
+
+        // Validaciones básicas
+        if(!productoId || !bodegaId || !cantidad) {
+            alert('Complete todos los campos');
+            return;
+        }
+
+        // Verificar duplicados
+        const existe = productos.some(p => 
+            p.producto === productoId && p.bodega_id === bodegaId
+        );
+        
+        if(existe) {
+            alert('Este producto ya fue agregado desde esta bodega');
+            return;
+        }
+
+        // Verificar stock
+        const stockInfo = await verificarStock(productoId, bodegaId, cantidad);
+        if(!stockInfo.disponible) {
+            stockAlert.innerHTML = `
+                <i class="fa fa-exclamation-triangle"></i>
+                Stock insuficiente en ${bodegaNombre}! 
+                Disponible: ${stockInfo.stock_actual}
+            `;
+            stockAlert.classList.remove('d-none');
+            return;
+        }
+        stockAlert.classList.add('d-none');
+
+        // Agregar a la lista
+        productos.push({
+            producto: productoId,
+            nombre: productoNombre,
+            cantidad: cantidad,
+            bodega_id: bodegaId,
+            bodega_nombre: bodegaNombre
+        });
+
+        actualizarLista();
+        limpiarCampos();
+    });
+
+    window.eliminarProducto = function(index) {
+        productos.splice(index, 1);
+        actualizarLista();
+    }
+});
+</script>
+
+<style>
+.list-group-item {
+    transition: all 0.3s ease;
+}
+.list-group-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.btn-danger.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+</style>
 
 {% endblock %}
