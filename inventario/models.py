@@ -163,8 +163,8 @@ class Producto(models.Model):
     fecha_registro = models.DateTimeField(auto_now_add=True)
     
     # Relaciones
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
-    marca = models.ForeignKey(Marca, on_delete=models.CASCADE)
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, null=True)
+    marca = models.ForeignKey(Marca, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f"{self.descripcion} ({self.marca})"
