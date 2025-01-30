@@ -40,11 +40,33 @@ class Usuario(AbstractUser):
         elif tipo == 'usuario':
             return cls.objects.filter(is_superuser=False).count()
         return 0
+from django.db import models
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
+
 class Estado(models.Model):
-    nombre = models.CharField(max_length=50)
+    ACTIVO = 'Activo'
+    INACTIVO = 'Inactivo'
+
+    ESTADO_CHOICES = [
+        (ACTIVO, 'Activo'),
+        (INACTIVO, 'Inactivo'),
+    ]
+
+    nombre = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ACTIVO)
 
     def __str__(self):
         return self.nombre
+
+    # Señal para agregar estados predeterminados
+    @receiver(post_migrate)
+    def crear_estados_predeterminados(sender, **kwargs):
+        # Establece los valores predeterminados para 'Activo' e 'Inactivo'
+        estados = [Estado.ACTIVO, Estado.INACTIVO]
+        for estado in estados:
+            Estado.objects.get_or_create(nombre=estado)
+
+#--------------------------------ESTADO PRODUCTO----------------------------------------
 
 
 class EstadoProducto(models.Model):
@@ -600,7 +622,6 @@ class Entrega(models.Model):
     id_empleado_autorizo = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     id_empleado_recibio = models.ForeignKey(Empleado, on_delete=models.CASCADE)
     fecha_entrega = models.DateTimeField(auto_now_add=True)
-
     @transaction.atomic
     def procesar_entrega(self):
         estado_pendiente = EstadoProducto.objects.get(nombre= EstadoProducto.PENDIENTE)
