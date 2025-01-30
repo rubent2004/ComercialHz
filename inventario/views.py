@@ -483,6 +483,7 @@ class AgregarProducto(View):
             'form': form,
             'modo': request.session.pop('productoProcesado', None),
         }
+        contexto = complementarContexto(contexto,request.user)
         return render(request, 'inventario/producto/agregarProducto.html', contexto)
 
 
@@ -570,15 +571,17 @@ class EditarProducto(LoginRequiredMixin, View):
         if form.is_valid():
             # Procesa y asigna los datos con form.cleaned_data como se requiere
             descripcion = form.cleaned_data['descripcion']
-            precio = form.cleaned_data['precio']
-            categoria = form.cleaned_data['categoria']
-            tiene_iva = form.cleaned_data['tiene_iva']
+            precio_unitario = form.cleaned_data['precio_unitario']
+            precio_cash = form.cleaned_data['precio_cash']
+            marca = form.cleaned_data['marca']
+            proveedor = form.cleaned_data['Proveedor']
 
             prod = Producto.objects.get(id=pk)
             prod.descripcion = descripcion
-            prod.precio = precio
-            prod.categoria = categoria
-            prod.tiene_iva = tiene_iva
+            prod.precio_unitario = precio_unitario
+            prod.precio_cash = precio_cash
+            prod.marca = marca
+            prod.proveedor = proveedor
             prod.save()
             form = ProductoFormulario(instance=prod)
             messages.success(request, 'Actualizado exitosamente el producto de ID %s.' % pk)
