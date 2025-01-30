@@ -12,9 +12,16 @@
         document.getElementById('cantidadRecibida').max = maxCantidad;
         document.getElementById('cantidadVendida').value = '';
         document.getElementById('cantidadRecibida').value = '';
-        document.getElementById('bodegaDevuelta').value = '';
-        document.getElementById('errorMensaje').innerText = ''; // Limpiar mensaje de error
+        document.getElementById('errorMensaje').innerText = '';
         document.getElementById('esDevuelto').value = esDevuelto;
+        
+        // Resetear elementos de bodega
+        document.getElementById('cambiarBodegaCheckbox').checked = false;
+        document.getElementById('bodegaSelect').classList.add('d-none');
+        document.getElementById('bodegaDisplay').classList.remove('d-none');
+        document.getElementById('bodegaSelect').value = '1';
+        document.getElementById('bodegaIdHidden').value = '1';
+        
         const modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
         modal.show();
     }
@@ -22,14 +29,14 @@
     function validarSuma(maxCantidad) {
         const cantidadVendida = parseInt(document.getElementById('cantidadVendida').value || 0, 10);
         const cantidadRecibida = parseInt(document.getElementById('cantidadRecibida').value || 0, 10);
-        const bodegaDevuelta = document.getElementById('bodegaDevuelta').value;
         const suma = cantidadVendida + cantidadRecibida;
+        const bodegaHidden = document.getElementById('bodegaIdHidden').value;
 
         if (suma > maxCantidad) {
             document.getElementById('errorMensaje').innerText = 
                 `La suma de vendidos y devueltos (${suma}) no puede exceder la cantidad máxima (${maxCantidad}).`;
             document.getElementById('guardarBtn').disabled = true;
-        } else if (cantidadRecibida > 0 && !bodegaDevuelta) {
+        } else if (cantidadRecibida > 0 && !bodegaHidden) {
             document.getElementById('errorMensaje').innerText = 
                 "Debe seleccionar una bodega para los productos devueltos.";
             document.getElementById('guardarBtn').disabled = true;
@@ -38,8 +45,30 @@
             document.getElementById('guardarBtn').disabled = false;
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('cambiarBodegaCheckbox').addEventListener('change', function() {
+            const bodegaSelect = document.getElementById('bodegaSelect');
+            const bodegaDisplay = document.getElementById('bodegaDisplay');
+            
+            if (this.checked) {
+                bodegaSelect.classList.remove('d-none');
+                bodegaDisplay.classList.add('d-none');
+            } else {
+                bodegaSelect.classList.add('d-none');
+                bodegaDisplay.classList.remove('d-none');
+                bodegaSelect.value = '1';
+                document.getElementById('bodegaIdHidden').value = '1';
+            }
+        });
+
+        document.getElementById('bodegaSelect').addEventListener('change', function() {
+            document.getElementById('bodegaIdHidden').value = this.value;
+        });
+    });
 </script>
 
+<!-- Contenido principal SIN MODIFICAR -->
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
         <h1 class="title">Empleados con Productos Pendientes</h1>
@@ -53,7 +82,7 @@
                     <div class="card-block">
                         <div class="card-title-block d-flex justify-content-between align-items-center">
                             <h3 class="title">Empleados Pendientes</h3>
-                            <i class="fas fa-boxes" style="font-size: 1.5em;"></i> <!-- Icono de cajas -->
+                            <i class="fas fa-boxes" style="font-size: 1.5em;"></i>
                         </div>
                         <section class="example">
                             {% if messages %}
@@ -85,10 +114,6 @@
                                                                 onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }}, false)">
                                                           <i class="fas fa-check-circle"></i> Recepcionar
                                                         </button>
-                                                        <button class="btn btn-warning btn-sm" 
-                                                                onclick="abrirModal('{{ producto_id }}', {{ producto_data.cantidad }}, {{ producto_data.movimiento_id }}, true)">
-                                                          <i class="fas fa-undo-alt"></i> Trae Devolucion
-                                                        </button>
                                                     </li>
                                                     {% endfor %}
                                                 </ul>
@@ -106,7 +131,7 @@
     </section>
 </article>
 
-<!-- Modal para recepción -->
+<!-- Modal corregido -->
 <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -122,57 +147,47 @@
                       <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
                       <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" 
                              min="0" oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-                      {% if form.cantidad_vendida.errors %}
-                          <div class="invalid-feedback">
-                              {% for error in form.cantidad_vendida.errors %}
-                                  <p>{{ error }}</p>
-                              {% endfor %}
-                          </div>
-                      {% endif %}
                   </div>
                   <div class="mb-3">
                       <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
                       <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" 
                              min="0" oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-                      {% if form.cantidad_recibida.errors %}
-                          <div class="invalid-feedback">
-                              {% for error in form.cantidad_recibida.errors %}
-                                  <p>{{ error }}</p>
-                              {% endfor %}
-                          </div>
-                      {% endif %}
                   </div>
                   <div class="mb-3">
-                      <label for="bodegaDevuelta" class="form-label">Bodega para devolución</label>
-                      <select class="form-select" name="bodega_id" id="bodegaDevuelta" 
-                              oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-                          <option value="" selected>Seleccione una bodega</option>
-                          {% for bodega in bodegas %}
-                          <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
-                          {% endfor %}
-                      </select>
-                      {% if form.bodega_id.errors %}
-                          <div class="invalid-feedback">
-                              {% for error in form.bodega_id.errors %}
-                                  <p>{{ error }}</p>
-                              {% endfor %}
-                          </div>
-                      {% endif %}
-                  </div>
-                  <!-- Mostrar el ID de Movimiento de forma discreta -->
-                  <p style="font-size: 0.8em; color: #6c757d;">
-                    <strong>ID de Movimiento:</strong>
-                    <input type="text" name="movimiento_id" id="movimientoId" value="" readonly 
-                           style="border: none; background: transparent; font-size: 1.2em; color: #6c757d;">
-                 </p>
-                  <p style="font-size: 0.8em; color: #6c757d;">
-                    <strong>ID de Producto:</strong>
-                    <input type="text" name="producto_id" id="productoId" value="" readonly 
-                          style="border: none; background: transparent; font-size: 1.2em; color: #6c757d;">
-                </p>
-                  <p id="errorMensaje" class="text-danger"></p>
-                  <!-- Campo adicional para indicar si el producto es devuelto -->
+                    <label class="form-label">Bodega para devolución</label>
+                    <div class="input-group">
+                        <!-- Mostrar nombre de la bodega principal -->
+                        <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
+                        
+                        <div class="input-group-text">
+                            <!-- Checkbox para cambiar la bodega -->
+                            <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
+                            <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Selector de bodegas con más opciones -->
+                    <select class="form-select mt-2 d-none" id="bodegaSelect">
+                        <!-- Opción por defecto con el nombre de la bodega principal -->
+                        <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
+                        
+                        <!-- Otras bodegas que no sean la principal -->
+                        {% for bodega in bodegas %}
+                            {% if bodega.id != 1 %}
+                                <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    
+                    <!-- Valor oculto con el id de la bodega seleccionada -->
+                    <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
+                </div>
+                  
+                  <!-- Campos ocultos CORREGIDOS -->
+                  <input type="hidden" name="movimiento_id" id="movimientoId">
+                  <input type="hidden" name="producto_id" id="productoId">
                   <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
+                  <p id="errorMensaje" class="text-danger"></p>
               </div>
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>

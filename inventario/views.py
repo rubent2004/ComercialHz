@@ -107,7 +107,7 @@ class Panel(LoginRequiredMixin, View):
             'usuarios': Usuario.numeroUsuarios('usuario'),
             'numeroBodegas': Bodega.numeroRegistrados(),  # Número de bodegas
             'totalStock': Inventario.total_stock(),  # Total de stock de productos
-            'totalprecio': Producto.total_precio(),  # Suma del precio unitario de todos los productos
+            'totalprecio': Inventario.total_dinero_stock(),  # Suma del precio unitario de todos los productos
             'totalvendidos': MovimientoProducto.total_productos_vendidos(),  # Total de productos vendidos
             'productosMasVendidos': MovimientoProducto.productos_mas_vendidos(),  # Producto más vendido
         }
@@ -1932,7 +1932,7 @@ def recepcion_producto(request):
         cantidad_recibida = request.POST.get('cantidad_recibida', '0')
         cantidad_recibida = int(cantidad_recibida) if cantidad_recibida else 0
         cantidad_vendida = int(cantidad_vendida) if cantidad_vendida else 0
-        bodega_id = request.POST.get('bodega_id')
+        bodega_id = request.POST.get('bodega_id', '1')
 
         # Validaciones de cantidades
         if cantidad_vendida < 0 or cantidad_recibida < 0:
@@ -1960,7 +1960,7 @@ def recepcion_producto(request):
 
         # Procesar recepcion 
         if cantidad_recibida > 0:
-            bodega = get_object_or_404(Bodega, id=bodega_id)
+            bodega = get_object_or_404(Bodega, id=int(bodega_id))
             MovimientoProducto.objects.create(
                 bodega=bodega,
                 producto=producto_pendiente.producto,
@@ -2024,6 +2024,7 @@ def recepcion_producto(request):
     return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
 #Devoluciones
+#@method_decorator(nivel_requerido(1), name='dispatch')
 class ListarDev(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None

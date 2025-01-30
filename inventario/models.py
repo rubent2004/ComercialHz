@@ -416,7 +416,17 @@ class Inventario(models.Model):
         Calcula el total de stock de todos los productos en todas las bodegas.
         """
         return cls.objects.aggregate(total_stock=Sum('stock'))['total_stock'] or 0
-
+    #total de dinero en stock
+    @classmethod
+    def total_dinero_stock(cls):
+        """
+        Calcula el total de dinero en stock.
+        """
+        total = 0
+        for inventario in cls.objects.all():
+            total += inventario.stock * inventario.idproducto.precio_unitario
+        return total
+    
 #------------------------------------NOTIFICACIONES------------------------------------
 class Notificaciones(models.Model):
     #id
