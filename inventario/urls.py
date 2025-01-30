@@ -1,5 +1,15 @@
 from django.urls import path
 from . import views
+from django.urls import path
+from .views import ReporteInventarioPDF
+from django.urls import path
+from .views import ReporteInventarioView, ReporteInventarioPDF
+from django.contrib import admin
+from .views import ReporteProductoView, ReporteMovimientoView
+from .views import ReporteProductoView
+#from .views import ReporteProductosPDF
+from django.urls import path, include
+
 #from .views import AgregarProducto, ListarProductos, ImportarProductos, ExportarProductos, EditarProducto
 
 
@@ -86,6 +96,18 @@ path('recepcion_producto/', views.recepcion_producto, name='recepcion_producto')
 path('listarRep', views.ListarRep.as_view(), name='listarRep'),
 path('agregarRep/', views.AgregarRep.as_view(), name='agregarRep'),
 path('marcarRep/<int:pk>', views.MarcarRep.as_view(), name='marcarRep'),
+
+
+#Reportes
+
+path('reporte-inventario/', ReporteInventarioView.as_view(), name='reporte_inventario'),
+path('reporte-inventario/pdf/', ReporteInventarioPDF.as_view(), name='reporte_inventario_pdf'),
+path('reporteproductos/', ReporteProductoView.as_view(), name='reporte_productos'),
+path('reporte_movimientos/', views.ReporteMovimientoView.as_view(), name='reporte_movimientos'),
+
+
+
+
 
 #devoluciones
 path('listarDev', views.ListarDev.as_view(), name='listarDev'),

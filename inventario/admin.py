@@ -60,3 +60,13 @@ admin.site.register(Devolucion, DevolucionAdmin)
 
 # admin.site.register(Entrega, EntregaAdmin)
 # admin.site.register(DetalleEntrega)  
+
+
+from django.contrib import admin
+from import_export.admin import ExportMixin
+from .models import Inventario
+
+class InventarioAdmin(ExportMixin, admin.ModelAdmin):
+    list_display = ('idproducto', 'idbodega', 'stock')
+
+admin.site.register(Inventario, InventarioAdmin)

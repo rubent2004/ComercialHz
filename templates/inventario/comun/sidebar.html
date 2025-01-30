@@ -149,7 +149,41 @@
                         <li><a href="/inventario/crearUsuario"><i class="fa fa-circle-o"></i> Crear usuario</a></li>
                         <li><a href="/inventario/listarUsuarios"><i class="fa fa-circle-o"></i> Listar usuarios</a></li>
                     </ul>
+
+                    
                 </li>
+
+
+                <!-- Sección Reportes -->
+
+                <li>
+                    <a href="#" class="sidebar-toggle">
+                        <i class="fa fa-file-pdf"></i> Reportes
+                        <i class="fa arrow"></i>
+                    </a>
+                    <ul class="sidebar-nav">
+                        
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reporte_movimientos' %}" class="nav-link">
+                                <i class="fa fa-file-pdf"></i> Generar Reporte De Movimientos
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reporte_productos' %}"class="nav-link">
+                                <i class="fa fa-file-pdf"></i> Reporte de Productos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reporte_inventario' %}" class="nav-link">
+                                <i class="fa fa-file-pdf"></i> Reporte de Inventario
+                            </a>
+                        </li>
+                        
+                    </ul>
+                </li>
+                
+
             </ul>
         </nav>
     </div>

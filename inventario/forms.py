@@ -552,3 +552,39 @@ class FiltrosDev(forms.Form):
     idproducto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
     fecha_devolucion = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     dañado = forms.BooleanField(required=False, label='Dañado', widget=forms.CheckboxInput(attrs={'class': 'form-control'}))
+
+
+
+
+
+
+class ReporteInventarioForm(forms.Form):
+    fecha_inicio = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    bodega = forms.CharField(max_length=100, required=False)   
+
+
+
+
+   # Formulario de filtros para Reporte de Productos
+from django import forms
+
+class ReporteProductoForm(forms.Form):
+    descripcion = forms.CharField(required=False, label="Descripción")
+    #categoria = forms.CharField(required=False, label="Categoría")
+   # fecha_inicio = forms.DateField(required=False, label="Fecha de Inicio", widget=forms.DateInput(attrs={'type': 'date'}))
+   # fecha_fin = forms.DateField(required=False, label="Fecha de Fin", widget=forms.DateInput(attrs={'type': 'date'}))
+    precio_min = forms.DecimalField(required=False, label="Precio Mínimo", max_digits=10, decimal_places=2)
+    precio_max = forms.DecimalField(required=False, label="Precio Máximo", max_digits=10, decimal_places=2)
+    marca = forms.CharField(required=False, label="Marca")
+
+
+# forms.py
+from django import forms
+from .models import MovimientoProducto, Empleado
+
+class ReporteMovimientoFormulario(forms.Form):
+    fecha_inicio = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False)
+    tipo_movimiento = forms.ChoiceField(choices=[('', 'Seleccione...')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES, required=False)

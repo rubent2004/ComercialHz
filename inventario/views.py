@@ -3,6 +3,8 @@ from collections import defaultdict
 import datetime
 import json
 from .services import EntregaService
+from django.shortcuts import render
+from django.views import View
 
 from time import timezone
 from urllib import request
@@ -574,7 +576,7 @@ class EditarProducto(LoginRequiredMixin, View):
             precio_unitario = form.cleaned_data['precio_unitario']
             precio_cash = form.cleaned_data['precio_cash']
             marca = form.cleaned_data['marca']
-            proveedor = form.cleaned_data['Proveedor']
+            proveedor = form.cleaned_data['proveedor']
 
             prod = Producto.objects.get(id=pk)
             prod.descripcion = descripcion
@@ -656,7 +658,7 @@ class AgregarEmpleado(LoginRequiredMixin, View):
         form = EmpleadoFormulario()
         #Envia al usuario el formulario para que lo llene
         contexto = {'form':form , 'modo':request.session.get('empleadoProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
+        contexto = complementarContexto(contexto,request.user)      # Agregar para reflejar user   
         return render(request, 'inventario/empleado/agregarEmpleado.html', contexto)
 #Fin de vista-----------------------------------------------------------------------------#        
 
@@ -2102,3 +2104,368 @@ class AgregarDev(LoginRequiredMixin, View):
     def get(self, request):
         form = DevolucionFormulario()
         return render(request, 'inventario/recepcion/agregarDev.html', {'form': form})
+
+
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from .models import Inventario
+from django.template.loader import render_to_string
+#import pdfkit
+
+
+from django.shortcuts import render
+from django.views import View
+from .forms import ReporteInventarioForm
+from .models import Inventario
+
+class ReporteInventarioView(View):
+    def get(self, request, *args, **kwargs):
+        # Inicializar el formulario con los parámetros GET (si existen)
+        form = ReporteInventarioForm(request.GET)
+        
+        # Obtener los productos filtrados basados en el formulario
+        inventarios = Inventario.objects.all()
+        if form.is_valid():
+            fecha_inicio = form.cleaned_data.get('fecha_inicio')
+            fecha_fin = form.cleaned_data.get('fecha_fin')
+            bodega = form.cleaned_data.get('bodega')
+
+            if fecha_inicio:
+                inventarios = inventarios.filter(fecha__gte=fecha_inicio)
+            if fecha_fin:
+                inventarios = inventarios.filter(fecha__lte=fecha_fin)
+            if bodega:
+                inventarios = inventarios.filter(idbodega__nombre__icontains=bodega)
+
+        # Renderizar la plantilla con el formulario y los inventarios
+        context = {
+            'form': form,
+            'inventarios': inventarios
+        }
+        return render(request, 'inventario/reportes/createReport.html', context)
+
+
+class ReporteInventarioPDF(View):
+    def get(self, request, *args, **kwargs):
+        # Inicializamos el formulario con los datos de la URL (GET)
+        form = ReporteInventarioForm(request.GET)
+
+        # Si el formulario es válido, obtenemos los datos de los filtros
+        if form.is_valid():
+            fecha_inicio = form.cleaned_data.get('fecha_inicio')
+            fecha_fin = form.cleaned_data.get('fecha_fin')
+            bodega = form.cleaned_data.get('bodega')
+
+            # Filtrar el inventario según los parámetros
+            inventarios = Inventario.objects.all()
+
+            if fecha_inicio:
+                inventarios = inventarios.filter(fecha__gte=fecha_inicio)
+            if fecha_fin:
+                inventarios = inventarios.filter(fecha__lte=fecha_fin)
+            if bodega:
+                inventarios = inventarios.filter(idbodega__nombre__icontains=bodega)
+
+        else:
+            # Si el formulario no es válido, mostramos todos los productos
+            inventarios = Inventario.objects.all()
+
+        # Crear el PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_inventario.pdf"'
+
+        p = canvas.Canvas(response, pagesize=letter)
+        width, height = letter
+
+        # Título del reporte
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(200, height - 50, "Reporte de Inventario")
+
+        # Encabezados de tabla
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, height - 100, "Producto")
+        p.drawString(250, height - 100, "Bodega")
+        p.drawString(400, height - 100, "Stock")
+
+        y = height - 120  # Posición inicial de las filas
+        p.setFont("Helvetica", 10)
+
+        # Recorrer los productos filtrados y añadirlos al PDF
+        for item in inventarios:
+            p.drawString(50, y, item.idproducto.descripcion)
+            p.drawString(250, y, item.idbodega.nombre)
+            p.drawString(400, y, str(item.stock))
+            y -= 20  # Espaciado entre filas
+
+            # Control de salto de página
+            if y < 50:
+                p.showPage()
+                y = height - 50  
+
+        p.showPage()
+        p.save()
+
+        return response
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+#Reporte de Productos
+
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors  # Asegúrate de importar la librería de colores
+from django.http import HttpResponse
+
+class ReporteProductoView(View):
+    def get(self, request, *args, **kwargs):
+        # Inicializar el formulario de filtros
+        form = ReporteProductoForm(request.GET)
+
+        # Filtrar productos si el formulario es válido
+        if form.is_valid():
+            nombre = form.cleaned_data.get('nombre')
+            categoria = form.cleaned_data.get('categoria')
+            fecha_inicio = form.cleaned_data.get('fecha_inicio')
+            fecha_fin = form.cleaned_data.get('fecha_fin')
+            precio_min = form.cleaned_data.get('precio_min')
+            precio_max = form.cleaned_data.get('precio_max')
+
+            productos = Producto.objects.all()
+            if nombre:
+                productos = productos.filter(descripcion__icontains=nombre)
+            if categoria:
+                productos = productos.filter(categoria__icontains=categoria)
+            if fecha_inicio:
+                productos = productos.filter(fecha_creacion__gte=fecha_inicio)
+            if fecha_fin:
+                productos = productos.filter(fecha_creacion__lte=fecha_fin)
+            if precio_min:
+                productos = productos.filter(precio_unitario__gte=precio_min)
+            if precio_max:
+                productos = productos.filter(precio_unitario__lte=precio_max)
+        else:
+            productos = Producto.objects.all()
+
+        # Verificar si la solicitud es para generar el PDF
+        if 'pdf' in request.GET:
+            return self.generar_pdf(productos)
+
+        # Renderizar la página con los productos filtrados y el formulario
+        return render(request, 'inventario/reportes/productosReport.html', {'form': form, 'productos': productos})
+
+    def generar_pdf(self, productos):
+        # Crear la respuesta HTTP con el tipo de contenido para PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_productos.pdf"'
+
+        # Crear el documento PDF usando SimpleDocTemplate
+        doc = SimpleDocTemplate(response, pagesize=letter)
+
+        # Crear estilo para el texto (para permitir ajuste de texto)
+        styles = getSampleStyleSheet()
+        style_normal = styles['Normal']
+        style_normal.wordWrap = 'CJK'  # Permite el ajuste de texto
+
+        # Datos de la tabla: encabezados y filas
+        data = [
+            ['Código', 'Descripción', 'Precio Unitario', 'Precio Cash', 'Proveedor', 'Marca']  # Encabezado
+        ]
+
+        # Agregar los productos como filas en la tabla
+        for producto in productos:
+            descripcion_paragraph = Paragraph(producto.descripcion, style_normal)  # Usar Paragraph para la descripción
+            data.append([
+                producto.codigo,
+                descripcion_paragraph,  # Aquí agregamos el párrafo que manejará el ajuste de texto
+                str(producto.precio_unitario),
+                str(producto.precio_cash),
+                str(producto.proveedor),
+                str(producto.marca)
+            ])
+
+        # Crear la tabla con los datos
+        table = Table(data, colWidths=[50, 150, 100, 100, 100, 100])  # Definir el ancho de cada columna
+
+        # Establecer el estilo de la tabla (bordes, colores, alineación)
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.black),  # Fondo negro para el encabezado
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Texto blanco en el encabezado
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Alineación centrada para todo el contenido
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Fuente negrita para el encabezado
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Relleno en el encabezado
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # Fondo blanco para las filas
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Rejilla de bordes en la tabla
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),  # Fuente normal para las filas
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),  # Alineación de texto a la izquierda para las filas
+            ('TOPPADDING', (0, 0), (-1, -1), 6),  # Relleno en la parte superior de cada celda
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),  # Relleno en la parte inferior de cada celda
+        ])
+
+        # Aplicar el estilo a la tabla
+        table.setStyle(style)
+
+        # Construir el documento PDF con la tabla
+        doc.build([table])
+
+        return response
+    
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.views import View
+from .models import MovimientoProducto
+from .forms import ReporteMovimientoFormulario
+from django.template.loader import get_template
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.views import View
+from .models import MovimientoProducto
+from .forms import ReporteMovimientoFormulario
+from datetime import datetime
+
+class ReporteMovimientoView(View):
+    login_url = '/inventario/login'
+    template_name = 'inventario/Reportes/reporteMovimiento.html'
+
+    def get(self, request, *args, **kwargs):
+        # Procesar formulario para filtrar datos
+        form = ReporteMovimientoFormulario(request.GET)
+        movimientos = MovimientoProducto.objects.all().order_by('-fecha_movimiento')
+
+        # Obtener los filtros seleccionados
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+
+        # Filtrar por fechas
+        if fecha_inicio:
+            fecha_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            movimientos = movimientos.filter(fecha_movimiento__date__gte=fecha_inicio)
+
+        if fecha_fin:
+            fecha_fin = datetime.strptime(fecha_fin, "%Y-%m-%d")
+            movimientos = movimientos.filter(fecha_movimiento__date__lte=fecha_fin)
+
+        # Filtrar por empleado
+        if form.is_valid():
+            data = form.cleaned_data
+            if data['empleado']:
+                movimientos = movimientos.filter(empleado=data['empleado'])
+            
+            # Filtrar por tipo de movimiento
+            if data['tipo_movimiento']:
+                movimientos = movimientos.filter(tipo_movimiento=data['tipo_movimiento'])
+
+        # Si el parámetro 'pdf' está en la URL, generamos el PDF
+        if 'pdf' in request.GET:
+            return self.generar_pdf(movimientos)
+
+        # Si el parámetro 'excel' está en la URL, generamos el Excel
+        if 'excel' in request.GET:
+            return self.generar_excel(movimientos)
+
+        context = {
+            'form': form,
+            'movimientos': movimientos
+        }
+        return render(request, self.template_name, context)
+
+    def generar_pdf(self, movimientos):
+        # Generar PDF con los movimientos de productos
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_movimientos.pdf"'
+
+        # Crear documento PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+
+        # Crear la tabla con los datos
+        data = [
+            ['Bodega', 'Producto', 'Tipo Movimiento', 'Cantidad', 'Empleado', 'Fecha']  # Encabezados
+        ]
+
+        for movimiento in movimientos:
+            data.append([
+                movimiento.bodega,
+                movimiento.producto,
+                movimiento.get_tipo_movimiento_display(),
+                movimiento.cantidad,
+                movimiento.empleado,
+                movimiento.fecha_movimiento.strftime("%Y-%m-%d %H:%M:%S")
+            ])
+
+        # Crear tabla
+        table = Table(data)
+
+        # Establecer estilos de la tabla
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ])
+        table.setStyle(style)
+
+        # Build the document
+        elements = [table]
+        doc.build(elements)
+
+        buffer.seek(0)
+        response.write(buffer.getvalue())
+        return response
+
+    def generar_excel(self, movimientos):
+        import openpyxl
+        from django.http import HttpResponse
+
+        # Crear archivo Excel
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Reporte Movimientos'
+
+        # Crear encabezados
+        headers = ['Bodega', 'Producto', 'Tipo Movimiento', 'Cantidad', 'Empleado', 'Fecha']
+        ws.append(headers)
+
+        # Agregar los datos
+        for movimiento in movimientos:
+            ws.append([
+                movimiento.bodega,
+                movimiento.producto,
+                movimiento.get_tipo_movimiento_display(),
+                movimiento.cantidad,
+                movimiento.empleado,
+                movimiento.fecha_movimiento.strftime("%Y-%m-%d %H:%M:%S")
+            ])
+
+        # Crear la respuesta con el archivo Excel
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="reporte_movimientos.xlsx"'
+
+        wb.save(response)
+        return response
