@@ -214,7 +214,7 @@ class ProveedorFormulario(forms.ModelForm):
 
 
 class UsuarioFormulario(forms.Form):
-    niveles =  [ ('1','Administrador'),('0','Usuario'),('2','Empleado') ]
+    niveles =  [ ('1','Administrador'),('0','Usuario')]
 
     username = forms.CharField(
         label = "Nombre de usuario",

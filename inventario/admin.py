@@ -9,7 +9,7 @@ class UsuarioAdmin(UserAdmin):
     add_form = LoginFormulario
     #form = CustomUserChangeForm
     model = Usuario
-    list_display = ['email', 'username',]
+    list_display = ['email', 'username','nivel']
 
 admin.site.register(Usuario, UsuarioAdmin)
 

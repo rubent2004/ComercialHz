@@ -38,6 +38,10 @@ from django.core.files.storage import FileSystemStorage
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.db.models.functions import TruncDate
+from django.template.loader import render_to_string
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from inventario.decorators import nivel_requerido
 #Vistas endogenas.
 
 
@@ -124,7 +128,7 @@ class Salir(LoginRequiredMixin, View):
         logout(request)
         return HttpResponseRedirect('/inventario/login')
 #Fin de vista----------------------------------------------------------------------#
-
+#requiere que el usuario este logeado para acceder a las vistas
 
 #Muestra el perfil del usuario logeado actualmente---------------------------------#
 class Perfil(LoginRequiredMixin, View):
@@ -386,7 +390,7 @@ class Eliminar(LoginRequiredMixin, View):
 class AgregarInventario(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    
     def post(self, request, producto_id):
         producto = get_object_or_404(Producto, id=producto_id)  # Obtener producto por ID
         
@@ -439,7 +443,7 @@ class AgregarInventario(LoginRequiredMixin, View):
 class ListarProductos(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+ 
     def get(self, request):
         from django.db import models
 
@@ -458,7 +462,7 @@ class ListarProductos(LoginRequiredMixin, View):
 class AgregarProducto(View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self, request):
         form = ProductoFormulario(request.POST)
         if form.is_valid():
@@ -616,7 +620,7 @@ class ListarEmpleados(LoginRequiredMixin, View):
 class AgregarEmpleado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
         form = EmpleadoFormulario(request.POST)
@@ -731,7 +735,7 @@ class ExportarEmpleados(LoginRequiredMixin, View):
 class EditarEmpleado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self,request,pk):
         # Crea una instancia del formulario y la llena con los datos:
         empleado = Empleado.objects.get(id=pk)
@@ -771,194 +775,6 @@ class EditarEmpleado(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/empleado/agregarEmpleado.html', contexto)  
 #Fin de vista--------------------------------------------------------------------------------# 
-
-
-# #Emite la primera parte de la factura------------------------------#
-# class EmitirFactura(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def post(self, request):
-#         # Crea una instancia del formulario y la llena con los datos:
-#         duis = Empleado.duisRegistradas()
-#         form = EmitirFacturaFormulario(request.POST,duis=duis)
-#         # Revisa si es valido:
-#         if form.is_valid():
-#             # Procesa y asigna los datos con form.cleaned_data como se requiere
-#             request.session['form_details'] = form.cleaned_data['productos']
-#             request.session['id_client'] = form.cleaned_data['empleado']
-#             return HttpResponseRedirect("detallesDeFactura")
-#         else:
-#             #De lo contrario lanzara el mismo formulario
-#             return render(request, 'inventario/factura/emitirFactura.html', {'form': form})
-
-#     def get(self, request):
-#         duis = Empleado.duisRegistradas()   
-#         form = EmitirFacturaFormulario(duis=duis)
-#         contexto = {'form':form}
-#         contexto = complementarContexto(contexto,request.user) 
-#         return render(request, 'inventario/factura/emitirFactura.html', contexto)
-# #Fin de vista---------------------------------------------------------------------------------#
-
-
-
-# #Muestra y procesa los detalles de cada producto de la factura--------------------------------#
-# class DetallesFactura(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def get(self, request):
-#         dui = request.session.get('id_client')
-#         productos = request.session.get('form_details')
-#         FacturaFormulario = formset_factory(DetallesFacturaFormulario, extra=productos)
-#         formset = FacturaFormulario()
-#         contexto = {'formset':formset}
-#         contexto = complementarContexto(contexto,request.user) 
-
-#         return render(request, 'inventario/factura/detallesFactura.html', contexto)        
-
-#     def post(self, request):
-#         dui = request.session.get('id_client')
-#         productos = request.session.get('form_details')
-
-#         FacturaFormulario = formset_factory(DetallesFacturaFormulario, extra=productos)
-
-#         inicial = {
-#         'descripcion':'',
-#         'cantidad': 0,
-#         'subtotal':0,
-#         }
-
-#         data = {
-#     'form-TOTAL_FORMS': productos,
-#     'form-INITIAL_FORMS':0,
-#     'form-MAX_NUM_FORMS': '',
-#                 }
-
-#         formset = FacturaFormulario(request.POST,data)
-
-
-#         if formset.is_valid():
-
-#             id_producto = []
-#             cantidad = []
-#             subtotal = []
-#             total_general = []
-#             sub_monto = 0
-#             monto_general = 0
-
-#             for form in formset:
-#                 desc = form.cleaned_data['descripcion'].descripcion
-#                 cant = form.cleaned_data['cantidad']
-#                 sub = form.cleaned_data['valor_subtotal']
-#                 id_producto.append(obtenerIdProducto(desc)) #esta funcion, a estas alturas, es innecesaria porque ya tienes la id
-#                 cantidad.append(cant)
-#                 subtotal.append(sub)
-
-#             #Ingresa la factura
-#             #--Saca el sub-monto
-#             for index in subtotal:
-#                 sub_monto += index
-
-#             #--Saca el monto general
-#             for index,element in enumerate(subtotal):
-#                 if productoTieneIva(id_producto[index]):
-#                     nuevoPrecio = sacarIva(element)   
-#                     monto_general += nuevoPrecio
-#                     total_general.append(nuevoPrecio)                     
-#                 else:                   
-#                     monto_general += element
-#                     total_general.append(element)        
-
-#             from datetime import date
-
-#             empleado = Empleado.objects.get(dui=dui)
-#             iva = ivaActual('objeto')
-#             factura = Factura(empleado=empleado,fecha=date.today(),sub_monto=sub_monto,monto_general=monto_general,iva=iva)
-
-#             factura.save()
-#             id_factura = factura
-
-#             for indice,elemento in enumerate(id_producto):
-#                 objetoProducto = obtenerProducto(elemento)
-#                 cantidadDetalle = cantidad[indice]
-#                 subDetalle = subtotal[indice]
-#                 totalDetalle = total_general[indice]
-
-#                 detalleFactura = DetalleFactura(id_factura=id_factura,id_producto=objetoProducto,cantidad=cantidadDetalle
-#                     ,sub_total=subDetalle,total=totalDetalle)
-
-#                 objetoProducto.disponible -= cantidadDetalle
-#                 objetoProducto.save()
-
-#                 detalleFactura.save()  
-
-#             messages.success(request, 'Factura de ID %s insertada exitosamente.' % id_factura.id)
-#             return HttpResponseRedirect("/inventario/emitirFactura")    
-    
-# #Fin de vista-----------------------------------------------------------------------------------#
-
-
-# #Muestra y procesa los detalles de cada producto de la factura--------------------------------#
-# class ListarFacturas(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def get(self, request):
-#         #Lista de productos de la BDD
-#         facturas = Factura.objects.all()
-#         #Crea el paginador
-                               
-#         contexto = {'tabla': facturas}
-#         contexto = complementarContexto(contexto,request.user) 
-
-#         return render(request, 'inventario/factura/listarFacturas.html', contexto)        
-
-# #Fin de vista---------------------------------------------------------------------------------------#     
-
-
-# #Muestra los detalles individuales de una factura------------------------------------------------#
-# class VerFactura(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def get(self, request, p):
-#         factura = Factura.objects.get(id=pk)
-#         detalles = DetalleFactura.objects.filter(id_factura_id=pk)
-#         contexto = {'factura':factura, 'detalles':detalles}
-#         contexto = complementarContexto(contexto,request.user)     
-#         return render(request, 'inventario/factura/verFactura.html', contexto)
-# #Fin de vista--------------------------------------------------------------------------------------#   
-
-
-# #Genera la factura en CSV--------------------------------------------------------------------------#
-# class GenerarFactura(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def get(self, request, p):
-#         import csv
-
-#         factura = Factura.objects.get(id=pk)
-#         detalles = DetalleFactura.objects.filter(id_factura_id=pk) 
-
-#         nombre_factura = "factura_%s.csv" % (factura.id)
-
-#         response = HttpResponse(content_type='text/csv')
-#         response['Content-Disposition'] = 'attachment; filename="%s"' % nombre_factura
-#         writer = csv.writer(response)
-
-#         writer.writerow(['Producto', 'Cantidad', 'Sub-total', 'Total',
-#          'Porcentaje IVA utilizado: %s' % (factura.iva.valor_iva)])
-
-#         for producto in detalles:            
-#             writer.writerow([producto.id_producto.descripcion,producto.cantidad,producto.sub_total,producto.total])
-
-#         writer.writerow(['Total general:','','', factura.monto_general])
-
-#         return response
-
-#         #Fin de vista--------------------------------------------------------------------------------------#
 
 
 # #Genera la factura en PDF--------------------------------------------------------------------------#
@@ -1067,50 +883,6 @@ class ImportarProveedores(LoginRequiredMixin, View):
 
 
 
-# #Formulario simple que crea un archivo y respalda los proveedores-----------------------#
-# class ExportarProveedores(LoginRequiredMixin, View):
-#     login_url = '/inventario/login'
-#     redirect_field_name = None
-
-#     def post(self,request):
-#         form = ExportarEmpleadosFormulario(request.POST)
-#         if form.is_valid():
-#             request.session['empleadosExportados'] = True
-
-
-#             #Se obtienen las entradas de producto en formato JSON
-#             data = serializers.serialize("json", Empleado.objects.all())
-#             fs = FileSystemStorage('inventario/tmp/')
-
-#             #Se utiliza la variable fs para acceder a la carpeta con mas facilidad
-#             with fs.open("empleados.json", "w") as out:
-#                 out.write(data)
-#                 out.close()  
-
-#             with fs.open("empleados.json", "r") as out:                 
-#                 response = HttpResponse(out.read(), content_type="application/force-download")
-#                 response['Content-Disposition'] = 'attachment; filename="empleados.json"'
-#                 out.close() 
-#             #------------------------------------------------------------
-#             return response
-
-#     def get(self,request):
-#         form = ExportarEmpleadosFormulario()
-
-#         if request.session.get('empleadosExportados') == True:
-#             exportado = request.session.get('empleadosExportados')
-#             contexto = { 'form':form,'empleadosExportados': exportado  }
-#             request.session['empleadosExportados'] = False
-
-#         else:
-#             contexto = {'form':form}
-#             contexto = complementarContexto(contexto,request.user) 
-#         return render(request, 'inventario/exportarEmpleados.html',contexto)
-# #Fin de vista-------------------------------------------------------------------------#
-
-
-
-
 #Muestra el mismo formulario del empleado pero con los datos a editar----------------------#
 class EditarProveedor(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1195,7 +967,7 @@ class EditarProveedor(LoginRequiredMixin, View):
 class CrearUsuario(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None    
-
+    @nivel_requerido(nivel_minimo=1)
     def get(self, request):
         if request.user.is_superuser:
             form = NuevoUsuarioFormulario()
@@ -1527,7 +1299,7 @@ class ListarEstado(LoginRequiredMixin, View):
 class AgregarEstado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
         form = EstadoFormulario(request.POST)
@@ -1558,7 +1330,7 @@ class AgregarEstado(LoginRequiredMixin, View):
 class EditarEstado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self,request,pk):
         # Crea una instancia del formulario y la llena con los datos:
         form = EstadoFormulario(request.POST)
@@ -1600,7 +1372,7 @@ class ListarBodega(LoginRequiredMixin, View):
 class AgregarBodega(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
         form = BodegaFormulario(request.POST)
@@ -1635,7 +1407,7 @@ class AgregarBodega(LoginRequiredMixin, View):
 class EditarBodega(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self,request,pk):
         bodega = Bodega.objects.get(id=pk)
         form = BodegaFormulario(request.POST, instance=bodega)
@@ -1826,7 +1598,7 @@ class ListarEstadoProducto(LoginRequiredMixin, View):
 class AgregarEstadoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self, request):
         # Crea una instancia del formulario y la llena con los datos:
         form = EstadoProductoFormulario(request.POST)
@@ -1857,7 +1629,7 @@ class AgregarEstadoProducto(LoginRequiredMixin, View):
 class EditarEstadoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-
+    @nivel_requerido(nivel_minimo=1)
     def post(self,request,pk):
         # Crea una instancia del formulario y la llena con los datos:
         form = EstadoProductoFormulario(request.POST)
@@ -2089,9 +1861,6 @@ def agregarEntrega(request):
         'productos': Producto.objects.all()
     })
 # views.py
-from django.template.loader import render_to_string
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
 class ListarEmpleadosPendientes(LoginRequiredMixin, View):
     def get(self, request):
