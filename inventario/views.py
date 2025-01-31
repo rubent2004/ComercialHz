@@ -2002,29 +2002,31 @@ def recepcion_producto(request):
     except Exception as e:
         messages.error(request, f"Error inesperado: {e}")
 
+    return redirect('inventario:listarEmpleadosPendientes') 
     # Volver a listar los empleados pendientes
-    movimientos_pendientes = MovimientoProducto.objects.filter(
-        estado_producto__nombre='Pendiente'
-    ).select_related('producto', 'empleado')
+    # movimientos_pendientes = MovimientoProducto.objects.filter(
+    #     estado_producto__nombre='Pendiente'
+    # ).select_related('producto', 'empleado')
 
-    empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
-    for movimiento in movimientos_pendientes:
-        empleado_id = movimiento.empleado.id
-        empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
-        empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
-        producto_id = movimiento.producto.id
-        if producto_id not in empleados[empleado_id]['productos']:
-            empleados[empleado_id]['productos'][producto_id] = {
-                'descripcion': movimiento.producto.descripcion,
-                'cantidad': movimiento.cantidad,
-                'movimiento_id': movimiento.id
-            }
-    bodegas = Bodega.objects.all()
-    contexto = {'empleados': dict(empleados),
-            'bodegas': bodegas,  # Agregar bodegas al contexto
-                }
-    contexto = complementarContexto(contexto, request.user)
-    return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+    # empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
+    # for movimiento in movimientos_pendientes:
+    #     empleado_id = movimiento.empleado.id
+    #     empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
+    #     empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
+    #     producto_id = movimiento.producto.id
+    #     if producto_id not in empleados[empleado_id]['productos']:
+    #         empleados[empleado_id]['productos'][producto_id] = {
+    #             'descripcion': movimiento.producto.descripcion,
+    #             'cantidad': movimiento.cantidad,
+    #             'movimiento_id': movimiento.id
+    #         }
+    # bodegas = Bodega.objects.all()
+    # contexto = {'empleados': dict(empleados),
+    #         'bodegas': bodegas,  # Agregar bodegas al contexto
+    #             }
+    # contexto = complementarContexto(contexto, request.user)
+
+    # return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
 #Devoluciones
 #@method_decorator(nivel_requerido(1), name='dispatch')
