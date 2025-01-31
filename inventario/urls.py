@@ -107,6 +107,7 @@ path('reporte-inventario/', ReporteInventarioView.as_view(), name='reporte_inven
 path('reporte-inventario/pdf/', ReporteInventarioPDF.as_view(), name='reporte_inventario_pdf'),
 path('reporteproductos/', ReporteProductoView.as_view(), name='reporte_productos'),
 path('reporte_movimientos/', views.ReporteMovimientoView.as_view(), name='reporte_movimientos'),
+path('reporte_ventas/', views.ProductosMasVendidosPDF.as_view(), name='reporte_ventas'),
 
 
 

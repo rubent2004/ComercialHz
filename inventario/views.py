@@ -1,4 +1,5 @@
 #renderiza las vistas al usuario
+import calendar
 from collections import defaultdict
 import datetime
 import json
@@ -2518,3 +2519,74 @@ class BuscarProductoPorId(View):
                 return JsonResponse({'error': 'Producto no encontrado por ID'}, status=404)
 
         return JsonResponse({'error': 'ID no proporcionado'}, status=400)
+from django.utils.numberformat import format as format_number
+import calendar
+from datetime import date
+
+class ProductosMasVendidosPDF(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def get(self, request):
+        # Vista para mostrar el formulario de selección de mes
+        contexto = complementarContexto({}, request.user)
+        return render(request, 'inventario/reportes/seleccionMes.html', contexto)
+
+    def post(self, request):
+        # Procesar la fecha seleccionada
+        mes_seleccionado = request.POST.get('mes')
+        año, mes = map(int, mes_seleccionado.split('-'))
+        
+        # Calcular rangos de fecha
+        # Fecha de inicio
+        fecha_inicio_naive = datetime(año, mes, 1)
+        fecha_inicio = timezone.make_aware(fecha_inicio_naive)
+
+        # Último día del mes
+        ultimo_dia = calendar.monthrange(año, mes)[1]
+
+        # Fecha de fin
+        fecha_fin_naive = datetime(año, mes, ultimo_dia, 23, 59, 59)
+        fecha_fin = timezone.make_aware(fecha_fin_naive)
+        # Obtener datos
+        productos = MovimientoProducto.objects.filter(
+            tipo_movimiento='venta',
+            estado_producto__nombre='Vendido',
+            fecha_movimiento__range=[fecha_inicio, fecha_fin]
+        ).values('producto__descripcion', 'producto__codigo').annotate(
+            total_vendido=Sum('cantidad')
+        ).order_by('-total_vendido')
+
+        total_general = sum(item['total_vendido'] for item in productos)
+
+        # Calcular la participación de cada producto y el ancho de la barra
+        for producto in productos:
+            participacion = (producto['total_vendido'] / total_general) * 100
+            producto['participacion'] = participacion
+            # Calcular el ancho de la barra (entero entre 0 y 100)
+            producto['participacion_width'] = int(participacion)
+            # Formatear la participación para mostrar solo dos decimales
+            producto['participacion_display'] = format_number(participacion, decimal_sep='.', decimal_pos=2)
+
+        # Calcular la participación del top 3 productos
+        top_3_productos = productos[:3]
+        participacion_top_3 = sum(producto['participacion'] for producto in top_3_productos)
+
+        data = {
+            'nombre_empresa': 'Comercial Hernandez',
+            'direccion_empresa': 'Sonsonate, El Salvador',
+            'productos': productos,
+            'total_general': total_general,
+            'mes': fecha_inicio.strftime("%B %Y"),
+            'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+            'fecha_reporte': date.today().strftime("%d/%m/%Y"),
+            'usuario_generacion': request.user.get_full_name(),
+            'participacion_top_3': participacion_top_3,
+        }
+
+        nombre_archivo = f"productos_mas_vendidos_{fecha_inicio.strftime('%Y_%m')}.pdf"
+
+        pdf = render_to_pdf('inventario/Reportes/reporteProductosVendidos.html', data)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+        return response
