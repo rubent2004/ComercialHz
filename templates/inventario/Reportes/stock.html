@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .encabezado { text-align: center; margin-bottom: 2cm; }
+        .tabla { width: 100%; border-collapse: collapse; }
+        .tabla th { background: #2c3e50; color: white; padding: 12px; }
+        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .resaltado { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <h1>Reporte de Stock Actual</h1>
+        <p>Bodega: {{ bodega }}</p>
+        <p>Estado: {{ estado }}</p>
+    </div>
+
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr class="{% cycle '' 'resaltado' %}">
+                <td>{{ item.idproducto.descripcion }}</td>
+                <td>{{ item.stock }}</td>
+                <td>${{ item.valor_total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="firma">
+        <p>Generado por: {{ usuario }}</p>
+        <p>Fecha: {{ fecha_generacion }}</p>
+    </div>
+</body>
+</html>

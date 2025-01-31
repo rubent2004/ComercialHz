@@ -1,0 +1,71 @@
+{% extends "inventario/comun/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Menú de reportes en la parte superior -->
+        <div class="col-12">
+            <div class="d-flex flex-column align-items-start mt-5">
+                <h5>Seleccione un reporte:</h5>
+                {% for key, reporte in reportes_config.items %}
+                    <a href="{% url 'inventario:generar_reporte' key %}" 
+                       class="btn btn-custom mb-3 {% if key == reporte_type %}active{% endif %}">
+                        <i class="fas {{ reporte.icono }} me-2"></i>{{ reporte.nombre }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Formulario Dinámico -->
+        <div class="col-md-9">
+            <div class="card shadow mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas {{ config.icono }}"></i> {{ config.nombre }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Generar campos dinámicamente -->
+                        {% if 'mes' in config.parametros %}
+                        <div class="mb-3">
+                            <label class="form-label">Mes:</label>
+                            <input type="month" class="form-control" name="mes" required>
+                        </div>
+                        {% endif %}
+
+                        {% if 'bodega' in config.parametros %}
+                        <div class="mb-3">
+                            <label class="form-label">Bodega:</label>
+                            <select class="form-select" name="bodega">
+                                {% for bodega in bodegas %}
+                                <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .btn-custom {
+        background-color: #2c3e50;
+        color: white;
+        border-color: #2c3e50;
+    }
+
+    .btn-custom.active {
+        background-color: #34495e;
+        color: white;
+        border-color: #34495e;
+    }
+{% endblock %}

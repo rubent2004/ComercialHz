@@ -116,5 +116,9 @@ path('reporte_ventas/', views.ProductosMasVendidosPDF.as_view(), name='reporte_v
 #devoluciones
 path('listarDev', views.ListarDev.as_view(), name='listarDev'),
 path('agregarDev', views.AgregarDev.as_view(), name='agregarDev'),
+
+#pruebas
+path('reportes/<str:reporte_type>/', views.GeneradorReportesPDF.as_view(), name='generar_reporte'),
+path('reportes/', views.GeneradorReportesPDF.as_view(), name='reportes'),
 ]
 

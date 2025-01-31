@@ -655,6 +655,13 @@ class Entrega(models.Model):
                 empleado=self.id_empleado_recibio,
                 estado_producto=estado_pendiente
             )
+            MovimientoPendiente.objects.create(
+                producto=detalle.producto,
+                cantidad=detalle.cantidad,
+                bodega=detalle.bodega,
+                empleado_recibio=self.id_empleado_recibio,
+                empleado_entrego=self.id_empleado_autorizo
+            )
 
 class DetalleEntrega(models.Model):
     entrega = models.ForeignKey(Entrega, on_delete=models.CASCADE, related_name='detalles')
@@ -664,3 +671,16 @@ class DetalleEntrega(models.Model):
 
     class Meta:
         unique_together = ('entrega', 'producto', 'bodega')
+
+class MovimientoPendiente(models.Model):
+    producto = models.ForeignKey('Producto', on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+    bodega = models.ForeignKey('Bodega', on_delete=models.CASCADE)
+    fecha = models.DateTimeField(auto_now_add=True)
+    empleado_recibio = models.ForeignKey('Empleado', on_delete=models.CASCADE, related_name='empleado_recibio')
+    empleado_entrego = models.ForeignKey('Usuario', on_delete=models.CASCADE, related_name='empleado_entrego')
+    estado = models.CharField(max_length=100, default='Pendiente')
+
+    def __str__(self):
+        return f'{self.producto.descripcion} - {self.cantidad} en {self.bodega.nombre}'
+

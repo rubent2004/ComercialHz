@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2cm; }
+        .encabezado { text-align: center; margin-bottom: 2cm; }
+        .tabla { width: 100%; border-collapse: collapse; }
+        .tabla th { background: #2ecc71; color: white; padding: 12px; }
+        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .resaltado { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <h1>Reporte de Entradas</h1>
+        <p>Bodega: {{ bodega }}</p>
+        <p>Periodo: {{ rango_fechas }}</p>
+    </div>
+
+    {% if mensaje %}
+        <div class="mensaje-error">{{ mensaje }}</div>
+    {% else %}
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Tipo Movimiento</th>
+                    <th>Fecha</th>
+                    <th>Responsable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movimiento in data %}
+                <tr class="{% cycle '' 'resaltado' %}">
+                    <td>{{ movimiento.producto.descripcion }}</td>
+                    <td>{{ movimiento.cantidad }}</td>
+                    <td>{{ movimiento.get_tipo_movimiento_display }}</td>
+                    <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                    <td>{{ movimiento.empleado.nombre }} {{ movimiento.empleado.apellido }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <div class="firma">
+        <p>Generado por: {{ usuario }}</p>
+        <p>Fecha: {{ fecha_generacion }}</p>
+    </div>
+</body>
+</html>
