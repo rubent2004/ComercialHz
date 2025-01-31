@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block content %}
+
 <style>
     /* Estilos generales */
     .movimiento-card {
@@ -11,7 +12,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         transition: all 0.3s ease;
     }
-    
+
     .movimiento-header {
         padding: 15px;
         cursor: pointer;
@@ -21,13 +22,13 @@
         background: #f8f9fa;
         border-radius: 10px 10px 0 0;
     }
-    
+
     .movimiento-badge {
         font-size: 0.85rem;
         padding: 5px 10px;
         border-radius: 20px;
     }
-    
+
     .detalle-item {
         padding: 12px;
         border-bottom: 1px solid #eee;
@@ -35,99 +36,171 @@
         justify-content: space-between;
         align-items: center;
     }
-    
+
     /* Estilos para la tabla */
     .table {
         font-size: 0.95rem;
         border-collapse: separate;
         border-spacing: 0 3px;
     }
-    
+
     .group-header td {
         background-color: #f8f9fa !important;
         border-bottom: 2px solid #dee2e6;
         padding: 1rem !important;
     }
-    
+
     .movement-detail td {
         background-color: white;
         border-top: none;
         vertical-align: middle;
         padding: 0.75rem !important;
     }
-    
+
     .movement-detail:hover td {
         background-color: #fbfcfd;
     }
-    
+
     .movement-detail:not(:last-child) td {
         border-bottom: 1px solid #f0f0f0;
     }
-    
+
     .table-hover tbody tr:hover td {
         background-color: #f8f9fa;
     }
-    
+
     /* Responsive */
     @media (max-width: 768px) {
         .movimiento-header {
             flex-direction: column;
             align-items: flex-start;
         }
-        
+
         .resumen-container {
             margin-top: 10px;
             width: 100%;
             justify-content: space-between;
         }
-        
+
         .filter-group {
             margin-bottom: 10px;
             width: 100%;
         }
-        
+
         .table-responsive {
             border: none;
         }
-        
+
         .group-header td {
             padding: 0.75rem !important;
         }
     }
+
     .btn-filter {
         min-width: 100px;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
     }
-    
+
     .btn-filter.active {
         transform: scale(1.05);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    
+
     .btn-entrada {
         background: #28a745;
         border-color: #28a745;
         color: white;
     }
-    
+
     .btn-entrada:hover {
         background: #218838;
         border-color: #1e7e34;
     }
-    
+
     .btn-salida {
         background: #dc3545;
-        border-color: #dc3545;
+        border-color: #fefefe;
         color: white;
     }
-    
+
     .btn-salida:hover {
         background: #c82333;
         border-color: #bd2130;
     }
+
+    /* Estilos personalizados para los tipos de movimiento */
+    .badge-venta {
+        background-color: #28a745; /* Fondo verde */
+        color: white; /* Letra blanca */
+    }
+
+    .badge-recepcion {
+        background-color: #6aff00; /* Fondo verde claro */
+        color: white; /* Letra blanca */
+    }
+
+    .badge-salida {
+        background-color: #dc3545; /* Fondo rojo */
+        color: white; /* Letra blanca */
+    }
+
+    .badge-pendiente {
+        background-color: #ffc107; /* Fondo amarillo */
+        color: white; /* Letra blanca */
+    }
+
+    /* Efectos de hover en las tarjetas */
+    .movimiento-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .movimiento-card .movimiento-header:hover {
+        background: #e9ecef;
+    }
+
+    .movimiento-header .badge {
+        transition: background-color 0.3s ease;
+    }
+
+    /* Badge Animations */
+    .movimiento-badge {
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+    }
+
+     /* Animación para desplegar detalles */
+     .movimiento-card .movimiento-body {
+        max-height: 0; /* Inicialmente colapsado */
+        overflow: hidden;
+        transition: max-height 0.5s ease-out; /* Animación suave */
+    }
+
+    /* Clase para mostrar el contenido con animación */
+    .movimiento-card.open .movimiento-body {
+        max-height: 500px; /* Limite a la altura máxima del contenido */
+    }
+
+    /* Efectos de hover en las tarjetas */
+    .movimiento-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .movimiento-card .movimiento-header:hover {
+        background: #e9ecef;
+    }
+
+    /* Badge Animations */
+    .movimiento-badge {
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+    }
 </style>
+
+
 
 <article class="content responsive-tables-page">
     <!-- Encabezado Principal -->
@@ -138,6 +211,16 @@
     
     <section class="section">
         <!-- Sección de Filtros -->
+        <span class="badge 
+           {% if movimiento.tipo_movimiento == 'venta' %}badge-venta
+           {% elif movimiento.tipo_movimiento == 'recepcion' %}badge-recepcion
+           {% elif movimiento.tipo_movimiento == 'pendiente' %}badge-pendiente
+           {% elif movimiento.tipo_movimiento == 'salida' %}badge-salida
+           {% endif %}">
+           {{ movimiento.get_tipo_movimiento_display }}
+        </span>
+    
+    
         <div class="card filter-card mb-4">
             <div class="card-header">
                 <h3 class="mb-0"><i class="fas fa-filter"></i> Filtros Avanzados</h3>
@@ -149,17 +232,17 @@
                         <label class="form-label"><i class="fas fa-warehouse"></i> Bodega</label>
                         {{ form.bodega }}
                     </div>
-                    
+    
                     <div class="col-12 col-md-6 col-lg-3 filter-group">
                         <label class="form-label"><i class="fas fa-cube"></i> Producto</label>
                         {{ form.producto }}
                     </div>
-                    
+    
                     <div class="col-12 col-md-6 col-lg-3 filter-group">
                         <label class="form-label"><i class="fas fa-user-tie"></i> Empleado</label>
                         {{ form.empleado }}
                     </div>
-                    
+    
                     <div class="col-12 col-md-6 col-lg-3 filter-group">
                         <label class="form-label"><i class="fas fa-calendar-day"></i> Fechas</label>
                         <div class="input-daterange input-group">
@@ -170,8 +253,9 @@
                                    value="{{ request.GET.fecha_fin }}" placeholder="Fin">
                         </div>
                     </div>
-                     <!-- Filtros por tipo de movimiento -->
-                     <div class="col-12">
+                    
+                    <!-- Filtros por tipo de movimiento -->
+                    <div class="col-12">
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             <a href="?tipo_movimiento=entrada{% if request.GET.fecha_inicio %}&fecha_inicio={{ request.GET.fecha_inicio }}{% endif %}{% if request.GET.fecha_fin %}&fecha_fin={{ request.GET.fecha_fin }}{% endif %}" 
                                class="btn btn-filter btn-entrada {% if request.GET.tipo_movimiento == 'entrada' %}active{% endif %}">
@@ -184,6 +268,7 @@
                             </a>
                         </div>
                     </div>
+                    
                     <!-- Botones de Acción -->
                     <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
                         <button type="submit" class="btn btn-primary btn-lg">
@@ -193,14 +278,18 @@
                            class="btn btn-outline-secondary btn-lg">
                             <i class="fas fa-eraser"></i> Limpiar
                         </a>
+                         <!-- 
+
                         <button type="button" class="btn btn-dark btn-lg" id="toggleViewBtn">
                             <i class="fas fa-table"></i> Vista Tabla
                         </button>
+                    -->
                     </div>
+
                 </form>
             </div>
         </div>
-
+    
         <!-- Vista de Tarjetas -->
         <div id="cardView">
             <div class="container-fluid">
@@ -234,7 +323,7 @@
                             </span>
                         </div>
                     </div>
-        
+    
                     <div class="detalles-container" style="display: none;">
                         {% for movimiento in grupo.detalles %}
                         <div class="detalle-item">
@@ -242,8 +331,10 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <span class="badge 
-                                            {% if movimiento.tipo_movimiento == 'entrada' %}bg-success
-                                            {% else %}bg-danger{% endif %}">
+                                            {% if movimiento.tipo_movimiento == 'venta' %}badge-venta
+                                            {% elif movimiento.tipo_movimiento == 'pendiente' %}badge-pendiente
+                                            {% elif movimiento.tipo_movimiento == 'salida' %}badge-salida
+                                            {% endif %}">
                                             {{ movimiento.get_tipo_movimiento_display }}
                                         </span>
                                         <strong class="ml-2">{{ movimiento.producto.descripcion }}</strong>
@@ -270,8 +361,8 @@
                 {% endfor %}
             </div>
         </div>
-
-        <!-- Vista de Tabla (Oculta inicialmente) -->
+    
+        <!-- Vista de Tabla (Oculta inicialmente) 
         <div id="tableView" style="display: none;">
             <div class="card border-0">
                 <div class="card-body p-0">
@@ -343,60 +434,67 @@
                 </div>
             </div>
         </div>
+        -->
     </section>
+    
 </article>
 
 <script>
-// Toggle entre vistas
-document.getElementById('toggleViewBtn').addEventListener('click', function() {
-    const cardView = document.getElementById('cardView');
-    const tableView = document.getElementById('tableView');
-    const btnIcon = this.querySelector('i');
-    
-    if (cardView.style.display === 'none') {
-        cardView.style.display = 'block';
-        tableView.style.display = 'none';
-        btnIcon.className = 'fas fa-table';
-        this.innerHTML = '<i class="fas fa-table"></i> Vista Tabla';
-    } else {
-        cardView.style.display = 'none';
-        tableView.style.display = 'block';
-        btnIcon.className = 'fas fa-th-large';
-        this.innerHTML = '<i class="fas fa-th-large"></i> Vista Tarjetas';
-    }
-});
+    // Toggle entre vistas
+    document.getElementById('toggleViewBtn').addEventListener('click', function() {
+        var cardView = document.getElementById('cardView');
+        var tableView = document.getElementById('tableView');
+        
+        // Cambiar la visibilidad entre las vistas
+        cardView.style.display = (cardView.style.display === 'none') ? 'block' : 'none';
+        tableView.style.display = (tableView.style.display === 'none') ? 'block' : 'none';
+    });
+     // Función para abrir/cerrar las tarjetas con animación
+     document.querySelectorAll('.movimiento-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const card = this.closest('.movimiento-card');  // Encuentra la tarjeta correspondiente
+            const body = card.querySelector('.movimiento-body'); // Encuentra el cuerpo de la tarjeta
 
-// Función para mostrar/ocultar detalles
-function toggleDetalle(element) {
-    const detalles = element.nextElementSibling;
-    const isVisible = detalles.style.display === 'block';
+            // Alterna la clase 'open' para animar la apertura/cierre
+            card.classList.toggle('open');
+        });
+    });
+    // Función para mostrar/ocultar detalles con animación
+    function toggleDetalle(element) {
+        const detalles = element.nextElementSibling;
+        const isVisible = detalles.style.display === 'block';
+        
+        // Cerrar todos los detalles
+        document.querySelectorAll('.detalles-container').forEach(d => d.style.display = 'none');
+        
+        // Alternar el estado de visibilidad con animación
+        if (!isVisible) {
+            detalles.style.display = 'block';
+            detalles.style.animation = 'slideDown 0.3s ease';
+            
+            // Desplazar automáticamente a la vista en móviles si el detalle se abre
+            if(window.innerWidth < 768) {
+                detalles.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        } else {
+            detalles.style.animation = 'slideUp 0.3s ease';
+            setTimeout(() => detalles.style.display = 'none', 300);  // Ajustado el tiempo para que coincida con la animación
+        }
+    }
     
-    // Cerrar todos los detalles
-    document.querySelectorAll('.detalles-container').forEach(d => d.style.display = 'none');
+    // Animaciones CSS para el deslizamiento de los detalles
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+    `;
+    document.head.appendChild(style);
+    </script>
+    {% endblock %}
     
-    // Alternar estado actual con animación
-    if (!isVisible) {
-        detalles.style.display = 'block';
-        detalles.style.animation = 'slideDown 0.3s ease';
-        if(window.innerWidth < 768) detalles.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-        detalles.style.animation = 'slideUp 0.3s ease';
-        setTimeout(() => detalles.style.display = 'none', 250);
-    }
-}
-
-// Animaciones CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideUp {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-10px); }
-    }
-`;
-document.head.appendChild(style);
-</script>
-{% endblock %}

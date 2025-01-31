@@ -39,16 +39,28 @@
                                 <select name="empleado" id="empleado" class="form-control" required>
                                     <option value="">Seleccione un empleado</option>
                                     {% for empleado in empleados %}
-                                        <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}  </option>
+                                        <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
-
-                            <!-- Selectores de Productos -->
+    
+                            <!-- Búsqueda de Producto -->
                             <div class="card my-3">
                                 <div class="card-body">
                                     <h4 class="card-title">Agregar Productos</h4>
                                     <div class="row">
+                                        <!-- Campo para buscar por código -->
+                                        <div class="col-md-4">
+                                            <input type="text" id="codigo-input" class="form-control" placeholder="Código del Producto">
+                                        </div>
+                                        <!-- Botón para buscar producto por código -->
+                                        <div class="col-md-2">
+                                            <button type="button" id="buscar-codigo" class="btn btn-info btn-block">
+                                                <i class="fa fa-search"></i> Buscar por Código
+                                            </button>
+                                        </div>
+    
+                                        <!-- Campo para seleccionar producto -->
                                         <div class="col-md-4">
                                             <select class="form-control" id="producto-select">
                                                 <option value="">Producto</option>
@@ -57,7 +69,8 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        
+    
+                                        <!-- Campo para seleccionar bodega -->
                                         <div class="col-md-4">
                                             <select class="form-control" id="bodega-select">
                                                 <option value="">Bodega</option>
@@ -66,24 +79,23 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        
+    
+                                        <!-- Campo para cantidad -->
                                         <div class="col-md-2">
-                                            <input type="number" id="cantidad-input" 
-                                                   class="form-control" min="1" value="1" 
-                                                   placeholder="Cantidad">
+                                            <input type="number" id="cantidad-input" class="form-control" min="1" value="1" placeholder="Cantidad">
                                         </div>
-                                        
+    
+                                        <!-- Botón para agregar el producto -->
                                         <div class="col-md-2">
-                                            <button type="button" id="agregar-producto" 
-                                                    class="btn btn-success btn-block">
+                                            <button type="button" id="agregar-producto" class="btn btn-success btn-block">
                                                 <i class="fa fa-cart-plus"></i> Agregar
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Lista de Productos -->
+    
+                            <!-- Lista de Productos Seleccionados -->
                             <div class="card">
                                 <div class="card-body">
                                     <h4 class="card-title">Productos Seleccionados</h4>
@@ -102,6 +114,7 @@
             </div>
         </div>
     </section>
+    
 </article>
 
 <script>
@@ -112,6 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const cantidadInput = document.getElementById('cantidad-input');
     const listaProductos = document.getElementById('lista-productos');
     const stockAlert = document.getElementById('stock-alert');
+    const codigoInput = document.getElementById('codigo-input');
+    const buscarCodigoBtn = document.getElementById('buscar-codigo');
 
     async function verificarStock(productoId, bodegaId, cantidad) {
         try {
@@ -125,12 +140,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Función para buscar producto por código
+         async function buscarProductoPorCodigo(codigo) {
+             try {
+                   const response = await fetch(`/inventario/buscar-producto/?codigo=${codigo}`);
+                    const data = await response.json();
+                    if (data.error) {
+                       alert(data.error);
+                  } else {
+                // Si el producto existe, seleccionarlo en el dropdown
+                     productoSelect.value = data.id;
+                      }
+                }                 catch (error) {
+                 console.error('Error buscando el producto:', error);
+             }
+        }
+
+
+    // Evento para buscar producto por código
+    buscarCodigoBtn.addEventListener('click', function() {
+        const codigo = codigoInput.value.trim();
+        if (codigo) {
+            buscarProductoPorCodigo(codigo);
+        } else {
+            alert('Por favor ingresa un código de producto');
+        }
+    });
+
+    // Limpiar los campos después de agregar un producto
     function limpiarCampos() {
         productoSelect.value = '';
         bodegaSelect.value = '';
         cantidadInput.value = 1;
+        codigoInput.value = '';  // Limpiar campo de código
     }
 
+    // Actualizar la lista de productos agregados
     function actualizarLista() {
         listaProductos.innerHTML = productos.map((item, index) => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -157,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
 
+    // Agregar producto a la lista
     document.getElementById('agregar-producto').addEventListener('click', async function() {
         const productoId = productoSelect.value;
         const productoNombre = productoSelect.options[productoSelect.selectedIndex].text;
@@ -206,11 +252,14 @@ document.addEventListener('DOMContentLoaded', function() {
         limpiarCampos();
     });
 
+    // Eliminar producto de la lista
     window.eliminarProducto = function(index) {
         productos.splice(index, 1);
         actualizarLista();
     }
 });
+
+
 </script>
 
 <style>

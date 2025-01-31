@@ -90,6 +90,7 @@ class EstadoProducto(models.Model):
 
     def __str__(self):
         return self.nombre
+    
 
     # Señal para agregar estados predeterminados
     @receiver(post_migrate)

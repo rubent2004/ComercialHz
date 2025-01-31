@@ -28,6 +28,9 @@ path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto')
 path('importarProductos', views.ImportarProductos.as_view(), name='importarProductos'),
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
 path('editarProducto/<int:pk>', views.EditarProducto.as_view(), name='editarProducto'),
+path('buscar-producto/', views.buscar_producto, name='buscar_producto'),
+path('buscar-producto-por-id/', views.BuscarProductoPorId.as_view(), name='buscar_producto_por_id'),
+ 
 
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),

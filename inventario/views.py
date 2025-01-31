@@ -1825,6 +1825,8 @@ def verificar_stock(request):
         })
     except Inventario.DoesNotExist:
         return JsonResponse({'disponible': False, 'error': 'Producto no encontrado'})
+    
+    
 @transaction.atomic
 def agregarEntrega(request):
     if request.method == "POST":
@@ -1866,6 +1868,7 @@ def agregarEntrega(request):
         'productos': Producto.objects.all()
     })
 # views.py
+
 
 class ListarEmpleadosPendientes(LoginRequiredMixin, View):
     def get(self, request):
@@ -2470,3 +2473,46 @@ class ReporteMovimientoView(View):
 
         wb.save(response)
         return response
+
+
+from django.shortcuts import render
+from .models import Producto
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views import View
+
+class BuscarProductoPorCodigo(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = "Inventario/listarProductos.html"
+def buscar_producto(request):
+    codigo = request.GET.get('codigo')
+    if codigo:
+        try:
+            producto = Producto.objects.get(codigo=codigo)
+            return JsonResponse({'id': producto.id, 'descripcion': producto.descripcion})
+        except Producto.DoesNotExist:
+            return JsonResponse({'error': 'Producto no encontrado'})
+    return JsonResponse({'error': 'Código no proporcionado'})
+
+
+
+from django.http import JsonResponse
+from .models import Producto
+from django.views import View
+
+class BuscarProductoPorId(View):
+
+    def get(self, request):
+        producto_id = request.GET.get('id')
+
+        if producto_id:
+            try:
+                producto = Producto.objects.get(id=producto_id)
+                return JsonResponse({
+                    'id': producto.id,
+                    'descripcion': producto.descripcion,
+                    'codigo': producto.codigo
+                })
+            except Producto.DoesNotExist:
+                return JsonResponse({'error': 'Producto no encontrado por ID'}, status=404)
+
+        return JsonResponse({'error': 'ID no proporcionado'}, status=400)
