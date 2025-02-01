@@ -2651,7 +2651,6 @@ class GeneradorReportesPDF(LoginRequiredMixin, View):
     def get(self, request, reporte_type='ventas'):
         config = self.reportes_config.get(reporte_type)
         contexto = self._preparar_contexto(request, config)
-        contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/Reportes/base_generador.html', contexto)
 
     def post(self, request, reporte_type='ventas'):
