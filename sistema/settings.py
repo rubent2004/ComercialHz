@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 SECRET_KEY = 'cwc9m+z#ppu8)+@v#$7ci$=w*gae$+%n&gfq6kcsn#59ze(3a3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['192.168.184.189', 'localhost', '*']
+ALLOWED_HOSTS = ['rbcreacion.com', 'www.rbcreacion.com', 'localhost', ]
 
 
 
@@ -77,12 +77,12 @@ WSGI_APPLICATION = 'sistema.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
-     'default':{
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'BDD.sqlite3'),
-    }
-}
+# DATABASES = {
+#      'default':{
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'BDD.sqlite3'),
+#     }
+# }
 # = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
@@ -94,7 +94,16 @@ DATABASES = {
 #     }
 # }
 
-
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'comercialHz',
+        'USER': 'comercialHz',
+        'PASSWORD': 'banakai123',
+        'HOST': 'localhost',  # O el IP de tu servidor de base de datos
+        'PORT': '5432',  # Por defecto para PostgreSQL
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
 

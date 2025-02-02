@@ -2591,7 +2591,7 @@ class ProductosMasVendidosPDF(LoginRequiredMixin, View):
         response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
         return response
     
-
+    
 class GeneradorReportesPDF(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
