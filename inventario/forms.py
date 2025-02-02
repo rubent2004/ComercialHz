@@ -1,5 +1,5 @@
 from django import forms
-from .models import Bodega, Entrega, Estado, EstadoProducto, Inventario, Marca, MovimientoProducto, Producto, Empleado, Proveedor, Recepcion, RegistroInventario, Reparacion, Usuario
+from .models import Bodega, Devolucion, Entrega, Estado, EstadoProducto, Inventario, Marca, MovimientoProducto, Producto, Empleado, Proveedor, RegistroInventario, Reparacion, Usuario
 
 from django.forms import ModelChoiceField
 
@@ -200,7 +200,7 @@ class ProveedorFormulario(forms.ModelForm):
         'correo': 'Correo electronico del proveedor'
         }
         widgets = {
-        'dui': forms.TextInput(attrs={'placeholder': 'Inserte la dui de identidad del proveedor',
+        'dui': forms.TextInput(attrs={'placeholder': 'Inserte el dui de identidad del proveedor',
         'id':'dui','class':'form-control'} ),
         'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del proveedor',
         'id':'nombre','class':'form-control'}),
@@ -214,7 +214,7 @@ class ProveedorFormulario(forms.ModelForm):
 
 
 class UsuarioFormulario(forms.Form):
-    niveles =  [ ('1','Administrador'),('0','Usuario'),('2','Empleado') ]
+    niveles =  [ ('1','Administrador'),('0','Usuario')]
 
     username = forms.CharField(
         label = "Nombre de usuario",
@@ -446,73 +446,145 @@ class RegistroInventarioFormulario(forms.ModelForm):
 class ReparacionFormulario(forms.ModelForm):
     class Meta:
         model = Reparacion
-        fields = ['idproducto', 'descripcion_problema', 'fecha_retorno', 'estado']
+        fields = ['idproducto','bodega_origen','idempleado', 'motivo', 'fecha_retorno']
         labels = {
             'idproducto': 'Producto',
-            'descripcion_problema': 'Descripción del problema',
-            'fecha_retorno': 'Fecha de retorno',
-            'estado': 'Estado',
+            'bodega_origen': 'Bodega de origen',
+            'idempleado': 'Empleado',
+            'motivo': 'Motivo',
+            'fecha_retorno': 'Fecha de retorno'
         }
         widgets = {
             'idproducto': forms.Select(attrs={'class': 'form-control'}),
-            'descripcion_problema': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Descripción del problema'}),
-            'fecha_retorno': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'estado': forms.Select(attrs={'class': 'form-control'}),
+            'bodega_origen': forms.Select(attrs={'class': 'form-control'}),
+            'idempleado': forms.Select(attrs={'class': 'form-control'}),
+            'motivo': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Descripción del problema'}),
+            'fecha_retorno': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
         }
+class FiltrosRep(forms.Form):
+    bodega_origen = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
+    idproducto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    fecha_retorno = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    estado = forms.ModelChoiceField(
+        queryset=EstadoProducto.objects.filter(nombre__in=['En reparación', 'Reparado']),
+        required=False,
+        label='Estado',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
 # Formulario Entrega
-class EntregaFormulario(forms.ModelForm):
+# class EntregaFormulario(forms.ModelForm):
+#     class Meta:
+#         model = Entrega
+#         fields = ['idproducto', 'idbodega', 'id_empleado_recibio', 'cantidad']
+#         labels = {
+#             'idproducto': 'Producto',
+#             'idbodega': 'Bodega',
+#             'id_empleado_recibio': 'Empleado que Recibe',
+#             'cantidad': 'Cantidad',
+#         }
+#         widgets = {
+#             'idproducto': forms.Select(attrs={'class': 'form-control'}),
+#             'idbodega': forms.Select(attrs={'class': 'form-control'}),
+#             'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
+#             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+#         }rio Movimiento Producto
+
+class EntregaForm(forms.ModelForm ):
     class Meta:
         model = Entrega
-        fields = ['idproducto', 'idbodega', 'id_empleado_autorizo', 'id_empleado_recibio', 'cantidad']
+        fields = ['id_empleado_recibio']
+        labels = {
+            'id_empleado_recibio': 'Empleado que Recibe'
+        }
+        widgets = {
+            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'})
+        }
+class MovimientoProductoFormulario(forms.Form):
+    bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
+    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False, label='Empleado', widget=forms.Select(attrs={'class': 'form-control'}))
+    estado_producto = forms.ModelChoiceField(queryset=EstadoProducto.objects.all(), required=False, label='Estado del Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    tipo_movimiento = forms.ChoiceField(
+    choices=[('', 'Seleccione...')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES,  # Opción en blanco
+    required=False,
+    label='Tipo de Movimiento',
+    widget=forms.Select(attrs={'class': 'form-control'})
+    )
+class RecepcionFormulario(forms.Form):
+    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), widget=forms.HiddenInput())
+    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), widget=forms.HiddenInput())
+    bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), widget=forms.HiddenInput())
+    cantidad_vendida = forms.IntegerField(min_value=0)
+    cantidad_devuelta = forms.IntegerField(min_value=0)
+    bodega_devuelta = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'productos_pendientes' in kwargs:
+            for producto in kwargs.pop('productos_pendientes'):
+                self.fields[f'cantidad_vendida_{producto.id}'] = forms.IntegerField(min_value=0, max_value=producto.cantidad)
+                self.fields[f'cantidad_devuelta_{producto.id}'] = forms.IntegerField(min_value=0, max_value=producto.cantidad)
+    
+#Formulario de devolucion 
+class DevolucionFormulario(forms.ModelForm):
+    class Meta:
+        model = Devolucion
+        fields = ['idproducto','idbodega','idempleado','cantidad','motivo', 'dañado']
         labels = {
             'idproducto': 'Producto',
             'idbodega': 'Bodega',
-            'id_empleado_autorizo': 'Empleado que Autoriza',
-            'id_empleado_recibio': 'Empleado que Recibe',
+            'idempleado': 'Empleado',
             'cantidad': 'Cantidad',
+            'motivo': 'Motivo',
+            'dañado': 'Dañado'
         }
         widgets = {
             'idproducto': forms.Select(attrs={'class': 'form-control'}),
             'idbodega': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_autorizo': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
+            'idempleado': forms.Select(attrs={'class': 'form-control'}),
             'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
+            'motivo': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Motivo de la devolución'}),
+            #si esta seleccionado es igual a True
+            'dañado': forms.CheckboxInput(attrs={'class': 'form-control'})
         }
 
-# Formulario Recepción
-class EntregaFormulario(forms.ModelForm):
-    class Meta:
-        model = Entrega
-        fields = ['idproducto', 'idbodega', 'id_empleado_recibio', 'cantidad']
-        labels = {
-            'idproducto': 'Producto',
-            'idbodega': 'Bodega',
-            'id_empleado_recibio': 'Empleado que Recibe',
-            'cantidad': 'Cantidad',
-        }
-        widgets = {
-            'idproducto': forms.Select(attrs={'class': 'form-control'}),
-            'idbodega': forms.Select(attrs={'class': 'form-control'}),
-            'id_empleado_recibio': forms.Select(attrs={'class': 'form-control'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
-        }
+class FiltrosDev(forms.Form):
+    idbodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
+    idproducto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
+    fecha_devolucion = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    dañado = forms.BooleanField(required=False, label='Dañado', widget=forms.CheckboxInput(attrs={'class': 'form-control'}))
 
-# Formulario Movimiento Producto
-class MovimientoProductoFormulario(forms.ModelForm):
-    class Meta:
-        model = MovimientoProducto  # Asegúrate de usar el modelo MovimientoProducto
-        fields = ['producto', 'bodega', 'empleado', 'cantidad', 'tipo_movimiento']  # Campos correctos para MovimientoProducto
-        labels = {
-            'producto': 'Producto',
-            'bodega': 'Bodega',
-            'empleado': 'Empleado',
-            'cantidad': 'Cantidad',
-            'tipo_movimiento': 'Tipo de Movimiento',
-        }
-        widgets = {
-            'producto': forms.Select(attrs={'class': 'form-control'}),
-            'bodega': forms.Select(attrs={'class': 'form-control'}),
-            'empleado': forms.Select(attrs={'class': 'form-control'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad'}),
-            'tipo_movimiento': forms.Select(attrs={'class': 'form-control'}),
-        }
+
+
+
+
+
+class ReporteInventarioForm(forms.Form):
+    fecha_inicio = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    bodega = forms.CharField(max_length=100, required=False)   
+
+
+
+
+   # Formulario de filtros para Reporte de Productos
+from django import forms
+
+class ReporteProductoForm(forms.Form):
+    descripcion = forms.CharField(required=False, label="Descripción")
+    #categoria = forms.CharField(required=False, label="Categoría")
+   # fecha_inicio = forms.DateField(required=False, label="Fecha de Inicio", widget=forms.DateInput(attrs={'type': 'date'}))
+   # fecha_fin = forms.DateField(required=False, label="Fecha de Fin", widget=forms.DateInput(attrs={'type': 'date'}))
+    precio_min = forms.DecimalField(required=False, label="Precio Mínimo", max_digits=10, decimal_places=2)
+    precio_max = forms.DecimalField(required=False, label="Precio Máximo", max_digits=10, decimal_places=2)
+    marca = forms.CharField(required=False, label="Marca")
+
+
+# forms.py
+from django import forms
+from .models import MovimientoProducto, Empleado
+
+class ReporteMovimientoFormulario(forms.Form):
+    fecha_inicio = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False)
+    tipo_movimiento = forms.ChoiceField(choices=[('', 'Seleccione...')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES, required=False)

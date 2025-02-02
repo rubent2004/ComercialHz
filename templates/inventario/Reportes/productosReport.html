@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Productos</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        /* Estilo para ajustar la columna de descripción */
+        .descripcion-col {
+            max-width: 300px; /* Establece un ancho mayor para la columna de descripción */
+            word-wrap: break-word; /* Permite que el texto largo se divida en varias líneas */
+            white-space: normal; /* Permite que el texto se ajuste a múltiples líneas */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Reporte de Productos</h1>
+
+        <!-- Formulario para filtrar productos (opcional) -->
+        <form method="get" action="{% url 'inventario:reporte_productos' %}" class="mb-4">
+            {% csrf_token %}
+            <!-- Aquí irían los campos de filtros si los deseas habilitar -->
+            <div class="form-row">
+                <!-- Puedes agregar aquí los filtros si es necesario -->
+            </div>
+        </form>
+
+        <!-- Separar el botón de "Descargar Reporte PDF" del título -->
+        <div class="mb-3">
+            <a href="{% url 'inventario:reporte_productos' %}?pdf=true" class="btn btn-danger">
+                Descargar Reporte PDF
+            </a>
+        </div>
+
+        <!-- Título de los productos filtrados -->
+        <h3 class="mb-4">Productos Filtrados</h3>
+
+        <!-- Tabla de productos con los campos solicitados -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Precio Unitario</th>
+                    <th>Precio Cash</th>
+                    <th>Proveedor</th>
+                    <th>Marca</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.codigo }}</td>
+                        <!-- Agregamos la clase descripcion-col a la columna de descripción -->
+                        <td class="descripcion-col">{{ producto.descripcion }}</td>
+                        <td>{{ producto.precio_unitario }}</td>
+                        <td>{{ producto.precio_cash }}</td>
+                        <td>{{ producto.proveedor }}</td>
+                        <td>{{ producto.marca }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- Bootstrap JS, Popper.js, and jQuery (optional for interactivity) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+</body>
+</html>

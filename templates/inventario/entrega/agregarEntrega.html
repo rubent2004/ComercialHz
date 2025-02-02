@@ -1,79 +1,279 @@
 {% extends "inventario/comun/base.html" %}
 
 {% block content %}
-<!-- NO MODIFICAR ---------------------------------->
 {% load static %}
-<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
-<!-- FIN DE JAVASCRIPT ------------------------------------>
 
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
-        <h1 class="title">Salida de producto de stock</h1>
-        <p class="title-description">Entrega de Producto</p>
+        <h1 class="title">Registrar Entrega</h1>
+        <p class="title-description">Registra los productos entregados al empleado</p>
     </div>
-
+    
     <section class="section">
         <div class="row">
             <div class="col-md-12">
-                <!-- Mostrar mensajes de éxito o error -->
-                {% if messages %}
-                    <div class="alert-container">
-                        {% for message in messages %}
-                            {% if message.tags == 'success' %}
-                                <div class="alert alert-success alert-dismissible fade show">
-                                    <em class="fa fa-check"></em>
-                                    {{ message }}
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                            {% elif message.tags == 'error' %}
-                                <div class="alert alert-danger alert-dismissible fade show">
-                                    <em class="fa fa-exclamation-triangle"></em>
-                                    {{ message }}
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                <!-- Botón para listar inventario -->
-                <div class="d-flex justify-content-end mb-3">
-                    <a href="/inventario/listarInventario" class="btn btn-info">
-                        <i class="fa fa-list"></i> Listar Inventario
-                    </a>
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-block">
-                            <div class="card-title-block">
-                                <h3 class="title">Producto Entregado</h3>
-                            </div>
-
-                            <section class="example">
-                                <!-- Formulario de registro de productos -->
-                                <form method="post" class="form-horizontal">
-                                    {% csrf_token %}
-                                    <div class="form-group">
-                                        {{ form.as_p }}
-                                    </div>
-                                    
-                                    <div class="d-flex justify-content-end">
-                                        <button type="submit" class="btn btn-success">
-                                            <i class="fa fa-save"></i> Aceptar
-                                        </button>
-                                    </div>
-                                </form>
-                            </section>
+                {% endfor %}
+                
+                <div class="card">
+                    <div class="card-block">
+                        <div class="card-title-block">
+                            <h3 class="title">Formulario de Entrega</h3>
+                            <a href="{% url 'inventario:listarMovimientoProducto' %}" class="btn btn-info btn-sm float-right">
+                                <i class="fa fa-list"></i> Ver Historial
+                            </a>
                         </div>
+                        
+                        <form method="post" id="entrega-form">
+                            {% csrf_token %}
+                            
+                            <!-- Selección de Empleado -->
+                            <div class="form-group">
+                                <label for="empleado">Empleado Receptor:</label>
+                                <select name="empleado" id="empleado" class="form-control" required>
+                                    <option value="">Seleccione un empleado</option>
+                                    {% for empleado in empleados %}
+                                        <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+    
+                            <!-- Búsqueda de Producto -->
+                            <div class="card my-3">
+                                <div class="card-body">
+                                    <h4 class="card-title">Agregar Productos</h4>
+                                    <div class="row">
+                                        <!-- Campo para buscar por código -->
+                                        <div class="col-md-4">
+                                            <input type="text" id="codigo-input" class="form-control" placeholder="Código del Producto">
+                                        </div>
+                                        <!-- Botón para buscar producto por código -->
+                                        <div class="col-md-2">
+                                            <button type="button" id="buscar-codigo" class="btn btn-info btn-block">
+                                                <i class="fa fa-search"></i> Buscar por Código
+                                            </button>
+                                        </div>
+    
+                                        <!-- Campo para seleccionar producto -->
+                                        <div class="col-md-4">
+                                            <select class="form-control" id="producto-select">
+                                                <option value="">Producto</option>
+                                                {% for producto in productos %}
+                                                    <option value="{{ producto.id }}">{{ producto.descripcion }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+    
+                                        <!-- Campo para seleccionar bodega -->
+                                        <div class="col-md-4">
+                                            <select class="form-control" id="bodega-select">
+                                                <option value="">Bodega</option>
+                                                {% for bodega in bodegas %}
+                                                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+    
+                                        <!-- Campo para cantidad -->
+                                        <div class="col-md-2">
+                                            <input type="number" id="cantidad-input" class="form-control" min="1" value="1" placeholder="Cantidad">
+                                        </div>
+    
+                                        <!-- Botón para agregar el producto -->
+                                        <div class="col-md-2">
+                                            <button type="button" id="agregar-producto" class="btn btn-success btn-block">
+                                                <i class="fa fa-cart-plus"></i> Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            <!-- Lista de Productos Seleccionados -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <h4 class="card-title">Productos Seleccionados</h4>
+                                    <div id="stock-alert" class="alert alert-danger d-none"></div>
+                                    <ul id="lista-productos" class="list-group mb-3"></ul>
+                                    <input type="hidden" name="detalles" id="detalles-json">
+                                    
+                                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                                        <i class="fa fa-check-circle"></i> Registrar Entrega
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    
 </article>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productos = [];
+    const productoSelect = document.getElementById('producto-select');
+    const bodegaSelect = document.getElementById('bodega-select');
+    const cantidadInput = document.getElementById('cantidad-input');
+    const listaProductos = document.getElementById('lista-productos');
+    const stockAlert = document.getElementById('stock-alert');
+    const codigoInput = document.getElementById('codigo-input');
+    const buscarCodigoBtn = document.getElementById('buscar-codigo');
+
+    async function verificarStock(productoId, bodegaId, cantidad) {
+        try {
+            const response = await fetch(
+                `/inventario/verificar-stock/?bodega=${bodegaId}&producto=${productoId}&cantidad=${cantidad}`
+            );
+            return await response.json();
+        } catch(error) {
+            console.error('Error:', error);
+            return { disponible: false };
+        }
+    }
+
+    // Función para buscar producto por código
+         async function buscarProductoPorCodigo(codigo) {
+             try {
+                   const response = await fetch(`/inventario/buscar-producto/?codigo=${codigo}`);
+                    const data = await response.json();
+                    if (data.error) {
+                       alert(data.error);
+                  } else {
+                // Si el producto existe, seleccionarlo en el dropdown
+                     productoSelect.value = data.id;
+                      }
+                }                 catch (error) {
+                 console.error('Error buscando el producto:', error);
+             }
+        }
+
+
+    // Evento para buscar producto por código
+    buscarCodigoBtn.addEventListener('click', function() {
+        const codigo = codigoInput.value.trim();
+        if (codigo) {
+            buscarProductoPorCodigo(codigo);
+        } else {
+            alert('Por favor ingresa un código de producto');
+        }
+    });
+
+    // Limpiar los campos después de agregar un producto
+    function limpiarCampos() {
+        productoSelect.value = '';
+        bodegaSelect.value = '';
+        cantidadInput.value = 1;
+        codigoInput.value = '';  // Limpiar campo de código
+    }
+
+    // Actualizar la lista de productos agregados
+    function actualizarLista() {
+        listaProductos.innerHTML = productos.map((item, index) => `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${item.nombre}</strong><br>
+                    <small class="text-muted">
+                        Bodega: ${item.bodega_nombre} | 
+                        Cantidad: ${item.cantidad}
+                    </small>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" 
+                        onclick="eliminarProducto(${index})">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </li>
+        `).join('');
+        
+        document.getElementById('detalles-json').value = JSON.stringify(
+            productos.map(p => ({
+                producto: p.producto,
+                bodega: p.bodega_id,
+                cantidad: p.cantidad
+            }))
+        );
+    }
+
+    // Agregar producto a la lista
+    document.getElementById('agregar-producto').addEventListener('click', async function() {
+        const productoId = productoSelect.value;
+        const productoNombre = productoSelect.options[productoSelect.selectedIndex].text;
+        const bodegaId = bodegaSelect.value;
+        const bodegaNombre = bodegaSelect.options[bodegaSelect.selectedIndex].text;
+        const cantidad = parseInt(cantidadInput.value);
+
+        // Validaciones básicas
+        if(!productoId || !bodegaId || !cantidad) {
+            alert('Complete todos los campos');
+            return;
+        }
+
+        // Verificar duplicados
+        const existe = productos.some(p => 
+            p.producto === productoId && p.bodega_id === bodegaId
+        );
+        
+        if(existe) {
+            alert('Este producto ya fue agregado desde esta bodega');
+            return;
+        }
+
+        // Verificar stock
+        const stockInfo = await verificarStock(productoId, bodegaId, cantidad);
+        if(!stockInfo.disponible) {
+            stockAlert.innerHTML = `
+                <i class="fa fa-exclamation-triangle"></i>
+                Stock insuficiente en ${bodegaNombre}! 
+                Disponible: ${stockInfo.stock_actual}
+            `;
+            stockAlert.classList.remove('d-none');
+            return;
+        }
+        stockAlert.classList.add('d-none');
+
+        // Agregar a la lista
+        productos.push({
+            producto: productoId,
+            nombre: productoNombre,
+            cantidad: cantidad,
+            bodega_id: bodegaId,
+            bodega_nombre: bodegaNombre
+        });
+
+        actualizarLista();
+        limpiarCampos();
+    });
+
+    // Eliminar producto de la lista
+    window.eliminarProducto = function(index) {
+        productos.splice(index, 1);
+        actualizarLista();
+    }
+});
+
+
+</script>
+
+<style>
+.list-group-item {
+    transition: all 0.3s ease;
+}
+.list-group-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.btn-danger.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+</style>
 
 {% endblock %}

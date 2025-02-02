@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .encabezado { text-align: center; margin-bottom: 2cm; }
+        .tabla { width: 100%; border-collapse: collapse; }
+        .tabla th { background: #f39c12; color: white; padding: 12px; }
+        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .resaltado { background: #f8f9fa; }
+        .ganancia { color: #27ae60; }
+        .perdida { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <h1>Reporte de Ganancias y Pérdidas</h1>
+        <p>Mes: {{ mes }}</p>
+    </div>
+
+    <h2>Resumen Financiero</h2>
+    <p>Ganancia Bruta: <span class="ganancia">${{ ganancia_bruta|floatformat:2 }}</span></p>
+    <p>Pérdidas: <span class="perdida">${{ perdidas|floatformat:2 }}</span></p>
+    <p>Ganancia Neta: <span class="ganancia">${{ ganancia_neta|floatformat:2 }}</span></p>
+
+    <h2>Detalle de Movimientos</h2>
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Concepto</th>
+                <th>Tipo</th>
+                <th>Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movimiento in data %}
+            <tr class="{% cycle '' 'resaltado' %}">
+                <td>{{ movimiento.concepto }}</td>
+                <td>{{ movimiento.tipo }}</td>
+                <td class="{% if movimiento.tipo == 'Ganancia' %}ganancia{% else %}perdida{% endif %}">
+                    ${{ movimiento.monto|floatformat:2 }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="firma">
+        <p>Generado por: {{ usuario }}</p>
+        <p>Fecha: {{ fecha_generacion }}</p>
+    </div>
+</body>
+</html>

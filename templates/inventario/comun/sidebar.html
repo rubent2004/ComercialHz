@@ -1,258 +1,205 @@
+<script>
+    let numeroAdministradores = '{{ administradores }}';
+    let numeroUsuarios = '{{ usuarios }}';
+</script>
+
+<!-- Asegúrate de incluir Font Awesome en tu archivo base -->
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
 <aside class="sidebar">
     <div class="sidebar-container">
+        <!-- Header de la barra lateral -->
         <div class="sidebar-header">
-            <div class="brand" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <!-- Logo en la esquina superior izquierda -->
-                <div class="logo-nuevo">
+            <div class="brand" style="display: flex; align-items: center; padding: 10px;">
+                <!-- Logo en la esquina izquierda -->
+                <div class="logo-nuevo" style="flex-shrink: 0;">
                     {% load static %}
-                    <img id="logo-endogeno2" src="{% static 'inventario/assets/logo/logo3.png' %}" style="width: 50px; height: auto;">
+                    <img id="logo-endogeno2" src="{% static 'inventario/assets/logo/logo3.png' %}" alt="Logo" style="width: 50px; height: auto; margin-right: 10px;">
                 </div>
-                <!-- Texto Administrador en la esquina superior derecha, centrado -->
-                <div style="text-align: center; font-size: 20px; font-weight: bold; color: #ffffff; margin-top: 20px; margin-right: 20px;">
-                    Administrador
+
+                <!-- Nombre del usuario alineado a la derecha -->
+                <div style="flex-grow: 1; text-align: left; font-size: 20px; font-weight: bold; color: #ffffff;">
+                    {% if request.user.is_authenticated %}
+                        {{ request.user.username }}
+                    {% else %}
+                        Invitado
+                    {% endif %}
                 </div>
+            </div>
         </div>
 
+        <!-- Menú de navegación -->
         <nav class="menu">
             <ul class="sidebar-menu metismenu" id="sidebar-menu">
+                <!-- Botón Inicio -->
                 <li>
                     <a href="/inventario/panel">
-                        <i class="fa fa-home"></i> Inicio </a>
+                        <i class="fa fa-home"></i> Inicio
+                    </a>
                 </li>
-                <!-- Sub-menu de producto -->
+
+                <!-- Sección Inventario -->
                 <li>
-                    <a href="">
-                        <i class="fa fa-shopping-basket"></i> Producto
+                    <a href="#">
+                        <i class="fa fa-cogs"></i> Inventario
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-                        <li><a href="/inventario/listarProductos"><i class="fa fa-ellipsis-h"></i>Listar productos</a></li>
-                        <li><a href="/inventario/agregarProducto"><i class="fa fa-plus"></i>Agregar producto</a></li>
+                        <li><a href="/inventario/listarProductos"><i class="fa fa-ellipsis-h"></i> Productos</a></li>
+                        <li><a href="/inventario/listarInventario"><i class="fa fa-list"></i> Stock e Inventario</a></li>
+                        <li><a href="/inventario/listarMarca"><i class="fa fa-ellipsis-h"></i> Marcas</a></li>
                     </ul>
                 </li>
-                <!--Fin de sub-menu de producto -->
-                <!-- Sub-menu de estado -->
-<li>
-    <a href="#">
-        <i class="fa fa-tags"></i> Estado Producto
-        <i class="fa arrow"></i>
-    </a>
-    <ul class="sidebar-nav">
-        <li><a href="/inventario/listarEstadoProducto"><i class="fa fa-ellipsis-h"></i>Listar estados</a></li>
-        <li><a href="/inventario/agregarEstadoProducto"><i class="fa fa-plus"></i>Agregar estado</a></li>
-    </ul>
-</li>
 
-<li>
-    <a href="#">
-        <i class="fa fa-tags"></i> Estado 
-        <i class="fa arrow"></i>
-    </a>
-    <ul class="sidebar-nav">
-        <li><a href="/inventario/listarEstado"><i class="fa fa-ellipsis-h"></i>Listar estados</a></li>
-        <li><a href="/inventario/agregarEstado"><i class="fa fa-plus"></i>Agregar estado</a></li>
-    </ul>
-</li>
-<!-- Fin de sub-menu de estado -->
-
-<!-- Sub-menu de marca -->
-<li>
-    <a href="">
-        <i class="fa fa-tag"></i> Marca
-        <i class="fa arrow"></i>
-    </a>
-    <ul class="sidebar-nav">
-        <li><a href="/inventario/listarMarca"><i class="fa fa-ellipsis-h"></i>Listar marcas</a></li>
-        <li><a href="/inventario/agregarMarca"><i class="fa fa-plus-circle"></i> Agregar Marca</a></li>
-    </ul>
-</li>
-<!-- Fin de sub-menu de marca -->
-
-<!-- Sub-menu de bodega -->
-<li>
-    <a href="">
-        <i class="fa fa-building"></i> Bodega
-        <i class="fa arrow"></i>
-    </a>
-    <ul class="sidebar-nav">
-        <li><a href="/inventario/listarBodega"><i class="fa fa-ellipsis-h"></i>Listar bodegas</a></li>
-        <li><a href="/inventario/agregarBodega"><i class="fa fa-plus-square"></i> Agregar Bodega</a></li>
-    </ul>
-</li>
-<!-- Fin de sub-menu de bodega -->
-
-
-
-<!-- Sub-menu de inventario -->
-<li>
-    <a href="">
-        <i class="fa fa-cogs"></i> Inventario
-        <i class="fa arrow"></i>
-    </a>
-    <ul class="sidebar-nav">
-        <li><a href="/inventario/listarInventario"><i class="fa fa-list"></i> Listar Productos</a></li>
-        <li><a href="/inventario/agregarInventario"><i class="fa fa-list"></i> Agregar Stock</a></li>
-    </ul>
-</li>
-<!-- Fin de sub-menu de inventario -->
-
-<!-- Sub-menu de movimientos -->
-<li>
-    <a href="">
-        <i class="fa fa-random"></i> Movimiento
-        <i class="fa arrow"></i>
-    </a>
-    <ul class="sidebar-nav">
-        <li><a href="/inventario/listarMovimientoProducto"><i class="fa fa-exchange"></i> Listar Movimientos</a></li>
-    </ul>
-</li>
-<!-- Fin de sub-menu de movimientos -->
-
-
-                
-
-
-
-                <!-- Sub-menu de proveedor -->    
+                <!-- Sección Empleados y Proveedores -->
                 <li>
-                    <a href="">
-                        <i class="fa fa-book"></i>Proveedor
+                    <a href="#">
+                        <i class="fa fa-users"></i> Empleados y Proveedores
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/listarProveedores"><i class="fa fa-ellipsis-h"></i>Listar proveedores</a></li>                            
-<li><a href="/inventario/agregarProveedor"><i class="fa fa-plus"></i>Agregar proveedor</a></li>
+                        <li><a href="/inventario/listarEmpleados"><i class="fa fa-ellipsis-h"></i> Listar empleados</a></li>
+                        <li><a href="/inventario/listarProveedores"><i class="fa fa-ellipsis-h"></i> Listar proveedores</a></li>
                     </ul>
                 </li>
-                <!-- Fin de sub-menu de proveedor -->
-                                            
 
-
-                <!-- Sub-menu de empleados-->
+                <!-- Sección Movimientos -->
                 <li>
-                    <a href="">
-                        <i class="fa fa-handshake-o"></i>Empleados
+                    <a href="#">
+                        <i class="fa fa-random"></i> Movimientos
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-
-<li><a href="/inventario/listarEmpleados"><i class="fa fa-ellipsis-h"></i>Listar Empleados</a></li>                            
-<li><a href="/inventario/agregarEmpleado"><i class="fa fa-plus"></i>Agregar Empleados</a></li>
-
+                        <li><a href="/inventario/listarMovimientoProducto"><i class="fa fa-exchange"></i> Listar Movimientos</a></li>
                     </ul>
                 </li>
-                <!-- Fin de sub-menu de empleados -->
 
-                <!-- Sub-menu de salidas-->
+                <!-- Sección Salidas -->
                 <li>
-                    <a href="">
-                        <i class="fa fa-sign-out"></i> Salidas
+                    <a href="#">
+                        <i class="fa fa-arrow-right"></i> Salidas
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/agregarEntrega"><i class="fa fa-plus"></i>Agregar salida</a></li>
+                        <li><a href="/inventario/agregarEntrega"><i class="fa fa-plus"></i> Agregar salida</a></li>
                     </ul>
                 </li>
-                <!--Fin de sub-menu de salidas -->
 
-                <!-- Sub-menu de entradas-->
+                <!-- Sección Entradas -->
                 <li>
-                    <a href="">
-                        <i class="fa fa-sign-in"></i> Entradas
+                    <a href="#">
+                        <i class="fa fa-arrow-left"></i> Entradas
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/listarEntradas"><i class="fa fa-ellipsis-h"></i>Listar entradas</a></li>
-<li><a href="/inventario/agregarEntrada"><i class="fa fa-plus"></i>Agregar entrada</a></li>
+                        <li><a href="/inventario/listarEmpleadosPendientes"><i class="fa fa-ellipsis-h"></i> Listar entradas</a></li>
                     </ul>
                 </li>
-                <!--Fin de sub-menu de entradas -->
 
-                <!-- Sub-menu de devoluciones-->
+
+                <!-- Sección Entradas -->
                 <li>
-                    <a href="">
+                    <a href="#">
+                        <i class="fa-solid fa-store"></i> Bodegas
+                        <i class="fa arrow"></i>
+                    </a>
+                    <ul class="sidebar-nav">
+                        <li><a href="/inventario/agregarBodega"><i class="fa-solid fa-warehouse"></i>Agregar Bodega</a></li>  <!-- Ícono de almacén alternativo -->
+                       
+                    </ul>
+                </li>
+
+
+
+
+
+
+                <!-- Sección Devoluciones -->
+                <li>
+                    <a href="#">
                         <i class="fa fa-undo"></i> Devoluciones
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/listarDevoluciones"><i class="fa fa-ellipsis-h"></i>Listar devoluciones</a></li>
-<li><a href="/inventario/agregarDevoluciones"><i class="fa fa-plus"></i>Agregar devoluciones</a></li>
+                        <li><a href="/inventario/listarDev"><i class="fa fa-ellipsis-h"></i> Listar devoluciones</a></li>
+                        <li><a href="/inventario/agregarDev"><i class="fa fa-plus"></i> Agregar devoluciones</a></li>
                     </ul>
                 </li>
-                <!--Fin de sub-menu de devoluciones -->
-
-                  <!-- -->
-
-                <!-- Sub-menu de factura-->
-                <li>
-                    <a href="">
-                        <i class="fa fa-ticket"></i>Factura
+                 <!-- Sección Reparacion -->
+                 <li>
+                    <a href="#">
+                        <i class="fa fa-wrench"></i> Reparación
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/listarFacturas"><i class="fa fa-ellipsis-h"></i>Listar facturas</a></li>
-<li><a href="/inventario/emitirFactura"><i class="fa fa-money"></i>Emitir factura</a></li>
-
+                        <li><a href="/inventario/listarRep"><i class="fa fa-ellipsis-h"></i> Listar Pendientes</a></li>
+                        <li><a href="/inventario/agregarRep"><i class="fa fa-plus"></i> Agregar Reparación</a></li>
                     </ul>
                 </li>
-                <!-- Fin de sub-menu de factura -->
-                
-                
-                <!-- Sub-menu de usuarios -->
+
+                <!-- Sección Usuarios -->
                 <li>
-                    <a href="">
+                    <a href="#">
                         <i class="fa fa-users"></i> Usuarios
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/crearUsuario"><i class="fa fa-circle-o"></i>Crear usuario</a></li>
-<li><a href="/inventario/listarUsuarios"><i class="fa fa-circle-o"></i>Listar usuarios</a></li>                                 </ul>
-                </li>
-                <!--Fin de sub-menu de usuarios -->
+                        <li><a href="/inventario/crearUsuario"><i class="fa fa-circle-o"></i> Crear usuario</a></li>
+                        <li><a href="/inventario/listarUsuarios"><i class="fa fa-circle-o"></i> Listar usuarios</a></li>
+                    </ul>
 
-                <!-- Sub-menu de opciones-->
+                    
+                </li>
+
+
+                <!-- Sección Reportes -->
+
                 <li>
-                    <a href="">
-                        <i class="fa fa-cog"></i> Opciones
+                    <a href="#" class="sidebar-toggle">
+                        <i class="fa fa-file-pdf"></i> Reportes
                         <i class="fa arrow"></i>
                     </a>
                     <ul class="sidebar-nav">
-<li><a href="/inventario/importarBDD"><i class="fa fa-file-o"></i>Importar base de datos</a></li>
-<li><a href="/inventario/descargarBDD"><i class="fa fa-download"></i>Descargar base de datos</a></li>
-<li><a href="/inventario/configuracionGeneral"><i class="fa fa-gear"></i>Configuracion general</a></li>
-
-    </ul>
-                </li>
-                 <!--Fin de sub-menu de opciones -->
-
-
-                <!-- Sub-menu de manual de usuario-->
-
-                <li>
-                    <a href="">
-                        <i class="fa fa-book"></i> Manual de usuario
-                        <i class="fa arrow"></i>
-                    </a>
-                    <ul class="sidebar-nav">
-                
-                    {% load static %}
-                    <!--
-                <li>
-                    <a href="{% static 'inventario/manual.pdf' %}" download>
-                        <i class="fa fa-download"></i> Descargar manual de usuario (PDF)
                         
-                    </a>
-                </li>
-            -->
-
-<li><a href="/inventario/verManualDeUsuario/inicio"><i class="fa fa-eye"></i>Ver manual de usuario</a></li>
-
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reporte_movimientos' %}" class="nav-link">
+                                <i class="fa fa-file-pdf"></i> Generar Reporte De Movimientos
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reporte_productos' %}"class="nav-link">
+                                <i class="fa fa-file-pdf"></i> Reporte de Productos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reporte_inventario' %}" class="nav-link">
+                                <i class="fa fa-file-pdf"></i> Reporte de Inventario
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'inventario:reportes' %}" class="nav-link">
+                                <i class="fa fa-file-pdf"></i> REPORTES GENERALES 
+                            </a>
+                        </li>
+                        
                     </ul>
                 </li>
+                
 
-                 <!--Fin de sub-menu de manual de usuario -->
-                 
             </ul>
         </nav>
     </div>
+
+    <style>
+        .sidebar {
+            position: fixed;
+            overflow-y: auto;
+            transition: width 0.3s ease;
+        }
+    </style>
+
+   
 </aside>

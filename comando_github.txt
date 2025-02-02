@@ -24,7 +24,7 @@
   git log
 
 - Crear una nueva rama:
-  git checkout -b nombre-de-la-rama
+  git checkout -b fuck
 
 - Cambiar a una rama existente:
   git checkout nombre-de-la-rama

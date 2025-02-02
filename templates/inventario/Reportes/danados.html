@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .encabezado { text-align: center; margin-bottom: 2cm; }
+        .tabla { width: 100%; border-collapse: collapse; }
+        .tabla th { background: #e74c3c; color: white; padding: 12px; }
+        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .resaltado { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <h1>Reporte de Productos Dañados</h1>
+        <p>Mes: {{ mes }}</p>
+    </div>
+
+    <h2>Resumen General</h2>
+    <p>Total de productos dañados: {{ data|length }}</p>
+
+    <h2>Detalle de Productos</h2>
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Bodega</th>
+                <th>Cantidad</th>
+                <th>Motivo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr class="{% cycle '' 'resaltado' %}">
+                <td>{{ item.idproducto.descripcion }}</td>
+                <td>{{ item.idbodega.nombre }}</td>
+                <td>{{ item.cantidad }}</td>
+                <td>{{ item.motivo }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="firma">
+        <p>Generado por: {{ usuario }}</p>
+        <p>Fecha: {{ fecha_generacion }}</p>
+    </div>
+</body>
+</html>

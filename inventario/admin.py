@@ -3,13 +3,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import LoginFormulario
-from .models import  Empleado, EstadoProducto, Marca, Proveedor, Usuario, Producto
+from .models import  Devolucion, Empleado, Entrega, EstadoProducto, Marca, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto
 
 class UsuarioAdmin(UserAdmin):
     add_form = LoginFormulario
     #form = CustomUserChangeForm
     model = Usuario
-    list_display = ['email', 'username',]
+    list_display = ['email', 'username','nivel']
 
 admin.site.register(Usuario, UsuarioAdmin)
 
@@ -34,3 +34,39 @@ admin.site.register(Marca, MarcaAdmin)
 class ProveedorAdmin(admin.ModelAdmin):
      list_display = ['nombre', 'telefono', 'correo']
 admin.site.register(Proveedor, ProveedorAdmin)
+#movimiento producto
+class MovimientoProductoAdmin(admin.ModelAdmin):
+     list_display = ['producto', 'cantidad', 'fecha_movimiento','empleado','estado_producto']
+admin.site.register(MovimientoProducto, MovimientoProductoAdmin)
+
+#reparacion 
+class ReparacionAdmin(admin.ModelAdmin):
+     list_display = ['idproducto', 'fecha_retorno', 'idempleado','estado']
+admin.site.register(Reparacion, ReparacionAdmin)
+
+#devoluciones
+class DevolucionAdmin(admin.ModelAdmin):
+     list_display = ['idproducto', 'fecha_devolucion', 'idempleado','dañado']
+admin.site.register(Devolucion, DevolucionAdmin)
+
+#entrega
+
+# class DetalleEntregaInline(admin.TabularInline):  # O también puedes usar admin.StackedInline
+#     model = DetalleEntrega
+#     extra = 1  # Número de formularios vacíos a mostrar
+
+# class EntregaAdmin(admin.ModelAdmin):
+#     inlines = [DetalleEntregaInline]  # Mostrar DetalleEntrega en la página de Entrega
+
+# admin.site.register(Entrega, EntregaAdmin)
+# admin.site.register(DetalleEntrega)  
+
+
+from django.contrib import admin
+from import_export.admin import ExportMixin
+from .models import Inventario
+
+class InventarioAdmin(ExportMixin, admin.ModelAdmin):
+    list_display = ('idproducto', 'idbodega', 'stock')
+
+admin.site.register(Inventario, InventarioAdmin)

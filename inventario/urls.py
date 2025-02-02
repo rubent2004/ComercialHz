@@ -1,5 +1,15 @@
 from django.urls import path
 from . import views
+from django.urls import path
+from .views import ReporteInventarioPDF
+from django.urls import path
+from .views import ReporteInventarioView, ReporteInventarioPDF
+from django.contrib import admin
+from .views import ReporteProductoView, ReporteMovimientoView
+from .views import ReporteProductoView
+#from .views import ReporteProductosPDF
+from django.urls import path, include
+
 #from .views import AgregarProducto, ListarProductos, ImportarProductos, ExportarProductos, EditarProducto
 
 
@@ -18,6 +28,9 @@ path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto')
 path('importarProductos', views.ImportarProductos.as_view(), name='importarProductos'),
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
 path('editarProducto/<int:pk>', views.EditarProducto.as_view(), name='editarProducto'),
+path('buscar-producto/', views.buscar_producto, name='buscar_producto'),
+path('buscar-producto-por-id/', views.BuscarProductoPorId.as_view(), name='buscar_producto_por_id'),
+ 
 
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
@@ -26,13 +39,13 @@ path('importarProveedores', views.ImportarProveedores.as_view(), name='importarP
 #path('exportarProveedores', views.ExportarProveedores.as_view(), name='exportarProveedores'),
 path('editarProveedor/<int:pk>', views.EditarProveedor.as_view(), name='editarProveedor'),
 
-path('agregarCompra', views.AgregarCompra.as_view(), name='agregarCompra'),
-path('listarCompras', views.ListarCompras.as_view(), name='listarCompras'),
+# path('agregarCompra', views.AgregarCompra.as_view(), name='agregarCompra'),
+# path('listarCompras', views.ListarCompras.as_view(), name='listarCompras'),
 # path('detallesCompra', views.DetallesCompra.as_view(), name='detallesCompra'),
 # path('verCompra/<int:p>',views.VerCompra.as_view(), name='verCompra'),
 # path('validarCompra/<int:p>',views.ValidarCompra.as_view(), name='validarCompra'),
-path('generarCompra/<int:p>',views.GenerarCompra.as_view(), name='generarCompra'),
-path('generarCompraPDF/<int:pk>',views.GenerarCompraPDF.as_view(), name='generarCompraPDF'),
+# path('generarCompra/<int:p>',views.GenerarCompra.as_view(), name='generarCompra'),
+# path('generarCompraPDF/<int:pk>',views.GenerarCompraPDF.as_view(), name='generarCompraPDF'),
 
 path('listarEmpleados', views.ListarEmpleados.as_view(), name='listarEmpleados'),
 path('agregarEmpleado', views.AgregarEmpleado.as_view(), name='agregarEmpleado'),
@@ -56,10 +69,6 @@ path('configuracionGeneral', views.ConfiguracionGeneral.as_view(), name='configu
 
 path('verManualDeUsuario/<str:pagina>/',views.VerManualDeUsuario.as_view(), name='verManualDeUsuario'),
 
-#Comercial
-path('listarEstadoProducto', views.ListarEstadoProducto.as_view(), name='listarEstadoProducto'),
-path('agregarEstadoProducto', views.AgregarEstadoProducto.as_view(), name='agregarEstadoProducto'),
-path('editarEstadoProducto/<int:pk>', views.EditarEstadoProducto.as_view(), name='editarEstadoProducto'),
     # path('eliminarEstadoProducto/<int:pk>', views.EliminarEstadoProducto.as_view(), name='eliminarEstadoProducto'),
 path('listarMarca', views.ListarMarca.as_view(), name='listarMarca'),
 path('agregarMarca', views.AgregarMarca.as_view(), name='agregarMarca'),
@@ -79,5 +88,37 @@ path('agregarInventario', views.AgregarInventario.as_view(), name='agregarInvent
 #movimiento producto
 path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
 #Agregar entrega
-path('agregarEntrega', views.AgregarEntrega.as_view(), name='agregarEntrega'),
+path('agregarEntrega', views.agregarEntrega, name='agregarEntrega'),
+path('verificar-stock/', views.verificar_stock, name='verificar_stock'),
+#movimiento producto
+path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
+#listado empleado pendeinte
+path('listarEmpleadosPendientes/', views.ListarEmpleadosPendientes.as_view(), name='listarEmpleadosPendientes'),
+path('recepcion_producto/', views.recepcion_producto, name='recepcion_producto'),
+#Reparaciones
+path('listarRep', views.ListarRep.as_view(), name='listarRep'),
+path('agregarRep/', views.AgregarRep.as_view(), name='agregarRep'),
+path('marcarRep/<int:pk>', views.MarcarRep.as_view(), name='marcarRep'),
+
+
+#Reportes
+
+path('reporte-inventario/', ReporteInventarioView.as_view(), name='reporte_inventario'),
+path('reporte-inventario/pdf/', ReporteInventarioPDF.as_view(), name='reporte_inventario_pdf'),
+path('reporteproductos/', ReporteProductoView.as_view(), name='reporte_productos'),
+path('reporte_movimientos/', views.ReporteMovimientoView.as_view(), name='reporte_movimientos'),
+path('reporte_ventas/', views.ProductosMasVendidosPDF.as_view(), name='reporte_ventas'),
+
+
+
+
+
+#devoluciones
+path('listarDev', views.ListarDev.as_view(), name='listarDev'),
+path('agregarDev', views.AgregarDev.as_view(), name='agregarDev'),
+
+#pruebas
+path('reportes/<str:reporte_type>/', views.GeneradorReportesPDF.as_view(), name='generar_reporte'),
+path('reportes/', views.GeneradorReportesPDF.as_view(), name='reportes'),
 ]
+

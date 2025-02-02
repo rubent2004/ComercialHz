@@ -1,0 +1,147 @@
+{% extends "inventario/comun/base.html" %}
+
+{% block content %}
+<article class="content responsive-tables-page">
+    <div class="title-block text-center mb-4">
+        <h1 class="title">Listar Reparaciones</h1>
+        <p class="title-description text-muted">Verifique las reparaciones pendientes y completadas</p>
+    </div>
+    <section class="section">
+        <div class="row">
+            <div class="col-md-12">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong><i class="fa fa-check"></i></strong> {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Contenedor de filtros y botones -->
+                <div class="card shadow-lg border-0 rounded mb-4 p-4">
+                    <div class="d-flex justify-content-between flex-wrap align-items-center">
+                        <!-- Botón agregar reparación -->
+                        <a href="{% url 'inventario:agregarRep' %}" class="btn btn-lg btn-success" style="border-radius: 25px;">
+                            <i class="fa fa-wrench"></i> Agregar Reparación
+                        </a>
+
+                        <!-- Formulario de búsqueda -->
+                        <form method="get" class="form-inline d-flex flex-wrap justify-content-center align-items-center">
+                            <div class="form-group mr-3 mb-2">
+                                {{ form.as_p }}
+                            </div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary mb-2 mr-2" style="border-radius: 25px;">
+                                    <i class="fa fa-search"></i> Buscar
+                                </button>
+                                <a href="{% url 'inventario:listarRep' %}" class="btn btn-danger mb-2" style="border-radius: 25px;">
+                                    <i class="fa fa-times"></i> Limpiar
+                                </a>
+                            </div>
+                        </form>
+
+                        <!-- Botón imprimir -->
+                        <button class="btn btn-lg btn-info" style="border-radius: 25px;" onclick="window.print()">
+                            <i class="fa fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de reparaciones -->
+                <div class="card shadow-lg border-0 rounded">
+                    <div class="card-body">
+                        <div class="card-title-block">
+                            <h3 class="title text-info">Reparaciones</h3>
+                        </div>
+                        <section class="example">
+                            <div class="row">
+                                {% for reparacion in reparaciones %}
+                                <div class="col-md-4 mb-4">
+                                    <div class="card product-card">
+                                        <div class="position-relative">
+                                            <i class="fa fa-wrench position-absolute" style="top: 10px; right: 10px; font-size: 24px; color: #007bff;"></i>
+                                        </div>
+                                        <div class="card-body">
+                                            <h5 class="card-title text-center">{{ reparacion.idproducto.descripcion }}</h5>
+                                            <p class="card-text"><strong>Empleado:</strong> {{ reparacion.idempleado }}</p>
+                                            <p class="card-text"><strong>Descripción:</strong> {{ reparacion.motivo }}</p>
+                                            <p class="card-text"><strong>Bodega:</strong> {{ reparacion.bodega_origen.nombre }}</p>
+                                            <p class="card-text"><strong>Estado:</strong> {{ reparacion.estado.nombre }}</p>
+                                            <p class="card-text"><strong>Fecha de Envio:</strong> {{ reparacion.fecha_envio }}</p>
+                                            <p class="card-text"><strong>Fecha de Retorno:</strong> {{ reparacion.fecha_retorno }}</p>
+
+                                            <!-- Botón solo visible si el estado no es 'Reparado' -->
+                                            {% if reparacion.estado.nombre != 'Reparado' %}
+                                                <form method="POST" action="{% url 'inventario:marcarRep' reparacion.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-success mt-2" style="border-radius: 25px;">
+                                                        <i class="fa fa-check"></i> Marcar como Reparado
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-md-12 text-center">
+                                    <p class="text-muted">No se encontraron reparaciones con los filtros aplicados.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Tarjeta de total de reparaciones -->
+                            <div class="row">
+                                <div class="col-md-12 mb-4">
+                                    <div class="card shadow-sm border-success" style="border-radius: 8px; background-color: #f8f9fa;">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title text-success">Total de Reparaciones</h5>
+                                            <p class="card-text"><strong>{{ reparaciones.count }}</strong></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+
+<style>
+    .product-card {
+        position: relative;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+
+    .product-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .product-card .card-body {
+        padding: 15px;
+    }
+
+    .product-card .card-title {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+
+    .product-card .card-text {
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    .product-card:hover .card-title {
+        color: #007bff;
+    }
+</style>
+{% endblock %}

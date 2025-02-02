@@ -1,0 +1,111 @@
+{% extends "inventario/comun/base.html" %}
+
+{% block content %}
+
+<!-- NO MODIFICAR ---------------------------------->
+{% load static %}
+<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
+<!-- FIN DE JAVASCRIPT ------------------------------------>
+
+<article class="content responsive-tables-page">
+    <div class="title-block text-center mb-4">
+        <h1 class="title">Listar Devoluciones</h1>
+        <p class="title-description text-muted">Verifique las devoluciones realizadas</p>
+    </div>
+    <section class="section">
+        <div class="row">
+            <div class="col-md-12">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong><i class="fa fa-check"></i></strong> {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="col-md-12">
+                    <div class="card shadow-lg border-0 rounded">
+                        <!-- Botones en la parte superior -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <!-- Formulario de búsqueda centrado -->
+                            <form method="get" class="form-inline mb-4 justify-content-center">
+                                <div class="input-group">
+                                    {{ form.as_p }}
+                                    <button type="submit" class="btn btn-lg mt-2" style="background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 4px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; margin-left: 10px;">
+                                        <i class="fa fa-search text-center" style="font-size: 16px;"></i> Buscar
+                                    </button>
+                                    
+                                    <!-- Botón para limpiar los campos -->
+                                    <a href="{% url 'inventario:listarDev' %}" class="btn btn-lg mt-2" style="background-color: #dc3545; color: white; border: 2px solid #dc3545; border-radius: 25px; padding: 4px 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease; display: flex; align-items: center; justify-content: center; margin-left: 15px;">
+                                        <i class="fa fa-times" style="font-size: 16px;"></i> <span>Limpiar</span>
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="card-title-block">
+                                <h3 class="title text-info">Devoluciones Registradas</h3>
+                            </div>
+                            <section class="example">
+                                <div class="row">
+                                    {% for devolucion in tabla %}
+                                        <div class="col-md-3 mb-4">
+                                            <div class="card shadow-sm product-card" style="border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;">
+                                                <div class="card-body">
+                                                    <h5 class="card-title text-center">{{ devolucion.idproducto.descripcion }}</h5>
+                                                    <p class="card-text"><strong>Bodega:</strong> {{ devolucion.idbodega.nombre }}</p>
+                                                    <p class="card-text"><strong>Motivo:</strong> {{ devolucion.motivo }}</p>
+                                                    <p class="card-text"><strong>Cantidad:</strong> {{ devolucion.cantidad }}</p>
+                                                    {% if devolucion.dañado %}
+                                                    <p class="card-text text-danger"><strong>Dañado</strong></p>
+                                                    {% endif %}
+                                                    <p class="card-text"><strong>Fecha de Devolución:</strong> {{ devolucion.fecha_devolucion }}</p>
+                                                </div>
+                                                {% if devolucion.dañado and not devolucion.enviado_a_reparacion %}
+                                                <div class="card-footer text-center">
+                                                    <form method="post" action="{% url 'inventario:agregarRep' %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="idproducto" value="{{ devolucion.idproducto.id }}">
+                                                        <input type="hidden" name="bodega_origen" value="{{ devolucion.idbodega.id }}">
+                                                        <input type="hidden" name="idempleado" value="{{ devolucion.idempleado.id }}">
+                                                        <input type="hidden" name="motivo" value="{{ devolucion.motivo }}">
+                                                        <input type="hidden" name="desde_devolucion" value="true">  <!-- Campo adicional -->
+                                                        <button type="submit" class="btn btn-warning btn-sm">Enviar a Reparación</button>
+                                                    </form>
+                                                </div>
+                                                {% elif devolucion.enviado_a_reparacion %}
+                                                <div class="card-footer text-center">
+                                                    <span class="badge badge-success">Enviado a Reparación</span>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+
+                                </div>
+
+                                <!-- Tarjeta de Total de Devoluciones -->
+                                <div class="row">
+                                    <div class="col-md-12 mb-4">
+                                        <div class="card shadow-sm" style="border: 2px solid #28a745; border-radius: 8px; background-color: #f8f9fa;">
+                                            <div class="card-body text-center">
+                                                <h5 class="card-title text-success">Total de Devoluciones</h5>
+                                                <p class="card-text"><strong>{{ total }}</strong></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+
+{% endblock %}
