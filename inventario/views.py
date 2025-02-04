@@ -1,4 +1,5 @@
 #renderiza las vistas al usuario
+import calendar
 from collections import defaultdict
 import datetime
 import json
@@ -1742,7 +1743,7 @@ from django.utils.dateparse import parse_date
 
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
-    template_name = 'inventario/movimientoproducto/listarMovimientoProducto.html'
+    template_name = 'inventario/movimientoProducto/listarMovimientoProducto.html'
 
     def get(self, request):
         form = MovimientoProductoFormulario(request.GET)
@@ -2002,29 +2003,31 @@ def recepcion_producto(request):
     except Exception as e:
         messages.error(request, f"Error inesperado: {e}")
 
+    return redirect('inventario:listarEmpleadosPendientes') 
     # Volver a listar los empleados pendientes
-    movimientos_pendientes = MovimientoProducto.objects.filter(
-        estado_producto__nombre='Pendiente'
-    ).select_related('producto', 'empleado')
+    # movimientos_pendientes = MovimientoProducto.objects.filter(
+    #     estado_producto__nombre='Pendiente'
+    # ).select_related('producto', 'empleado')
 
-    empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
-    for movimiento in movimientos_pendientes:
-        empleado_id = movimiento.empleado.id
-        empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
-        empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
-        producto_id = movimiento.producto.id
-        if producto_id not in empleados[empleado_id]['productos']:
-            empleados[empleado_id]['productos'][producto_id] = {
-                'descripcion': movimiento.producto.descripcion,
-                'cantidad': movimiento.cantidad,
-                'movimiento_id': movimiento.id
-            }
-    bodegas = Bodega.objects.all()
-    contexto = {'empleados': dict(empleados),
-            'bodegas': bodegas,  # Agregar bodegas al contexto
-                }
-    contexto = complementarContexto(contexto, request.user)
-    return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+    # empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
+    # for movimiento in movimientos_pendientes:
+    #     empleado_id = movimiento.empleado.id
+    #     empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
+    #     empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
+    #     producto_id = movimiento.producto.id
+    #     if producto_id not in empleados[empleado_id]['productos']:
+    #         empleados[empleado_id]['productos'][producto_id] = {
+    #             'descripcion': movimiento.producto.descripcion,
+    #             'cantidad': movimiento.cantidad,
+    #             'movimiento_id': movimiento.id
+    #         }
+    # bodegas = Bodega.objects.all()
+    # contexto = {'empleados': dict(empleados),
+    #         'bodegas': bodegas,  # Agregar bodegas al contexto
+    #             }
+    # contexto = complementarContexto(contexto, request.user)
+
+    # return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
 #Devoluciones
 #@method_decorator(nivel_requerido(1), name='dispatch')
@@ -2516,3 +2519,732 @@ class BuscarProductoPorId(View):
                 return JsonResponse({'error': 'Producto no encontrado por ID'}, status=404)
 
         return JsonResponse({'error': 'ID no proporcionado'}, status=400)
+from django.utils.numberformat import format as format_number
+import calendar
+from datetime import date
+
+class ProductosMasVendidosPDF(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+
+    def get(self, request):
+        # Vista para mostrar el formulario de selección de mes
+        contexto = complementarContexto({}, request.user)
+        return render(request, 'inventario/reportes/seleccionMes.html', contexto)
+
+    def post(self, request):
+        # Procesar la fecha seleccionada
+        mes_seleccionado = request.POST.get('mes')
+        año, mes = map(int, mes_seleccionado.split('-'))
+        
+        # Calcular rangos de fecha
+        # Fecha de inicio
+        fecha_inicio_naive = datetime(año, mes, 1)
+        fecha_inicio = timezone.make_aware(fecha_inicio_naive)
+
+        # Último día del mes
+        ultimo_dia = calendar.monthrange(año, mes)[1]
+
+        # Fecha de fin
+        fecha_fin_naive = datetime(año, mes, ultimo_dia, 23, 59, 59)
+        fecha_fin = timezone.make_aware(fecha_fin_naive)
+        # Obtener datos
+        productos = MovimientoProducto.objects.filter(
+            tipo_movimiento='venta',
+            estado_producto__nombre='Vendido',
+            fecha_movimiento__range=[fecha_inicio, fecha_fin]
+        ).values('producto__descripcion', 'producto__codigo').annotate(
+            total_vendido=Sum('cantidad')
+        ).order_by('-total_vendido')
+
+        total_general = sum(item['total_vendido'] for item in productos)
+
+        # Calcular la participación de cada producto y el ancho de la barra
+        for producto in productos:
+            participacion = (producto['total_vendido'] / total_general) * 100
+            producto['participacion'] = participacion
+            # Calcular el ancho de la barra (entero entre 0 y 100)
+            producto['participacion_width'] = int(participacion)
+            # Formatear la participación para mostrar solo dos decimales
+            producto['participacion_display'] = format_number(participacion, decimal_sep='.', decimal_pos=2)
+
+        # Calcular la participación del top 3 productos
+        top_3_productos = productos[:3]
+        participacion_top_3 = sum(producto['participacion'] for producto in top_3_productos)
+
+        data = {
+            'nombre_empresa': 'Comercial Hernandez',
+            'direccion_empresa': 'Sonsonate, El Salvador',
+            'productos': productos,
+            'total_general': total_general,
+            'mes': fecha_inicio.strftime("%B %Y"),
+            'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+            'fecha_reporte': date.today().strftime("%d/%m/%Y"),
+            'usuario_generacion': request.user.get_full_name(),
+            'participacion_top_3': participacion_top_3,
+        }
+
+        nombre_archivo = f"productos_mas_vendidos_{fecha_inicio.strftime('%Y_%m')}.pdf"
+
+        pdf = render_to_pdf('inventario/Reportes/reporteProductosVendidos.html', data)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+        return response
+    
+
+class GeneradorReportesPDF(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = None
+    
+    reportes_config = {
+        'ventas': {
+            'nombre': 'Reporte de Ventas',
+            'icono': 'fa-chart-line',
+            'parametros': ['mes', 'bodega'],
+            'template': 'inventario/Reportes/ventas.html',
+            'handler': 'procesar_ventas'
+        },
+        'stock': {
+            'nombre': 'Stock Actual',
+            'icono': 'fa-boxes',
+            'parametros': ['bodega', 'estado'],
+            'template': 'inventario/Reportes/stock.html',
+            'handler': 'procesar_stock'
+        },
+        'danados': {
+            'nombre': 'Productos Dañados',
+            'icono': 'fa-exclamation-triangle',
+            'parametros': ['mes'],
+            'template': 'inventario/Reportes/danados.html',
+            'handler': 'procesar_danados'
+        },
+        'vendedor_mes': {
+            'nombre': 'Vendedor del Mes',
+            'icono': 'fa-trophy',
+            'parametros': ['mes'],
+            'template': 'inventario/Reportes/vendedor_mes.html',
+            'handler': 'procesar_vendedor_mes'
+        },
+        'ganancias': {
+            'nombre': 'Ganancias y Pérdidas',
+            'icono': 'fa-coins',
+            'parametros': ['mes'],
+            'template': 'inventario/Reportes/ganancias.html',
+            'handler': 'procesar_ganancias'
+        },
+        'entradas': {
+            'nombre': 'Reporte de Entradas',
+            'icono': 'fa-sign-in-alt',
+            'parametros': ['mes', 'bodega'],
+            'template': 'inventario/Reportes/entradas.html',
+            'handler': 'procesar_entradas'
+        },
+        'salidas': {
+            'nombre': 'Reporte de Salidas',
+            'icono': 'fa-sign-out-alt',
+            'parametros': ['mes', 'bodega'],
+            'template': 'inventario/Reportes/salidas.html',
+            'handler': 'procesar_salidas'
+        }
+    }
+
+    def get(self, request, reporte_type='ventas'):
+        config = self.reportes_config.get(reporte_type)
+        contexto = self._preparar_contexto(request, config)
+        return render(request, 'inventario/Reportes/base_generador.html', contexto)
+
+    def post(self, request, reporte_type='ventas'):
+        config = self.reportes_config.get(reporte_type)
+        
+        if config is None:
+            return HttpResponse("Error: Tipo de reporte inválido", status=400)
+        
+        handler = getattr(self, config.get('handler', ''), None)
+
+        if handler is None or not callable(handler):
+            return HttpResponse("Error: Handler no encontrado para el reporte", status=500)
+        
+        return handler(request, config)
+    
+    def _preparar_contexto(self, request, config):
+        bodegas = list(Bodega.objects.all())
+        if not bodegas:
+            bodegas = [{'id': 0, 'nombre': 'Todas las Bodegas'}]
+        return {
+            'reportes_config': self.reportes_config,
+            'reporte_type': config.get('nombre', ''),
+            'config': config,
+            'bodegas': bodegas,
+            'estados': EstadoProducto.objects.all(),
+            'empleados': Empleado.objects.all(),
+            'todas_bodegas_option': {'id': 0, 'nombre': 'Todas las Bodegas'}
+        }
+
+    # Handlers específicos para cada tipo de reporte
+    def procesar_ventas(self, request, config):
+        try:
+            params = {
+                'mes': request.POST.get('mes'),
+                'bodega_id': request.POST.get('bodega')
+            }
+
+            bodega_filter = {}
+            if params['bodega_id'] != '0':
+                bodega_filter['bodega_id'] = params['bodega_id']
+
+            año, mes = map(int, params['mes'].split('-'))
+            fecha_inicio = date(año, mes, 1)
+            fecha_fin = date(año, mes, calendar.monthrange(año, mes)[1])
+            
+            ventas = MovimientoProducto.objects.filter(
+                tipo_movimiento='venta',
+                fecha_movimiento__range=[fecha_inicio, fecha_fin],
+                **bodega_filter
+            ).annotate(
+                total_vendido=Sum('cantidad')
+            ).values('producto__descripcion', 'total_vendido')
+            
+            if not ventas:
+                return self._generar_pdf({
+                    'mensaje': 'No hay datos de ventas para el periodo seleccionado.'
+                }, config)
+            
+            total_ventas = sum(item['total_vendido'] for item in ventas)
+            
+            for venta in ventas:
+                if total_ventas > 0:
+                    venta['participacion'] = (venta['total_vendido'] / total_ventas) * 100
+                else:
+                    venta['participacion'] = 0
+
+            bodega_nombre = Bodega.objects.get(id=params['bodega_id']).nombre if params['bodega_id'] != '0' else 'Todas las Bodegas'
+            
+            return self._generar_pdf({
+                'data': ventas,
+                'total_ventas': total_ventas,
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+                'bodega': bodega_nombre
+            }, config)
+
+        except Exception as e:
+            return self._generar_pdf({
+                'mensaje': f"Error al generar el reporte: {str(e)}"
+            }, config)
+
+    def procesar_stock(self, request, config):
+        bodega_id = request.POST.get('bodega')
+        estado_id = EstadoProducto.objects.get(nombre=EstadoProducto.DISPONIBLE).id
+
+        bodega_filter = {}
+        if bodega_id != '0':
+            bodega_filter['idbodega_id'] = bodega_id
+
+        stock = Inventario.objects.filter(
+            estado_id=estado_id,
+            **bodega_filter
+        ).annotate(
+            valor_total=F('stock') * F('idproducto__precio_unitario')
+        )
+
+        bodega_nombre = Bodega.objects.get(id=bodega_id).nombre if bodega_id != '0' else 'Todas las Bodegas'
+
+        return self._generar_pdf({
+            'data': stock,
+            'titulo': 'Stock Actual',
+            'bodega': bodega_nombre
+        }, config)
+
+    def procesar_danados(self, request, config):
+        mes = request.POST.get('mes')
+        año, mes = map(int, mes.split('-'))
+        
+        danados = Devolucion.objects.filter(
+            dañado=True,
+            fecha_devolucion__year=año,
+            fecha_devolucion__month=mes
+        ).select_related('idproducto', 'idbodega')
+        
+        return self._generar_pdf({
+            'data': danados,
+            'titulo': 'Productos Dañados',
+            'mes': f"{mes}/{año}"
+        }, config)
+    
+    def procesar_ganancias(self, request, config):
+        mes = request.POST.get('mes')
+        año, mes = map(int, mes.split('-'))
+        
+        fecha_inicio = datetime(año, mes, 1)
+        fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
+        
+        ventas_mes_actual = MovimientoProducto.objects.filter(
+            tipo_movimiento='venta',
+            fecha_movimiento__range=[fecha_inicio, fecha_fin]
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        
+        fecha_inicio_mes_anterior = fecha_inicio - timedelta(days=1)
+        fecha_fin_mes_anterior = fecha_inicio - timedelta(days=1)
+        
+        ventas_mes_anterior = MovimientoProducto.objects.filter(
+            tipo_movimiento='venta',
+            fecha_movimiento__range=[fecha_inicio_mes_anterior, fecha_fin_mes_anterior]
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        
+        diferencia = ventas_mes_actual - ventas_mes_anterior
+        
+        return self._generar_pdf({
+            'mes': fecha_inicio.strftime('%B %Y'),
+            'ventas_mes_actual': ventas_mes_actual,
+            'ventas_mes_anterior': ventas_mes_anterior,
+            'diferencia': diferencia
+        }, config)
+
+    def procesar_vendedor_mes(self, request, config):
+        try:
+            mes = request.POST.get('mes')
+            año, mes = map(int, mes.split('-'))
+            
+            fecha_inicio = timezone.make_aware(datetime(año, mes, 1), timezone.get_current_timezone())
+            fecha_fin = timezone.make_aware(datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59), timezone.get_current_timezone())
+            
+            vendedores = MovimientoProducto.objects.filter(
+                tipo_movimiento='venta',
+                fecha_movimiento__range=[fecha_inicio, fecha_fin]
+            ).values('empleado__nombre', 'empleado__apellido').annotate(
+                total_vendido=Sum('cantidad')
+            ).order_by('-total_vendido')
+            
+            if vendedores.exists():
+                total_ventas = sum(v['total_vendido'] for v in vendedores)
+                for vendedor in vendedores:
+                    vendedor['participacion'] = (vendedor['total_vendido'] / total_ventas * 100) if total_ventas > 0 else 0
+                
+                return self._generar_pdf({
+                    'mes': fecha_inicio.strftime('%B %Y'),
+                    'vendedores': vendedores,
+                    'total_ventas': total_ventas
+                }, config)
+            else:
+                return self._generar_pdf({
+                    'mes': fecha_inicio.strftime('%B %Y'),
+                    'mensaje': 'No se encontraron ventas para este mes.'
+                }, config)
+        
+        except Exception as e:
+            return self._generar_pdf({
+                'mensaje': f"Error al generar el reporte: {str(e)}"
+            }, config)
+
+    def procesar_entradas(self, request, config):
+        try:
+            params = {
+                'mes': request.POST.get('mes'),
+                'bodega_id': request.POST.get('bodega')
+            }
+            
+            bodega_filter = {}
+            if params['bodega_id'] != '0':
+                bodega_filter['bodega_id'] = params['bodega_id']
+
+            año, mes = map(int, params['mes'].split('-'))
+            fecha_inicio = datetime(año, mes, 1)
+            fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
+            
+            entradas = MovimientoProducto.objects.filter(
+                tipo_movimiento__in=['entrada', 'recepcion', 'devolucion'],
+                fecha_movimiento__range=[fecha_inicio, fecha_fin],
+                **bodega_filter,
+                estado_producto__nombre='Disponible'
+            ).select_related('producto', 'empleado')
+
+            bodega_nombre = Bodega.objects.get(id=params['bodega_id']).nombre if params['bodega_id'] != '0' else 'Todas las Bodegas'
+
+            return self._generar_pdf({
+                'data': entradas,
+                'tipo': 'Entradas',
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+                'bodega': bodega_nombre
+            }, config)
+        
+        except Exception as e:
+            return self._generar_pdf({'mensaje': str(e)}, config)
+
+    def procesar_salidas(self, request, config):
+        try:
+            params = {
+                'mes': request.POST.get('mes'),
+                'bodega_id': request.POST.get('bodega')
+            }
+            
+            bodega_filter = {}
+            if params['bodega_id'] != '0':
+                bodega_filter['bodega_id'] = params['bodega_id']
+
+            año, mes = map(int, params['mes'].split('-'))
+            fecha_inicio = datetime(año, mes, 1)
+            fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
+
+            movimientos_pendientes = MovimientoPendiente.objects.filter(
+                fecha__range=[fecha_inicio, fecha_fin],
+                **bodega_filter,
+                estado='Pendiente'
+            ).select_related('producto', 'empleado_recibio', 'empleado_entrego')
+
+            productos_en_movimiento = MovimientoProducto.objects.filter(
+                tipo_movimiento__in=['salida', 'entrega', 'reparacion', 'dañado'],
+                fecha_movimiento__range=[fecha_inicio, fecha_fin],
+                **bodega_filter
+            ).values_list('producto', flat=True)
+
+            salidas = movimientos_pendientes.exclude(producto__in=productos_en_movimiento)
+
+            bodega_nombre = Bodega.objects.get(id=params['bodega_id']).nombre if params['bodega_id'] != '0' else 'Todas las Bodegas'
+
+            return self._generar_pdf({
+                'data': salidas,
+                'tipo': 'Salidas',
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+                'bodega': bodega_nombre
+            }, config)
+        
+        except Exception as e:
+            return self._generar_pdf({'mensaje': str(e)}, config)
+
+    def _generar_pdf(self, data, config):
+        contexto = {
+            **data,
+            'usuario': self.request.user.get_full_name(),
+            'fecha_generacion': date.today().strftime('%d/%m/%Y')
+        }
+        
+        pdf = render_to_pdf(config['template'], contexto)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{config["nombre"]}.pdf"'
+        return response
+    login_url = '/inventario/login'
+    redirect_field_name = None
+    
+    reportes_config = {
+        'ventas': {
+            'nombre': 'Reporte de Ventas',
+            'icono': 'fa-chart-line',
+            'parametros': ['mes', 'bodega'],
+            'template': 'inventario/Reportes/ventas.html',
+            'handler': 'procesar_ventas'
+        },
+        'stock': {
+            'nombre': 'Stock Actual',
+            'icono': 'fa-boxes',
+            'parametros': ['bodega', 'estado'],
+            'template': 'inventario/Reportes/stock.html',
+            'handler': 'procesar_stock'
+        },
+        'danados': {
+            'nombre': 'Productos Dañados',
+            'icono': 'fa-exclamation-triangle',
+            'parametros': ['mes'],
+            'template': 'inventario/Reportes/danados.html',
+            'handler': 'procesar_danados'
+        },
+        'vendedor_mes': {
+            'nombre': 'Vendedor del Mes',
+            'icono': 'fa-trophy',
+            'parametros': ['mes'],
+            'template': 'inventario/Reportes/vendedor_mes.html',
+            'handler': 'procesar_vendedor_mes'
+        },
+        'ganancias': {
+            'nombre': 'Ganancias y Pérdidas',
+            'icono': 'fa-coins',
+            'parametros': ['mes'],
+            'template': 'inventario/Reportes/ganancias.html',
+            'handler': 'procesar_ganancias'
+        },
+        'entradas': {
+        'nombre': 'Reporte de Entradas',
+        'icono': 'fa-sign-in-alt',
+        'parametros': ['mes', 'bodega'],
+        'template': 'inventario/Reportes/entradas.html',
+        'handler': 'procesar_entradas'
+        },
+        'salidas': {
+            'nombre': 'Reporte de Salidas',
+            'icono': 'fa-sign-out-alt',
+            'parametros': ['mes', 'bodega'],
+            'template': 'inventario/Reportes/salidas.html',
+            'handler': 'procesar_salidas'
+        }
+    }
+
+    def get(self, request, reporte_type='ventas'):
+        config = self.reportes_config.get(reporte_type)
+        contexto = self._preparar_contexto(request, config)
+        return render(request, 'inventario/Reportes/base_generador.html', contexto)
+
+    def post(self, request, reporte_type='ventas'):
+        config = self.reportes_config.get(reporte_type)
+        
+        if config is None:
+            return HttpResponse("Error: Tipo de reporte inválido", status=400)
+        
+        handler = getattr(self, config.get('handler', ''), None)
+
+        if handler is None or not callable(handler):
+            return HttpResponse("Error: Handler no encontrado para el reporte", status=500)
+        
+        return handler(request, config)
+    
+    def _preparar_contexto(self, request, config):
+        return {
+            'reportes_config': self.reportes_config,
+            'reporte_type': config.get('nombre', ''),
+            'config': config,
+            'bodegas': Bodega.objects.all(),
+            'estados': EstadoProducto.objects.all(),
+            'empleados': Empleado.objects.all(),
+            'todas_bodegas_option': {'id': 0, 'nombre': 'Todas las Bodegas'}  # Nueva opción
+        }
+
+    # Handlers específicos para cada tipo de reporte
+    def procesar_ventas(self, request, config):
+        try:
+            # Obtener parámetros
+            params = {
+                'mes': request.POST.get('mes'),
+                'bodega_id': request.POST.get('bodega')
+            }
+
+            if not params['mes'] or not params['bodega_id']:
+                raise ValueError("Parámetros incompletos")
+            
+            # Desglosar año y mes
+            año, mes = map(int, params['mes'].split('-'))
+            fecha_inicio = date(año, mes, 1)
+            fecha_fin = date(año, mes, calendar.monthrange(año, mes)[1])
+            
+            # Obtener ventas
+            ventas = MovimientoProducto.objects.filter(
+                tipo_movimiento='venta',
+                fecha_movimiento__range=[fecha_inicio, fecha_fin],
+                bodega_id=params['bodega_id']
+            ).annotate(
+                total_vendido=Sum('cantidad')
+            ).values('producto__descripcion', 'total_vendido')
+            
+            # Verificar si hay ventas
+            if not ventas:
+                return self._generar_pdf({
+                    'mensaje': 'No hay datos de ventas para el periodo seleccionado.'
+                }, config)
+            
+            # Calcular el total de ventas y la participación por producto
+            total_ventas = sum(item['total_vendido'] for item in ventas)
+            
+            for venta in ventas:
+                if total_ventas > 0:
+                    venta['participacion'] = (venta['total_vendido'] / total_ventas) * 100
+                else:
+                    venta['participacion'] = 0
+
+            # Obtener nombre de la bodega
+            bodega = Bodega.objects.get(id=params['bodega_id']).nombre
+            
+            # Generar el reporte en PDF
+            return self._generar_pdf({
+                'data': ventas,
+                'total_ventas': total_ventas,
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+                'bodega': bodega
+            }, config)
+
+        except Exception as e:
+            return self._generar_pdf({
+                'mensaje': f"Error al generar el reporte: {str(e)}"
+            }, config)
+
+    def procesar_stock(self, request, config):
+        bodega_id = request.POST.get('bodega')
+        estado_id = EstadoProducto.objects.get(nombre= EstadoProducto.DISPONIBLE).id,
+        
+        stock = Inventario.objects.filter(
+            idbodega_id=bodega_id,
+            estado_id=estado_id
+        ).annotate(
+            valor_total=F('stock') * F('idproducto__precio_unitario')
+        )
+        
+        return self._generar_pdf({
+            'data': stock,
+            'titulo': 'Stock Actual',
+            'bodega': Bodega.objects.get(id=bodega_id).nombre
+        }, config)
+
+    def procesar_danados(self, request, config):
+        mes = request.POST.get('mes')
+        año, mes = map(int, mes.split('-'))
+        
+        danados = Devolucion.objects.filter(
+            dañado=True,
+            fecha_devolucion__year=año,
+            fecha_devolucion__month=mes
+        ).select_related('idproducto', 'idbodega')
+        
+        return self._generar_pdf({
+            'data': danados,
+            'titulo': 'Productos Dañados',
+            'mes': f"{mes}/{año}"
+        }, config)
+    
+    #Ganancias o perdidas en comparacion al mes anterior 
+    def procesar_ganancias(self, request, config):
+        mes = request.POST.get('mes')
+        año, mes = map(int, mes.split('-'))
+        
+        fecha_inicio = datetime(año, mes, 1)
+        fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
+        
+        # Obtener las ventas del mes actual
+        ventas_mes_actual = MovimientoProducto.objects.filter(
+            tipo_movimiento='venta',
+            fecha_movimiento__range=[fecha_inicio, fecha_fin]
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        
+        # Obtener las ventas del mes anterior
+        fecha_inicio_mes_anterior = fecha_inicio - timedelta(days=1)
+        fecha_fin_mes_anterior = fecha_inicio - timedelta(days=1)
+        
+        ventas_mes_anterior = MovimientoProducto.objects.filter(
+            tipo_movimiento='venta',
+            fecha_movimiento__range=[fecha_inicio_mes_anterior, fecha_fin_mes_anterior]
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        
+        # Calcular la diferencia
+        diferencia = ventas_mes_actual - ventas_mes_anterior
+        
+        return self._generar_pdf({
+            'mes': fecha_inicio.strftime('%B %Y'),
+            'ventas_mes_actual': ventas_mes_actual,
+            'ventas_mes_anterior': ventas_mes_anterior,
+            'diferencia': diferencia
+        }, config)
+    #procesar vendedor mes
+    def procesar_vendedor_mes(self, request, config):
+        try:
+            mes = request.POST.get('mes')
+            año, mes = map(int, mes.split('-'))
+            
+            # Crear las fechas con la zona horaria de Django
+            fecha_inicio = timezone.make_aware(datetime(año, mes, 1), timezone.get_current_timezone())
+            fecha_fin = timezone.make_aware(datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59), timezone.get_current_timezone())
+            
+            # Obtener los vendedores con ventas en el rango de fechas
+            vendedores = MovimientoProducto.objects.filter(
+                tipo_movimiento='venta',
+                fecha_movimiento__range=[fecha_inicio, fecha_fin]
+            ).values('empleado__nombre', 'empleado__apellido').annotate(
+                total_vendido=Sum('cantidad')
+            ).order_by('-total_vendido')
+            
+            if vendedores.exists():
+                # Calcular la participación de cada vendedor
+                total_ventas = sum(v['total_vendido'] for v in vendedores)
+                for vendedor in vendedores:
+                    vendedor['participacion'] = (vendedor['total_vendido'] / total_ventas * 100) if total_ventas > 0 else 0
+                
+                return self._generar_pdf({
+                    'mes': fecha_inicio.strftime('%B %Y'),
+                    'vendedores': vendedores,
+                    'total_ventas': total_ventas
+                }, config)
+            else:
+                # Si no hay ventas, retornar un mensaje
+                return self._generar_pdf({
+                    'mes': fecha_inicio.strftime('%B %Y'),
+                    'mensaje': 'No se encontraron ventas para este mes.'
+                }, config)
+        
+        except Exception as e:
+            return self._generar_pdf({
+                'mensaje': f"Error al generar el reporte: {str(e)}"
+            }, config)
+    def procesar_entradas(self, request, config):
+        try:
+            params = {
+                'mes': request.POST.get('mes'),
+                'bodega_id': request.POST.get('bodega')
+            }
+            
+            año, mes = map(int, params['mes'].split('-'))
+            fecha_inicio = datetime(año, mes, 1)
+            fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
+            
+            entradas = MovimientoProducto.objects.filter(
+                tipo_movimiento__in=['entrada', 'recepcion', 'devolucion'],
+                fecha_movimiento__range=[fecha_inicio, fecha_fin],
+                bodega_id=params['bodega_id'],
+                estado_producto__nombre='Disponible'
+            ).select_related('producto', 'empleado')
+            
+            return self._generar_pdf({
+                'data': entradas,
+                'tipo': 'Entradas',
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+                'bodega': Bodega.objects.get(id=params['bodega_id']).nombre
+            }, config)
+        
+        except Exception as e:
+            return self._generar_pdf({'mensaje': str(e)}, config)
+
+    def procesar_salidas(self, request, config):
+        try:
+            params = {
+                'mes': request.POST.get('mes'),
+                'bodega_id': request.POST.get('bodega')
+            }
+            
+            # Parsear año y mes
+            año, mes = map(int, params['mes'].split('-'))
+            fecha_inicio = datetime(año, mes, 1)
+            fecha_fin = datetime(año, mes, calendar.monthrange(año, mes)[1], 23, 59, 59)
+
+            # Filtrar los movimientos pendientes de productos disponibles
+            movimientos_pendientes = MovimientoPendiente.objects.filter(
+                fecha__range=[fecha_inicio, fecha_fin],
+                bodega_id=params['bodega_id'],
+                estado='Pendiente'  # Solo pendientes
+            ).select_related('producto', 'empleado_recibio', 'empleado_entrego')  # Relacionar productos y empleados
+
+            # Obtener los productos que ya han sido registrados en MovimientoProducto
+            productos_en_movimiento = MovimientoProducto.objects.filter(
+                tipo_movimiento__in=['salida', 'entrega', 'reparacion', 'dañado'],
+                fecha_movimiento__range=[fecha_inicio, fecha_fin],
+                bodega_id=params['bodega_id']
+            ).values_list('producto', flat=True)
+
+            # Filtrar solo los productos en pendiente que no estén en MovimientoProducto
+            salidas = movimientos_pendientes.exclude(producto__in=productos_en_movimiento)
+
+            # Generar reporte PDF
+            return self._generar_pdf({
+                'data': salidas,
+                'tipo': 'Salidas',
+                'rango_fechas': f"{fecha_inicio.strftime('%d/%m/%Y')} - {fecha_fin.strftime('%d/%m/%Y')}",
+                'bodega': Bodega.objects.get(id=params['bodega_id']).nombre
+            }, config)
+        
+        except Exception as e:
+            return self._generar_pdf({'mensaje': str(e)}, config)
+
+
+
+    def _generar_pdf(self, data, config):
+        contexto = {
+            **data,
+            'usuario': self.request.user.get_full_name(),
+            'fecha_generacion': date.today().strftime('%d/%m/%Y')
+        }
+        
+        pdf = render_to_pdf(config['template'], contexto)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{config["nombre"]}.pdf"'
+        return response

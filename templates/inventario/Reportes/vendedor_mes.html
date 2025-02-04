@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .encabezado { text-align: center; margin-bottom: 2cm; }
+        .tabla { width: 100%; border-collapse: collapse; }
+        .tabla th { background: #2c3e50; color: white; padding: 12px; }
+        .tabla td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .resaltado { background: #f8f9fa; }
+        .ganador { background-color: #d5f5e3; }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <h1>Vendedor del Mes</h1>
+        <p>Mes: {{ mes }}</p>
+    </div>
+
+    {% if mensaje %}
+    <div class="mensaje-error">
+        {{ mensaje }}
+    </div>
+    {% else %}
+    <h2>Top Vendedores</h2>
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Posición</th>
+                <th>Vendedor</th>
+                <th>Ventas Totales</th>
+                <th>Participación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vendedor in vendedores %}
+            <tr class="{% if forloop.first %}ganador{% else %}{% cycle '' 'resaltado' %}{% endif %}">
+                <td>{{ forloop.counter }}</td>
+                <td>{{ vendedor.empleado__nombre }} {{ vendedor.empleado__apellido }}</td>
+                <td>{{ vendedor.total_vendido }}</td>
+                <td>{{ vendedor.participacion|floatformat:2 }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="firma">
+        <p>Generado por: {{ usuario }}</p>
+        <p>Fecha: {{ fecha_generacion }}</p>
+    </div>
+    {% endif %}
+</body>
+</html>

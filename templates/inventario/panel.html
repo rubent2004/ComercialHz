@@ -117,10 +117,12 @@
                                     <div class="stat-icon" style="background-color: #ff9800;">
                                         <i class="fa fa-dollar" style="color: #ffffff;"></i>
                                     </div>
-                                    <div class="stat-content" style="margin-left: 10px;">
-                                        <div class="value" style="font-size: 20px; font-weight: bold;">${{ totalprecio }}</div>
-                                        <div class="name">Activos en inventario</div>
-                                    </div>
+                                    {% if user.nivel == 1 %}
+                                        <div class="stat-content" style="margin-left: 10px;">
+                                            <div class="value" style="font-size: 20px; font-weight: bold;">${{ totalprecio }}</div>
+                                            <div class="name">Activos en inventario</div>
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="progress stat-progress">
                                     <div class="progress-bar" style="width: 100%; background-color: #ff9800;"></div>
@@ -180,7 +182,7 @@
                     </div>
                 </div>
             </div>
-
+    
             <!-- Productos más vendidos -->
             <div class="col-xl-4">
                 <div class="card sameheight-item" style="border-left: 5px solid #2196f3;">
@@ -213,8 +215,7 @@
                     </div>
                 </div>
             </div>
-
-
+    
             <!-- Total de Stock -->
             <div class="col-xl-4">
                 <div class="card sameheight-item" style="border-left: 5px solid #36c9f6;">
@@ -231,8 +232,26 @@
                     </div>
                 </div>
             </div>
-
+    
         </div>
+    
+        {% if user.nivel == 1 %}
+            <!-- Enlace a Reportes Generales solo para administradores -->
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="card sameheight-item" style="border-left: 5px solid #ff9800;">
+                        <div class="card-header">
+                            <div class="header-block">
+                                <h3 class="title">Reportes Generales</h3>
+                            </div>
+                        </div>
+                        <div class="card-block text-center">
+                            <a href="{% url 'inventario:reportes' %}" class="btn btn-primary" style="font-size: 20px; font-weight: bold;">Ver Reportes Generales</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </section>
 </article>
 {% endblock %}

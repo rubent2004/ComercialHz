@@ -107,6 +107,7 @@ path('reporte-inventario/', ReporteInventarioView.as_view(), name='reporte_inven
 path('reporte-inventario/pdf/', ReporteInventarioPDF.as_view(), name='reporte_inventario_pdf'),
 path('reporteproductos/', ReporteProductoView.as_view(), name='reporte_productos'),
 path('reporte_movimientos/', views.ReporteMovimientoView.as_view(), name='reporte_movimientos'),
+path('reporte_ventas/', views.ProductosMasVendidosPDF.as_view(), name='reporte_ventas'),
 
 
 
@@ -115,5 +116,9 @@ path('reporte_movimientos/', views.ReporteMovimientoView.as_view(), name='report
 #devoluciones
 path('listarDev', views.ListarDev.as_view(), name='listarDev'),
 path('agregarDev', views.AgregarDev.as_view(), name='agregarDev'),
+
+#pruebas
+path('reportes/<str:reporte_type>/', views.GeneradorReportesPDF.as_view(), name='generar_reporte'),
+path('reportes/', views.GeneradorReportesPDF.as_view(), name='reportes'),
 ]
 

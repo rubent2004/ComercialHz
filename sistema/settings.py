@@ -14,8 +14,7 @@ import os
 from pathlib import Path
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
-
+BASE_DIR = BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -24,9 +23,9 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 SECRET_KEY = 'cwc9m+z#ppu8)+@v#$7ci$=w*gae$+%n&gfq6kcsn#59ze(3a3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['192.168.1.112', 'localhost', '*']
+ALLOWED_HOSTS = ['rbcreacion.com', 'www.rbcreacion.com', 'localhost','*' ]
 
 
 
@@ -94,7 +93,16 @@ DATABASES = {
 #     }
 # }
 
-
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'comercialHz',
+#         'USER': 'comercialHz',
+#         'PASSWORD': 'banakai123',
+#         'HOST': 'localhost',  # O el IP de tu servidor de base de datos
+#         'PORT': '5432',  # Por defecto para PostgreSQL
+#     }
+# }
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
 
@@ -127,15 +135,14 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 #STATIC_URL = '/static/'
-STATIC_URL = '/static/'
-
+STATIC_URL = '/staticfiles/'
+STATIC_ROOT = BASE_DIR / 'static'  # Carpeta donde se recopilan los archivos estáticos al usar collectstatic
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # Carpeta para tus archivos estáticos personalizados
+    BASE_DIR / 'staticfiles',  # Carpeta para tus archivos estáticos personalizados
 ]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -144,5 +151,3 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'inventario.Usuario' # modelo de usuario
-
-
