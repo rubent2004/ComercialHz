@@ -4,60 +4,204 @@
 
 <!-- NO MODIFICAR ---------------------------------->
 {% load static %}
-<script src='{% static "inventario/js/eliminarEntradas.js" %}'></script>
+<script src="{% static 'inventario/js/eliminarEntradas.js' %}"></script>
 <!-- FIN DE JAVASCRIPT ------------------------------------>
 
 <article class="content responsive-tables-page">
-    <div class="title-block text-center">
-        <h1 class="title">Registrar Inventario</h1>
-        <p class="title-description">Agregue productos al inventario</p>
-    </div>
-    <section class="section">
-        <div class="row">
-            <div class="col-md-12">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="card card-primary">
-                            <div class="card-header">
-                                <div class="header-block">
-                                    <em class="fa fa-check"></em>
-                                    <p class="title">{{ message }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-block">
-                            <div class="card-title-block">
-                                <h3 class="title">Registrar Inventario</h3>
-                            </div>
-                            
-                            <!-- Botón para listar inventario en la esquina superior derecha -->
-                            <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg" style="position: absolute; top: 20px; right: 20px; background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
-                                <i class="fa fa-list"></i> Listar Inventario
-                            </a>
-                            
-                            <section class="example">
-                                <form method="post">
-                                    {% csrf_token %}
-                                    {{ form.as_p }}
-                                    <div class="d-flex justify-content-between">
-                                        <!-- Botón para registrar producto -->
-                                        <button type="submit" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
-                                            <i class="fa fa-check"></i> Registrar
-                                        </button>
-                                    </div>
-                                </form>
-                            </section>
-                        </div>
-                    </div>
+  <div class="title-block text-center">
+    <h1 class="title">Registrar Inventario</h1>
+    <p class="title-description">Agregue productos al inventario</p>
+  </div>
+  <section class="section">
+    <div class="row">
+      <div class="col-md-12">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="card card-primary">
+              <div class="card-header">
+                <div class="header-block">
+                  <em class="fa fa-check"></em>
+                  <p class="title">{{ message }}</p>
                 </div>
+              </div>
             </div>
+          {% endfor %}
+        {% endif %}
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-block">
+              <div class="card-title-block">
+                <h3 class="title">Registrar Inventario</h3>
+              </div>
+              
+              <!-- Botón para listar inventario en la esquina superior derecha -->
+              <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg" style="position: absolute; top: 20px; right: 20px; background-color: #007bff; color: white; border: 2px solid #007bff; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                <i class="fa fa-list"></i> Listar Inventario
+              </a>
+              <br><br>
+              
+              <section class="example">
+                <!-- Sección de búsqueda de producto -->
+                <div class="row">
+                  <!-- Buscador por nombre -->
+                  <div class="col-md-4">
+                    <input type="text" id="nombre-input" class="form-control" placeholder="Nombre del Producto">
+                    <div id="sugerencias-nombre" class="list-group mt-1"></div>
+                  </div>
+                  <!-- Botón para buscar producto por nombre (opcional) -->
+                  <div class="col-md-2">
+                    <button type="button" id="buscar-nombre" class="btn btn-info btn-block">
+                      <i class="fa fa-search"></i> Buscar por Nombre
+                    </button>
+                  </div>
+                  <!-- Buscador por código -->
+                  <div class="col-md-4">
+                    <input type="text" id="codigo-input" class="form-control" placeholder="Código del Producto">
+                  </div>
+                  <!-- Botón para buscar producto por código -->
+                  <div class="col-md-2">
+                    <button type="button" id="buscar-codigo" class="btn btn-info btn-block">
+                      <i class="fa fa-search"></i> Buscar por Código
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Formulario principal -->
+                <form method="post">
+                  {% csrf_token %}
+                  {{ form.as_p }}
+                  {# Se asume que el campo del producto se renderiza en el form y tiene id "id_producto" #}
+                  <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
+                      <i class="fa fa-check"></i> Registrar
+                    </button>
+                  </div>
+                </form>
+              </section>
+              
+            </div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 </article>
+
+<!-- SCRIPT: Funcionalidad de búsqueda por nombre y por código -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const nombreInput = document.getElementById('nombre-input');
+  const sugerenciasNombre = document.getElementById('sugerencias-nombre');
+  // Se asume que el campo producto renderizado por el form tiene id "id_producto"
+  const productoSelect = document.getElementById('id_producto');
+  const codigoInput = document.getElementById('codigo-input');
+  const buscarCodigoBtn = document.getElementById('buscar-codigo');
+  const buscarNombreBtn = document.getElementById('buscar-nombre');
+
+  // Función para obtener sugerencias por nombre
+  async function obtenerSugerenciasNombre(nombre) {
+    try {
+      const response = await fetch(`/inventario/buscar-sugerencias-nombre/?nombre=${nombre}`);
+      const data = await response.json();
+      if (data.length > 0) {
+        sugerenciasNombre.innerHTML = data.map(producto => `
+          <a href="#" class="list-group-item list-group-item-action sugerencia" data-id="${producto.id}" data-nombre="${producto.descripcion}">
+            ${producto.descripcion}
+          </a>
+        `).join('');
+        agregarEventosSugerencias();
+      } else {
+        sugerenciasNombre.innerHTML = '';
+      }
+    } catch (error) {
+      console.error('Error obteniendo sugerencias:', error);
+    }
+  }
+
+  // Asigna eventos a cada sugerencia generada
+  function agregarEventosSugerencias() {
+    document.querySelectorAll('.sugerencia').forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const id = this.getAttribute('data-id');
+        const nombre = this.getAttribute('data-nombre');
+        nombreInput.value = nombre;  // Actualiza el input de búsqueda con el nombre seleccionado
+        if (productoSelect) {
+          productoSelect.value = id; // Asigna el id al combobox del producto
+        } else {
+          console.error('No se encontró el select con id "id_producto"');
+        }
+        sugerenciasNombre.innerHTML = ''; // Limpia la lista de sugerencias
+      });
+    });
+  }
+
+  // Función para buscar producto por código
+  async function buscarProductoPorCodigoId(codigo) {
+    try {
+      const response = await fetch(`/inventario/buscar-producto/?codigo=${codigo}`);
+      const data = await response.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        if (productoSelect) {
+          productoSelect.value = data.id;
+          // Opcional: actualizar el input de nombre con la descripción obtenida
+          nombreInput.value = data.descripcion || '';
+        }
+      }
+    } catch (error) {
+      console.error('Error buscando el producto por código:', error);
+    }
+  }
+
+  // Función para buscar producto por nombre (por botón)
+  async function buscarProductoPorNombre(nombre) {
+    try {
+      const response = await fetch(`/inventario/buscar-productoNom/?nombre=${nombre}`);
+      const data = await response.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        if (productoSelect) {
+          productoSelect.value = data.id;
+        }
+      }
+    } catch (error) {
+      console.error('Error buscando el producto por nombre:', error);
+    }
+  }
+
+  // Mostrar sugerencias mientras se escribe en el input de nombre
+  nombreInput.addEventListener('input', function() {
+    const nombre = nombreInput.value.trim();
+    if (nombre.length > 2) {
+      obtenerSugerenciasNombre(nombre);
+    } else {
+      sugerenciasNombre.innerHTML = '';
+    }
+  });
+
+  // Evento para el botón de búsqueda por nombre (opcional)
+  buscarNombreBtn.addEventListener('click', function() {
+    const nombre = nombreInput.value.trim();
+    if (nombre) {
+      buscarProductoPorNombre(nombre);
+    } else {
+      alert('Por favor ingresa un nombre de producto');
+    }
+  });
+
+  // Evento para el botón de búsqueda por código
+  buscarCodigoBtn.addEventListener('click', function() {
+    const codigo = codigoInput.value.trim();
+    if (codigo) {
+      buscarProductoPorCodigoId(codigo);
+    } else {
+      alert('Por favor ingresa un código de producto');
+    }
+  });
+});
+</script>
 
 {% endblock %}

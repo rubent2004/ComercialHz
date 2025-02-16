@@ -17,8 +17,8 @@ from django.db.models.signals import post_migrate
 #--------------------------------USUARIO------------------------------------------------
 class Usuario(AbstractUser):
     #id
-    username = models.CharField(max_length=80, unique=True)
-    password = models.CharField(max_length=20)
+    username = models.CharField(max_length=150, unique=True)
+    password = models.CharField(max_length=100)
     email = models.EmailField(max_length=100, unique=True)
     first_name = models.CharField(max_length=40)
     last_name = models.CharField(max_length=60)
@@ -179,7 +179,7 @@ class Opciones(models.Model):
 
 #-------------------------------PRODUCTO------------------------------------------------
 class Producto(models.Model):
-    descripcion = models.CharField(max_length=40)  # Equivale a 'nombre'
+    descripcion = models.CharField(max_length=100)  # Equivale a 'nombre'
     precio_unitario = models.DecimalField(max_digits=9, decimal_places=2)
     precio_cash = models.DecimalField(max_digits=9, decimal_places=2, null=True, blank=True)
     codigo = models.CharField(max_length=50, unique=True, null=True)  # Código único basado en el id
@@ -190,7 +190,7 @@ class Producto(models.Model):
     marca = models.ForeignKey(Marca, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return f"{self.descripcion} ({self.marca})"
+        return f"{self.id} - {self.descripcion} ({self.marca})"
 
     @classmethod
     def numeroRegistrados(cls):
@@ -279,7 +279,7 @@ class Empleado(models.Model):
     #return nombre
     
     def __str__(self):
-        return f"{self.nombre}"
+        return f"{self.id} -{self.nombre} {self.apellido}"
 
 
 #--------------------------------FACTURA-----------------------------------------------

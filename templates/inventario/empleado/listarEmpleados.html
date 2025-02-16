@@ -73,6 +73,7 @@
                             <div class="col-md-4 mb-4 employee-item" data-name="{{ fila.nombre }} {{ fila.apellido }}" data-dui="{{ fila.dui }}" data-email="{{ fila.correo }}">
                                 <div class="card shadow-sm employee-card">
                                     <div class="card-body">
+                                        <h5 class="card-title"><strong>ID:</strong> {{ fila.id }}</h5>
                                         <h5 class="card-title">{{ fila.nombre }} {{ fila.apellido }}</h5>
                                         <p class="card-text"><strong>DUI:</strong> {{ fila.dui }}</p>
                                         <p class="card-text"><strong>Fecha de Nacimiento:</strong> {{ fila.nacimiento }}</p>

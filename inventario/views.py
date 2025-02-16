@@ -1676,7 +1676,8 @@ class ListarInventario(LoginRequiredMixin, View):
     def get(self, request):
         form = BuscarInventarioFormulario(request.GET)
         inventarios = Inventario.objects.all()
-
+        #orden por fecha
+        
         # Filtrar según los criterios del formulario
         if form.is_valid():
             if form.cleaned_data['bodega']:
@@ -1686,7 +1687,8 @@ class ListarInventario(LoginRequiredMixin, View):
 
         # Calcular el total de stock
         total_stock = sum(item.stock for item in inventarios)
-
+        #ordenar por fecha
+        inventarios = inventarios.order_by('fecha_actualizacion')
         # Preparar el contexto
         contexto = {'tabla': inventarios, 'form': form, 'total_stock': total_stock}
         contexto = complementarContexto(contexto, request.user)
