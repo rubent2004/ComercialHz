@@ -248,10 +248,11 @@ class Empleado(models.Model):
     dui = models.CharField(max_length=12, unique=True)
     nombre = models.CharField(max_length=40)
     apellido = models.CharField(max_length=40)
-    nacimiento = models.DateField()
-    telefono = models.CharField(max_length=20)
-    correo = models.EmailField(max_length=100)
-
+    nacimiento = models.DateField(null=True)
+    telefono = models.CharField(max_length=20, null=True)
+    correo = models.EmailField(max_length=100, null=True)
+    estado = models.ForeignKey(Estado, on_delete=models.CASCADE, null=True, default=1)
+    codigo = models.CharField(max_length=50, unique=True, null=True)
     @classmethod
     def numeroRegistrados(cls):
         """
@@ -279,7 +280,7 @@ class Empleado(models.Model):
     #return nombre
     
     def __str__(self):
-        return f"{self.id} -{self.nombre} {self.apellido}"
+        return f"{self.codigo} -{self.nombre} {self.apellido}"
 
 
 #--------------------------------FACTURA-----------------------------------------------

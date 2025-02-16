@@ -68,6 +68,7 @@
                 <div class="card card-block sameheight-item">
                     <form role="form" method="POST" onsubmit="return validarTodo('empleado')">
                         {% csrf_token %}
+                        
 
                         <!-- Campos del formulario -->
                         <label for="{{ form.dui.name }}">
@@ -81,7 +82,12 @@
                                 {{ form.dui }}
                             </div>
                         </div>
-
+                        <div class="form-group">
+                            <label for="{{ form.codigo.name }}">
+                                {{ form.codigo.label }}
+                            </label>
+                            {{ form.codigo }}
+                        </div>
                         <div class="form-group">
                             <label for="{{ form.nombre.name }}">
                                 {{ form.nombre.label }}
@@ -116,6 +122,11 @@
                             </label>
                             {{ form.correo }}
                         </div>
+                        <div class="form-group">
+                            <label for="{{ form.estado.name }}">
+                                {{ form.estado.label }}
+                            </label>
+                            {{ form.estado}}
 
                         <!-- Botón de ingreso -->
                         <div class="form-group">

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import LoginFormulario
-from .models import  Devolucion, Empleado, Entrega, EstadoProducto, Marca, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto
+from .models import  Devolucion, Empleado, Entrega, EstadoProducto, Marca, MovimientoPendiente, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto,Inventario,RegistroInventario
 
 class UsuarioAdmin(UserAdmin):
     add_form = LoginFormulario
@@ -70,3 +70,7 @@ class InventarioAdmin(ExportMixin, admin.ModelAdmin):
     list_display = ('idproducto', 'idbodega', 'stock')
 
 admin.site.register(Inventario, InventarioAdmin)
+
+admin.site.register(Entrega)
+admin.site.register(MovimientoPendiente)
+admin.site.register(RegistroInventario)

@@ -94,35 +94,35 @@ class EmpleadoFormulario(forms.ModelForm):
     tipoDui = forms.CharField(
         label="Tipo de DUI",
         max_length=2,
-        widget=forms.Select(choices=tipoC,attrs={'placeholder': 'Tipo de DUI',
-        'id':'tipoDui','class':'form-control'}
-        )
-        )
-
+        widget=forms.Select(choices=tipoC, attrs={'placeholder': 'Tipo de DUI', 'id': 'tipoDui', 'class': 'form-control'})
+    )
 
     class Meta:
         model = Empleado
-        fields = ['tipoDui','dui','nombre','apellido','nacimiento','telefono','correo']
+        fields = ['tipoDui', 'dui', 'nombre', 'apellido', 'nacimiento', 'telefono', 'correo', 'estado','codigo']
         labels = {
-        'DUI': 'Dui del empleado',
-        'nombre': 'Nombre del empleado',
-        'apellido': 'Apellido del empleado',
-        'nacimiento': 'Fecha de nacimiento del empleado',
-        'telefono': 'Numero telefonico del empleado',
-        'correo': 'Correo electronico del empleado'
+            'DUI': 'Dui del empleado',
+            'nombre': 'Nombre del empleado',
+            'apellido': 'Apellido del empleado',
+            'nacimiento': 'Fecha de nacimiento del empleado',
+            'telefono': 'Numero telefonico del empleado',
+            'correo': 'Correo electronico del empleado',
+            'estado': 'Estado del empleado',
+            'codigo': 'Codigo del empleado'
         }
         widgets = {
-        'DUI': forms.TextInput(attrs={'placeholder': 'Inserte DUI de identidad del empleado',
-        'id':'dui','class':'form-control'} ),
-        'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del empleado',
-        'id':'nombre','class':'form-control'}),
-        'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del empleado'}),
-        'nacimiento':forms.DateInput(format=('%d-%m-%Y'),attrs={'id':'hasta','class':'form-control','type':'date'} ),
-        'telefono':forms.TextInput(attrs={'id':'telefono','class':'form-control',
-        'placeholder':'El telefono del empleado'} ),
-        'correo':forms.TextInput(attrs={'placeholder': 'Correo del empleado',
-        'id':'correo','class':'form-control'} )
+            'codigo': forms.TextInput(attrs={'placeholder': 'Codigo del empleado', 'class': 'form-control'}),
+            'DUI': forms.TextInput(attrs={'placeholder': 'Inserte DUI de identidad del empleado', 'id': 'dui', 'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del empleado', 'id': 'nombre', 'class': 'form-control'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control', 'id': 'apellido', 'placeholder': 'El apellido del empleado'}),
+            'nacimiento': forms.DateInput(format='%Y-%m-%d', attrs={'id': 'nacimiento', 'class': 'form-control', 'type': 'date'}),
+            'telefono': forms.TextInput(attrs={'id': 'telefono', 'class': 'form-control', 'placeholder': 'El telefono del empleado'}),
+            'correo': forms.TextInput(attrs={'placeholder': 'Correo del empleado', 'id': 'correo', 'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'})
         }
+
+class FiltrarEmpleados(forms.Form):
+    estado = forms.ModelChoiceField(queryset=Estado.objects.all(), required=False, label='Estado', widget=forms.Select(attrs={'class': 'form-control'}))
 
 
 class EmitirFacturaFormulario(forms.Form):

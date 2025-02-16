@@ -611,13 +611,21 @@ class ListarEmpleados(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def get(self, request):
-        from django.db import models
-        #Saca una lista de todos los empleados de la BDD
-        empleados = Empleado.objects.all()                
-        contexto = {'tabla': empleados}
-        contexto = complementarContexto(contexto,request.user)         
+        # Obtener el estado desde los parámetros GET
+        estado_id = request.GET.get('estado', None)  
 
-        return render(request, 'inventario/empleado/listarEmpleados.html',contexto) 
+        # Obtener todos los empleados o filtrar por estado si se proporciona
+        empleados = Empleado.objects.all()
+        if estado_id:
+            empleados = empleados.filter(estado_id=estado_id)
+
+        # Crear una instancia del formulario con los datos recibidos
+        form = FiltrarEmpleados(request.GET)
+
+        contexto = {'tabla': empleados, 'form': form}
+        contexto = complementarContexto(contexto, request.user)
+
+        return render(request, 'inventario/empleado/listarEmpleados.html', contexto)
 #Fin de vista--------------------------------------------------------------------------#
 
 
@@ -643,10 +651,12 @@ class AgregarEmpleado(LoginRequiredMixin, View):
             nacimiento = form.cleaned_data['nacimiento']
             telefono = form.cleaned_data['telefono']
             correo = form.cleaned_data['correo']
+            estado = form.cleaned_data['estado']
+            codigo = form.cleaned_data['codigo']
 
             empleado = Empleado(dui=dui,nombre=nombre,apellido=apellido,
                 nacimiento=nacimiento,telefono=telefono,
-                correo=correo)
+                correo=correo, estado=estado, codigo=codigo)
             empleado.save()
             form = EmpleadoFormulario()
 
@@ -744,7 +754,6 @@ class ExportarEmpleados(LoginRequiredMixin, View):
 class EditarEmpleado(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-    @nivel_requerido(nivel_minimo=1)
     def post(self,request,pk):
         # Crea una instancia del formulario y la llena con los datos:
         empleado = Empleado.objects.get(id=pk)
@@ -759,6 +768,8 @@ class EditarEmpleado(LoginRequiredMixin, View):
             nacimiento = form.cleaned_data['nacimiento']
             telefono = form.cleaned_data['telefono']
             correo = form.cleaned_data['correo']
+            estado = form.cleaned_data['estado']
+            codigo = form.cleaned_data['codigo']
 
             empleado.dui = dui
             empleado.nombre = nombre
@@ -766,6 +777,8 @@ class EditarEmpleado(LoginRequiredMixin, View):
             empleado.nacimiento = nacimiento
             empleado.telefono = telefono
             empleado.correo = correo
+            empleado.estado = estado
+            empleado.codigo = codigo
             empleado.save()
             form = EmpleadoFormulario(instance=empleado)
 
@@ -783,6 +796,31 @@ class EditarEmpleado(LoginRequiredMixin, View):
         contexto = {'form':form , 'modo':request.session.get('empleadoProcesado'),'editar':True} 
         contexto = complementarContexto(contexto,request.user)     
         return render(request, 'inventario/empleado/agregarEmpleado.html', contexto)  
+    
+
+@require_POST
+def cambiar_estado_empleado(request, id):
+    try:
+        empleado = Empleado.objects.get(id=id)
+    except Empleado.DoesNotExist:
+        return JsonResponse({'error': 'Empleado no encontrado.'}, status=404)
+    
+    # Obtener los estados posibles
+    estado_activo = Estado.objects.get(id=1)  # Suponiendo que el estado activo tiene ID 1
+    estado_inactivo = Estado.objects.get(id=2)  # Suponiendo que el estado inactivo tiene ID 2
+
+    # Alternar el estado
+    if empleado.estado == estado_activo:
+        empleado.estado = estado_inactivo
+    else:
+        empleado.estado = estado_activo
+    
+    empleado.save()
+    
+    # Enviar el nuevo estado en formato texto
+    nuevo_estado = empleado.estado.nombre  # Asumiendo que `Estado` tiene un campo `nombre`
+
+    return JsonResponse({'success': True, 'nuevo_estado': nuevo_estado})
 #Fin de vista--------------------------------------------------------------------------------# 
 
 
