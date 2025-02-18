@@ -1916,15 +1916,24 @@ def agregarEntrega(request):
     contexto = complementarContexto(contexto, request.user)  # Complementamos el contexto con la info del usuario
     return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
 # views.py
-
-
+from django.db.models import Q
 class ListarEmpleadosPendientes(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+
     def get(self, request):
-        # Obtener los movimientos pendientes
+        # Obtener todos los movimientos pendientes
         movimientos_pendientes = MovimientoProducto.objects.filter(
             estado_producto__nombre='Pendiente'
         ).select_related('producto', 'empleado')
-
+        
+        # Filtrar por nombre o apellido del empleado si se proporciona el parámetro "busqueda"
+        busqueda = request.GET.get('busqueda', '')
+        if busqueda:
+            movimientos_pendientes = movimientos_pendientes.filter(
+                Q(empleado__nombre__icontains=busqueda) |
+                Q(empleado__apellido__icontains=busqueda)
+            )
+        
         # Organizar datos por empleado
         empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
         for movimiento in movimientos_pendientes:
@@ -1938,25 +1947,32 @@ class ListarEmpleadosPendientes(LoginRequiredMixin, View):
                     'cantidad': movimiento.cantidad,
                     'movimiento_id': movimiento.id
                 }
-
+        
         # Obtener las bodegas disponibles
         bodegas = Bodega.objects.all()
-
-        # Asegurarse de que empleados es un diccionario normal
+        
         contexto = {
             'empleados': dict(empleados),
-            'bodegas': bodegas,  # Agregar bodegas al contexto
+            'bodegas': bodegas,
+            'busqueda': busqueda,  # Pasamos el término de búsqueda para conservarlo en el input
         }
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
-    @method_decorator(csrf_exempt)
+    # En el método POST se aplica la misma lógica (para actualizar vía AJAX, por ejemplo)
     def post(self, request):
         movimientos_pendientes = MovimientoProducto.objects.filter(
             estado_producto__nombre='Pendiente'
         ).select_related('producto', 'empleado')
-
-        empleados = defaultdict(lambda: {'productos': []})
+        
+        busqueda = request.POST.get('busqueda', '')
+        if busqueda:
+            movimientos_pendientes = movimientos_pendientes.filter(
+                Q(empleado__nombre__icontains=busqueda) |
+                Q(empleado__apellido__icontains=busqueda)
+            )
+        
+        empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': []})
         for movimiento in movimientos_pendientes:
             empleado_id = movimiento.empleado.id
             empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
@@ -1965,13 +1981,12 @@ class ListarEmpleadosPendientes(LoginRequiredMixin, View):
                 'descripcion': movimiento.producto.descripcion,
                 'cantidad': movimiento.cantidad,
             })
-
+        
         contexto = {'empleados': empleados}
         listado_html = render_to_string('inventario/recepcion/empleadosPendientes.html', contexto)
         
         contexto = complementarContexto(contexto, request.user)
         return JsonResponse({'success': True, 'listado_html': listado_html})
-
 @require_POST
 @transaction.atomic
 def recepcion_producto(request):
@@ -2561,22 +2576,25 @@ def buscar_producto(request):
     if codigo:
         try:
             producto = Producto.objects.get(id=codigo)
-            return JsonResponse({'id': producto.id, 'descripcion': producto.descripcion})
+            # Concatenamos la descripción con el precio unitario entre paréntesis
+            descripcion_con_precio = f"{producto.descripcion} ({producto.precio_unitario})"
+            return JsonResponse({'id': producto.id, 'descripcion': descripcion_con_precio})
         except Producto.DoesNotExist:
             return JsonResponse({'error': 'Producto no encontrado'})
     return JsonResponse({'error': 'Código no proporcionado'})
 
-class BuscarProductoPorNombre(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = "Inventario/listarProductos.html"
+
 def buscar_productoNom(request):
     nombre = request.GET.get('nombre', '')
     if nombre:
         productos = Producto.objects.filter(descripcion__icontains=nombre)[:10]  # Limitar a 10 resultados
-        productos_data = [{'id': producto.id, 'descripcion': producto.descripcion} for producto in productos]
+        # Para cada producto, se concatena la descripción y el precio_unitario
+        productos_data = [
+            {'id': producto.id, 'descripcion': f"{producto.descripcion} ({producto.precio_unitario})"}
+            for producto in productos
+        ]
         return JsonResponse({'productos': productos_data})
     return JsonResponse({'error': 'No se proporcionó nombre'}, status=400)
-
 
 from django.http import JsonResponse
 from .models import Producto
@@ -3139,3 +3157,97 @@ class GeneradorReportesPDF(LoginRequiredMixin, View):
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{config["nombre"]}.pdf"'
         return response
+    
+
+
+
+class TransferirStockView(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+
+    def get(self, request):
+        # Se pasan las bodegas y productos para poblar los selects y el buscador
+        context = {
+            'bodegas': Bodega.objects.all(),
+            'productos': Producto.objects.all(),
+        }
+        return render(request, 'inventario/entrega/transferir_stock.html', context)
+
+    def post(self, request):
+        # Se obtienen las bodegas globales y los detalles en JSON (lista de productos a transferir)
+        origin_id = request.POST.get('bodega_origen')
+        destination_id = request.POST.get('bodega_destino')
+        detalles_json = request.POST.get('detalles', '[]')
+        try:
+            detalles = json.loads(detalles_json)
+        except Exception as e:
+            messages.error(request, f'Error al leer los detalles: {str(e)}')
+            return redirect('inventario:transferir_stock')
+
+        if not origin_id or not destination_id:
+            messages.error(request, 'Debe seleccionar la bodega origen y destino.')
+            return redirect('inventario:transferir_stock')
+
+        if origin_id == destination_id:
+            messages.error(request, 'La bodega origen y destino deben ser diferentes.')
+            return redirect('inventario:transferir_stock')
+
+        errors = []
+        try:
+            with transaction.atomic():
+                origin = Bodega.objects.get(id=origin_id)
+                destination = Bodega.objects.get(id=destination_id)
+                # Procesamos cada producto incluido en el "carrito"
+                for item in detalles:
+                    product_id = item.get('producto')
+                    cantidad = item.get('cantidad')
+                    try:
+                        producto = Producto.objects.get(id=product_id)
+                    except Producto.DoesNotExist:
+                        errors.append(f"El producto con ID {product_id} no existe.")
+                        continue
+
+                    try:
+                        inventario_origen = Inventario.objects.get(idbodega=origin, idproducto=producto)
+                    except Inventario.DoesNotExist:
+                        errors.append(f"El producto {producto.descripcion} no se encuentra en la bodega origen.")
+                        continue
+
+                    if inventario_origen.stock < cantidad:
+                        errors.append(f"No hay suficiente stock de {producto.descripcion} en la bodega origen.")
+                        continue
+
+                    # Transferir: reducir stock en origen y aumentar en destino
+                    inventario_origen.reducir_stock(cantidad)
+                    inventario_destino, created = Inventario.objects.get_or_create(
+                        idbodega=destination,
+                        idproducto=producto,
+                        defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
+                    )
+                    inventario_destino.aumentar_stock(cantidad)
+
+                    # Registrar movimientos de salida y entrada
+                    MovimientoProducto.objects.create(
+                        bodega=origin,
+                        producto=producto,
+                        tipo_movimiento='salida',
+                        cantidad=cantidad,
+                        usuario=request.user,
+                        empleado=None,
+                        estado_producto=EstadoProducto.objects.get(nombre='Disponible')
+                    )
+                    MovimientoProducto.objects.create(
+                        bodega=destination,
+                        producto=producto,
+                        tipo_movimiento='entrada',
+                        cantidad=cantidad,
+                        usuario=request.user,
+                        empleado=None,
+                        estado_producto=EstadoProducto.objects.get(nombre='Disponible')
+                    )
+                if errors:
+                    raise Exception("Algunos productos no se transfirieron: " + "; ".join(errors))
+                messages.success(request, "Transferencia completada exitosamente.")
+                return redirect('inventario:transferir_stock')
+        except Exception as e:
+            messages.error(request, f"Error durante la transferencia: {str(e)}")
+            return redirect('inventario:transferir_stock')

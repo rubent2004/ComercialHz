@@ -588,3 +588,27 @@ class ReporteMovimientoFormulario(forms.Form):
     fecha_fin = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False)
     tipo_movimiento = forms.ChoiceField(choices=[('', 'Seleccione...')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES, required=False)
+
+
+
+class TransferenciaStockForm(forms.Form):
+    producto = forms.ModelChoiceField(
+        queryset=Producto.objects.all(),
+        label="Producto",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    bodega_origen = forms.ModelChoiceField(
+        queryset=Bodega.objects.all(),
+        label="Bodega Origen",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    bodega_destino = forms.ModelChoiceField(
+        queryset=Bodega.objects.all(),
+        label="Bodega Destino",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    cantidad = forms.IntegerField(
+        min_value=1,
+        label="Cantidad",
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad a transferir'})
+    )

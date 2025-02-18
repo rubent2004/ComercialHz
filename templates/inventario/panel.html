@@ -151,37 +151,46 @@
                 </div>
             </div>
 
-            <!-- Fila centrada de botones de Salida y Entrada -->
-            <div class="col-12">
-                <div class="row justify-content-center">
-                    <!-- Botón para Salida -->
-                    <div class="col-12 col-sm-6 col-md-3 stat-col">
-                        <div class="stat">
-                            <div class="value">
-                                <a href="{% url 'inventario:agregarEntrega' %}" class="btn btn-warning btn-block" style="font-size: 16px; font-weight: bold;">
-                                    <i class="fa fa-arrow-circle-down"></i> Salida
-                                </a>
-                            </div>
-                            <div class="name">Ver listado de salidas</div>
+                <!-- Fila centrada de botones de Salida y Entrada -->
+        <div class="col-12">
+            <div class="row justify-content-center">
+                <!-- Botón para Salida -->
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <div class="stat">
+                        <div class="value">
+                            <a href="{% url 'inventario:agregarEntrega' %}" class="btn btn-warning btn-lg btn-block" style="font-size: 18px; font-weight: bold; padding: 15px; text-align: center;">
+                                <i class="fa fa-arrow-circle-down"></i> Salida
+                            </a>
                         </div>
-                    </div>
-
-                    <!-- Botón para Entrada -->
-                    <div class="col-12 col-sm-6 col-md-3 stat-col">
-                        <div class="stat">
-                            <div class="value">
-                                <a href="{% url 'inventario:listarEmpleadosPendientes' %}" class="btn btn-info btn-block" style="font-size: 16px; font-weight: bold;">
-                                    <i class="fa fa-arrow-circle-up"></i> Entrada
-                                </a>
-                            </div>
-                            <div class="name">Ver listado de entradas</div>
-                        </div>
+                        <div class="name">Ver listado de salidas</div>
                     </div>
                 </div>
-                <div class="col-12 col-sm-6 col-md-3 stat-col">
-                   
+
+                <!-- Botón para Entrada -->
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <div class="stat">
+                        <div class="value">
+                            <a href="{% url 'inventario:listarEmpleadosPendientes' %}" class="btn btn-info btn-lg btn-block" style="font-size: 18px; font-weight: bold; padding: 15px; text-align: center;">
+                                <i class="fa fa-arrow-circle-up"></i> Entrada
+                            </a>
+                        </div>
+                        <div class="name">Ver listado de entradas</div>
+                    </div>
+                </div>
+
+                <!-- Botón para Cambiar Producto de Bodega -->
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <div class="stat">
+                        <div class="value">
+                            <a href="{% url 'inventario:transferir_stock' %}" class="btn btn-warning btn-lg btn-block" style="font-size: 18px; font-weight: bold; padding: 15px; text-align: center;">
+                                <i class="fa fa-exchange-alt"></i> Cambiar Producto de Bodega
+                            </a>
+                        </div>
+                        <div class="name">Mover producto entre bodegas</div>
+                    </div>
                 </div>
             </div>
+        </div>
         </div>
     </section>
 

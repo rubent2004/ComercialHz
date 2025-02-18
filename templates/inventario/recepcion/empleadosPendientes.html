@@ -68,12 +68,21 @@
     });
 </script>
 
-<!-- Contenido principal SIN MODIFICAR -->
 <article class="content responsive-tables-page">
     <div class="title-block text-center">
         <h1 class="title">Empleados con Productos Pendientes</h1>
         <p class="title-description">Ver empleados con productos pendientes de recepción</p>
     </div>
+
+    <!-- Buscador por nombre del empleado -->
+    <section class="section mb-4">
+        <form method="get" class="d-flex justify-content-center">
+            <input type="text" name="busqueda" class="form-control w-50 me-2" placeholder="Buscar por nombre o apellido" value="{{ busqueda }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </form>
+    </section>
 
     <section class="section">
         <div class="row">
@@ -92,7 +101,6 @@
                                 {% endfor %}
                             {% endif %}
 
-                            
                             <div class="table-responsive">
                                 <table id="listarEmpleadosPendientes" class="table table-striped table-bordered table-hover">
                                     <thead class="table-light">
@@ -134,7 +142,7 @@
     </section>
 </article>
 
-<!-- Modal corregido -->
+<!-- Modal para recepción de producto -->
 <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -159,34 +167,23 @@
                   <div class="mb-3">
                     <label class="form-label">Bodega para devolución</label>
                     <div class="input-group">
-                        <!-- Mostrar nombre de la bodega principal -->
                         <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
-                        
                         <div class="input-group-text">
-                            <!-- Checkbox para cambiar la bodega -->
                             <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
                             <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
                         </div>
                     </div>
-                    
-                    <!-- Selector de bodegas con más opciones -->
                     <select class="form-select mt-2 d-none" id="bodegaSelect">
-                        <!-- Opción por defecto con el nombre de la bodega principal -->
                         <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
-                        
-                        <!-- Otras bodegas que no sean la principal -->
                         {% for bodega in bodegas %}
                             {% if bodega.id != 1 %}
                                 <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
                             {% endif %}
                         {% endfor %}
                     </select>
-                    
-                    <!-- Valor oculto con el id de la bodega seleccionada -->
                     <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
                 </div>
                   
-                  <!-- Campos ocultos CORREGIDOS -->
                   <input type="hidden" name="movimiento_id" id="movimientoId">
                   <input type="hidden" name="producto_id" id="productoId">
                   <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
