@@ -105,8 +105,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const data = await response.json();
       if (data.length > 0) {
         sugerenciasNombre.innerHTML = data.map(producto => `
-          <a href="#" class="list-group-item list-group-item-action sugerencia" data-id="${producto.id}" data-nombre="${producto.descripcion}">
-            ${producto.descripcion}
+          <a href="#" class="list-group-item list-group-item-action sugerencia" 
+             data-id="${producto.id}" 
+             data-nombre="${producto.descripcion}" 
+             data-precio_unitario="${producto.precio_unitario}">
+            ${producto.descripcion} ($${producto.precio_unitario})
           </a>
         `).join('');
         agregarEventosSugerencias();
@@ -117,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Error obteniendo sugerencias:', error);
     }
   }
+  
 
   // Asigna eventos a cada sugerencia generada
   function agregarEventosSugerencias() {

@@ -445,11 +445,12 @@ class MovimientoProducto(models.Model):
         ('recepcion', 'Recepción'),
         ('venta', 'Venta'),
         ('pendiente', 'Pendiente'),
+        ('transferencia', 'Transferencia'),
     ]
 
     bodega = models.ForeignKey(Bodega, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    tipo_movimiento = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES)
+    tipo_movimiento = models.CharField(max_length=20, choices=TIPO_MOVIMIENTO_CHOICES)
     cantidad = models.IntegerField()
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, null=True)

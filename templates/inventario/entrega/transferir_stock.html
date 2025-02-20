@@ -202,23 +202,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para obtener sugerencias de nombres
     async function obtenerSugerenciasNombre(nombre) {
         try {
-            const response = await fetch(`/inventario/buscar-sugerencias-nombre/?nombre=${nombre}`);
-            const data = await response.json();
-            if (data.length > 0) {
-                sugerenciasNombre.innerHTML = data.map(producto => `
-                    <a href="#" class="list-group-item list-group-item-action" onclick="seleccionarSugerencia('${producto.id}', '${producto.descripcion}')">
-                        ${producto.descripcion} - ID: ${producto.id}
-                    </a>
-                `).join('');
-                sugerenciasNombre.style.display = 'block';
-            } else {
-                sugerenciasNombre.innerHTML = '';
-                sugerenciasNombre.style.display = 'none';
-            }
+          const response = await fetch(`/inventario/buscar-sugerencias-nombre/?nombre=${nombre}`);
+          const data = await response.json();
+          if (data.length > 0) {
+            sugerenciasNombre.innerHTML = data.map(producto => `
+              <a href="#" class="list-group-item list-group-item-action sugerencia" 
+                 data-id="${producto.id}" 
+                 data-nombre="${producto.descripcion}" 
+                 data-precio_unitario="${producto.precio_unitario}">
+                ${producto.descripcion} ($${producto.precio_unitario})
+              </a>
+            `).join('');
+            agregarEventosSugerencias();
+          } else {
+            sugerenciasNombre.innerHTML = '';
+          }
         } catch (error) {
-            console.error('Error obteniendo sugerencias:', error);
+          console.error('Error obteniendo sugerencias:', error);
         }
-    }
+      }
 
     // Función para seleccionar una sugerencia
     window.seleccionarSugerencia = function(id, descripcion) {

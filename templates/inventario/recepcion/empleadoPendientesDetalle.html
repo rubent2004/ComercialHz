@@ -1,0 +1,444 @@
+{% extends "inventario/comun/base.html" %}
+
+{% block content %}
+<article class="content responsive-tables-page">
+    <div class="container py-4">
+      <div class="text-center mb-4">
+        <h1 class="display-5 text-primary">Pendientes para {{ empleado.nombre }} {{ empleado.apellido }}</h1>
+        <p class="lead text-secondary">
+          Seleccione el producto para procesar la recepción, venta o transferencia.
+        </p>
+      </div>
+      <div class="text-center">
+        <a href="{% url 'inventario:listar_empleados_pendientes' %}" class="btn btn-secondary btn-lg">
+          <i class="fas fa-arrow-left me-2"></i> Volver
+        </a>
+      </div>
+      {% if messages %}
+      {% for message in messages %}
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <strong><i class="fa fa-check"></i></strong> {{ message }}
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+      {% endfor %}
+  {% endif %}
+      <!-- Lista de productos pendientes en formato de tabla responsive -->
+      <section class="mb-4">
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Producto</th>
+                <th>Cantidad Pendiente</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for prod_id, prod in productos.items %}
+              <tr>
+                <td>{{ prod.descripcion }}</td>
+                <td>{{ prod.cantidad }}</td>
+                <td class="text-center">
+                  <!-- Botón para recepción parcial (modal) -->
+                  <button class="btn btn-info btn-lg me-2" 
+                          onclick="abrirModal('{{ prod_id }}', {{ prod.cantidad }}, {{ prod.movimiento_id }}, false)">
+                    <i class="fas fa-check-circle me-1"></i> Parcial
+                  </button>
+                  
+                  <form method="post" action="{% url 'inventario:recepcion_todo_producto' empleado.id prod_id %}" class="d-inline" 
+                            onsubmit="return mostrarConfirmacion('recepcionTotal')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-box-open me-1"></i> Recepción Total
+                            </button>
+                        </form>
+
+                        <form method="post" action="{% url 'inventario:venta_total_producto' empleado.id prod_id %}" class="d-inline" 
+                            onsubmit="return mostrarConfirmacion('ventaTotal')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-dollar-sign me-1"></i> Venta Total
+                            </button>
+                        </form>
+
+                  <!-- Botón para transferir (abre modal de transferencia) -->
+                  <button class="btn btn-warning btn-lg ms-2" 
+                          onclick="abrirTransferenciaModal('{{ prod_id }}', {{ prod.cantidad }}, {{ prod.movimiento_id }}, '{{ empleado.id }}')">
+                    <i class="fas fa-exchange-alt me-1"></i> Transferir
+                  </button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="text-center">No hay productos pendientes para este empleado.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      
+      <div class="text-center">
+        <a href="{% url 'inventario:listar_empleados_pendientes' %}" class="btn btn-secondary btn-lg">
+          <i class="fas fa-arrow-left me-2"></i> Volver
+        </a>
+      </div>
+    </div>
+  </article>
+  
+ <!-- Toast de confirmación -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast" class="toast" style="display: none;">
+      <div class="toast-header bg-primary text-white">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <strong class="me-auto">Confirmación</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+      </div>
+      <div class="toast-body" id="toastMessage"></div>
+    </div>
+  </div>
+  
+  <!-- Modal para recepción parcial -->
+  <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
+      <div class="modal-content">
+        <form method="POST" action="{% url 'inventario:recepcion_producto' %}">
+          {% csrf_token %}
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title" id="recepcionModalLabel">Recepción Parcial de Producto</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaxima"></span></p>
+            <div class="mb-3">
+              <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
+              <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" min="0" 
+                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+            </div>
+            <div class="mb-3">
+              <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
+              <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" min="0" 
+                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Bodega para devolución</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
+                <div class="input-group-text">
+                  <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
+                  <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
+                </div>
+              </div>
+              <select class="form-select mt-2 d-none" id="bodegaSelect">
+                <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
+                {% for bodega in bodegas %}
+                  {% if bodega.id != 1 %}
+                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+              <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
+            </div>
+            
+            <input type="hidden" name="movimiento_id" id="movimientoId">
+            <input type="hidden" name="producto_id" id="productoId">
+            <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
+            <p id="errorMensaje" class="text-danger"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
+              <i class="fas fa-save me-1"></i> Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<!-- Modal para recepción parcial -->
+<div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
+      <div class="modal-content">
+        <form method="POST" action="{% url 'inventario:recepcion_producto' %}">
+          {% csrf_token %}
+          <div class="modal-header bg-info text-white">
+            <h5 class="modal-title" id="recepcionModalLabel">Recepción Parcial de Producto</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaxima"></span></p>
+            <div class="mb-3">
+              <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
+              <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" min="0" 
+                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+            </div>
+            <div class="mb-3">
+              <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
+              <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" min="0" 
+                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Bodega para devolución</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
+                <div class="input-group-text">
+                  <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
+                  <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
+                </div>
+              </div>
+              <select class="form-select mt-2 d-none" id="bodegaSelect">
+                <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
+                {% for bodega in bodegas %}
+                  {% if bodega.id != 1 %}
+                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+              <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
+            </div>
+            
+            <input type="hidden" name="movimiento_id" id="movimientoId">
+            <input type="hidden" name="producto_id" id="productoId">
+            <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
+            <p id="errorMensaje" class="text-danger"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
+              <i class="fas fa-save me-1"></i> Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+</div>
+
+<!-- Modal para transferencia de producto -->
+<div class="modal fade" id="transferenciaModal" tabindex="-1" aria-labelledby="transferenciaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-sm-down modal-md">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'inventario:transferir_producto' %}">
+        {% csrf_token %}
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title" id="transferenciaModalLabel">Transferencia de Producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaximaTransferencia"></span></p>
+          <div class="mb-3">
+            <label for="cantidadTransferir" class="form-label">Cantidad a Transferir</label>
+            <input type="number" class="form-control" name="cantidad" id="cantidadTransferir" min="1" 
+                   oninput="validarTransferencia(parseInt(document.getElementById('cantidadMaximaTransferencia').innerText))">
+          </div>
+          <div class="mb-3">
+            <label for="empleadoDestino" class="form-label">Empleado Destino</label>
+            <select class="form-select" name="empleado_destino_id" id="empleadoDestino">
+              <option value="" selected disabled>Seleccione un empleado</option>
+              {% for emp in empleados_transferencia %}
+                <option value="{{ emp.id }}">{{ emp.nombre }} {{ emp.apellido }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <!-- Campos ocultos para producto y empleado origen -->
+          <input type="hidden" name="producto_id" id="productoIdTransferencia">
+          <input type="hidden" name="empleado_origen_id" id="empleadoOrigenIdTransferencia">
+          <p id="errorMensajeTransferencia" class="text-danger"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-warning" id="guardarTransferenciaBtn" disabled>
+            <i class="fas fa-exchange-alt me-1"></i> Transferir
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+    function abrirModal(productoId, cantidadMaxima, movimientoId) {
+        document.getElementById("productoId").value = productoId;
+        document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
+        document.getElementById("movimientoId").value = movimientoId;
+        document.getElementById("guardarBtn").disabled = true;
+        document.getElementById("cantidadVendida").value = '';
+        document.getElementById("cantidadRecibida").value = '';
+        document.getElementById("errorMensaje").innerText = '';
+        var modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
+        modal.show();
+      }
+    
+      function validarSuma(cantidadMaxima) {
+        const cantidadVendida = parseInt(document.getElementById('cantidadVendida').value) || 0;
+        const cantidadRecibida = parseInt(document.getElementById('cantidadRecibida').value) || 0;
+        const total = cantidadVendida + cantidadRecibida;
+        const errorMensaje = document.getElementById('errorMensaje');
+        
+        if (cantidadVendida < 0 || cantidadRecibida < 0) {
+          errorMensaje.innerText = 'Las cantidades no pueden ser negativas.';
+          document.getElementById('guardarBtn').disabled = true;
+        } else if (total > cantidadMaxima) {
+          errorMensaje.innerText = 'La suma de la cantidad vendida y devuelta no puede exceder la cantidad máxima pendiente.';
+          document.getElementById('guardarBtn').disabled = true;
+        } else if (total === 0) {
+          errorMensaje.innerText = 'Debe ingresar al menos una cantidad en venta o devolución.';
+          document.getElementById('guardarBtn').disabled = true;
+        } else {
+          errorMensaje.innerText = '';
+          document.getElementById('guardarBtn').disabled = false;
+        }
+      }
+
+  function abrirTransferenciaModal(productoId, cantidadMaxima, movimientoId, empleadoId) {
+    document.getElementById("productoIdTransferencia").value = productoId;
+    document.getElementById("cantidadMaximaTransferencia").innerText = cantidadMaxima;
+    document.getElementById("empleadoOrigenIdTransferencia").value = empleadoId;
+    document.getElementById("guardarTransferenciaBtn").disabled = true;
+    document.getElementById("cantidadTransferir").value = '';
+    document.getElementById("errorMensajeTransferencia").innerText = '';
+    var modal = new bootstrap.Modal(document.getElementById('transferenciaModal'));
+    modal.show();
+  }
+
+  function validarTransferencia(cantidadMaxima) {
+    const cantidadTransferir = parseInt(document.getElementById('cantidadTransferir').value) || 0;
+    const errorMensajeTransferencia = document.getElementById('errorMensajeTransferencia');
+    
+    if (cantidadTransferir > cantidadMaxima) {
+      errorMensajeTransferencia.innerText = 'La cantidad a transferir no puede exceder la cantidad máxima pendiente.';
+      document.getElementById('guardarTransferenciaBtn').disabled = true;
+    } else {
+      errorMensajeTransferencia.innerText = '';
+      document.getElementById('guardarTransferenciaBtn').disabled = false;
+    }
+  }
+  function mostrarConfirmacion(tipo) {
+    var mensaje = "";
+    
+    // Define el mensaje según el tipo de acción
+    if (tipo === "recepcionTotal") {
+        mensaje = "¿Está seguro de que desea realizar la recepción total de este producto?";
+    } else if (tipo === "ventaTotal") {
+        mensaje = "¿Está seguro de que desea realizar la venta total de este producto?";
+    }
+
+    // Mostrar el mensaje de confirmación
+    if (confirm(mensaje)) {
+        return true; // El usuario ha confirmado, el formulario se enviará
+    } else {
+        return false; // El usuario ha cancelado, el formulario no se enviará
+    }
+}
+// Función para mostrar confirmaciones
+function confirmarAccion(tipo, descripcion, empleadoId, productoId) {
+    const modal = new bootstrap.Modal(document.getElementById('confirmacionModal'));
+    const tituloEl = document.getElementById('accionTitulo');
+    const descripcionEl = document.getElementById('accionDescripcion');
+    const btnConfirmar = document.getElementById('btnConfirmarAccion');
+    
+    let titulo = '';
+    let mensaje = '';
+    
+    switch(tipo) {
+        case 'recepcionTotal':
+            titulo = 'Confirmar Recepción Total';
+            mensaje = `¿Está seguro que desea recibir toda la cantidad del producto "${descripcion}"?`;
+            break;
+        case 'ventaTotal':
+            titulo = 'Confirmar Venta Total';
+            mensaje = `¿Está seguro que desea registrar la venta completa del producto "${descripcion}"?`;
+            break;
+    }
+    
+    tituloEl.textContent = titulo;
+    descripcionEl.textContent = mensaje;
+    
+    btnConfirmar.onclick = () => {
+        // Mantener la lógica original de confirmación
+        // Aquí iría el código para procesar la acción
+        modal.hide();
+    };
+    
+    modal.show();
+}
+
+// Validación para formularios
+document.getElementById('formRecepcionParcial').onsubmit = function(e) {
+    e.preventDefault();
+    const modal = new bootstrap.Modal(document.getElementById('confirmacionModal'));
+    const producto = this.querySelector('[name="producto_id"]').value;
+    
+    document.getElementById('accionTitulo').textContent = 'Confirmar Recepción Parcial';
+    document.getElementById('accionDescripcion').textContent = 
+        '¿Está seguro que desea registrar esta recepción parcial? Por favor verifique las cantidades ingresadas.';
+    
+    document.getElementById('btnConfirmarAccion').onclick = () => {
+        this.submit();
+    };
+    
+    modal.show();
+};
+
+document.getElementById('formTransferencia').onsubmit = function(e) {
+    e.preventDefault();
+    const modal = new bootstrap.Modal(document.getElementById('confirmacionModal'));
+    const cantidad = this.querySelector('[name="cantidad"]').value;
+    const empleado = this.querySelector('[name="empleado_destino_id"] option:checked').text;
+    
+    document.getElementById('accionTitulo').textContent = 'Confirmar Transferencia';
+    document.getElementById('accionDescripcion').textContent = 
+        `¿Está seguro que desea transferir ${cantidad} unidades al empleado ${empleado}?`;
+    
+    document.getElementById('btnConfirmarAccion').onclick = () => {
+        this.submit();
+    };
+    
+    modal.show();
+};
+</script>
+
+<style>
+/* Estilos adicionales */
+.table-responsive {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    transition: all 0.2s;
+    min-width: 120px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .table td {
+        white-space: normal;
+    }
+    
+    .d-flex.flex-wrap {
+        flex-direction: column;
+    }
+}
+
+.modal-content {
+    border-radius: 0.5rem;
+}
+
+.badge {
+    padding: 0.5em 1em;
+    border-radius: 0.25rem;
+}
+</style>
+
+{% endblock %}

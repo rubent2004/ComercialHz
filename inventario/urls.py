@@ -94,9 +94,6 @@ path('agregarEntrega', views.agregarEntrega, name='agregarEntrega'),
 path('verificar-stock/', views.verificar_stock, name='verificar_stock'),
 #movimiento producto
 path('listarMovimientoProducto', views.ListarMovimientoProducto.as_view(), name='listarMovimientoProducto'),
-#listado empleado pendeinte
-path('listarEmpleadosPendientes/', views.ListarEmpleadosPendientes.as_view(), name='listarEmpleadosPendientes'),
-path('recepcion_producto/', views.recepcion_producto, name='recepcion_producto'),
 #Reparaciones
 path('listarRep', views.ListarRep.as_view(), name='listarRep'),
 path('agregarRep/', views.AgregarRep.as_view(), name='agregarRep'),
@@ -125,5 +122,27 @@ path('reportes/', views.GeneradorReportesPDF.as_view(), name='reportes'),
 path('cambiarEstadoEmpleado/<int:id>/', views.cambiar_estado_empleado, name='cambiar_estado_empleado'),
 #url para transferir_stock
 path('transferir_stock/', views.TransferirStockView.as_view(), name='transferir_stock'),
+
+# Listado de empleados con pendientes
+path('listarEmpleadosPendientes/', views.ListarEmpleadosPendientes.as_view(), name='listar_empleados_pendientes'),
+
+# Detalle de pendientes de un empleado (la URL incluye el id del empleado)
+path('empleados/<int:empleado_id>/pendientes/', views.DetalleEmpleadoPendientes.as_view(), name='detalle_empleado_pendientes'),
+
+# Procesar recepción total para un producto específico de un empleado
+path('empleados/<int:empleado_id>/producto/<int:producto_id>/recepcion-todo/', views.recepcion_todo_producto, name='recepcion_todo_producto'),
+
+# Procesar venta total para un producto específico de un empleado
+path('empleados/<int:empleado_id>/producto/<int:producto_id>/venta-total/', views.venta_total_producto, name='venta_total_producto'),
+
+# Transferir producto
+path('productos/transferir/', views.transferir_producto, name='transferir_producto'),
+
+# Procesar recepción parcial (maneja la recepción según la lógica del modal)
+path('productos/recepcion/', views.recepcion_producto, name='recepcion_producto'),
+
+
 ]
+
+
 

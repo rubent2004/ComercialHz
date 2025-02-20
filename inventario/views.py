@@ -391,57 +391,60 @@ class Eliminar(LoginRequiredMixin, View):
 
 #Fin de vista-------------------------------------------------------------------   
 
+
 class AgregarInventario(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
-    
-    def post(self, request, producto_id):
-        producto = get_object_or_404(Producto, id=producto_id)  # Obtener producto por ID
-        
-        form = RegistroInventarioFormulario(request.POST)
-        if form.is_valid():
-            # Guardamos el registro de inventario, pero no confirmamos la base de datos aún
-            registro = form.save(commit=False)
 
-            # Obtenemos el inventario o lo creamos si no existe
-            inventario, _ = Inventario.objects.get_or_create(
-                idbodega=registro.bodega,
-                idproducto=producto,  # Usamos el producto recibido
-                defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
-            )
-
-            # Aumentamos el stock de inventario
-            inventario.aumentar_stock(registro.cantidad)
-            inventario.save()
-
-            # Actualizamos el estado del registro de inventario y ajustamos el stock
-            registro.estado = EstadoProducto.objects.get(nombre='Disponible')
-            registro.ajustar_stock(registro.cantidad)
-
-            # Registramos el movimiento de producto
-            MovimientoProducto.objects.create(
-                producto=producto,
-                bodega=registro.bodega,
-                tipo_movimiento='entrada',  # Tipo de movimiento, 'entrada' para agregar productos
-                cantidad=registro.cantidad / 2,
-                usuario=request.user,
-                empleado=None,
-                estado_producto=registro.estado
-            )
-
-            # Mensaje de éxito
-            messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
-            return HttpResponseRedirect("/inventario/agregarInventario")
-
-        else:
-            return render(request, 'inventario/inventario/agregarInventario.html', {'form': form, 'producto': producto})
-
-    def get(self, request, producto_id):
-        producto = get_object_or_404(Producto, id=producto_id)  # Obtener producto por ID
-        form = RegistroInventarioFormulario()
-        contexto = {'form': form, 'producto': producto}
+    def get(self, request):
+        contexto = {
+            'bodegas': Bodega.objects.all(),
+            'productos': Producto.objects.all(),
+        }
+        contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/inventario/agregarInventario.html', contexto)
 
+    @transaction.atomic
+    def post(self, request):
+        try:
+            detalles = json.loads(request.POST.get('detalles', '[]'))
+            if not detalles:
+                raise ValidationError("Debe agregar al menos un producto")
+
+            with transaction.atomic():
+                for detalle in detalles:
+                    producto = get_object_or_404(Producto, id=detalle['producto'])
+                    bodega = get_object_or_404(Bodega, id=detalle['bodega'])
+                    cantidad = detalle['cantidad']
+
+                    # Obtener o crear el inventario
+                    inventario, _ = Inventario.objects.get_or_create(
+                        idbodega=bodega,
+                        idproducto=producto,
+                        defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
+                    )
+
+                    # Aumentar el stock
+                    inventario.aumentar_stock(cantidad)
+                    inventario.save()
+
+                    # Registrar el movimiento de producto
+                    MovimientoProducto.objects.create(
+                        producto=producto,
+                        bodega=bodega,
+                        tipo_movimiento='entrada',
+                        cantidad=cantidad,
+                        usuario=request.user,
+                        empleado=None,
+                        estado_producto=EstadoProducto.objects.get(nombre='Disponible')
+                    )
+
+            messages.success(request, 'Inventario actualizado exitosamente!')
+            return redirect('inventario:agregarInventario')
+
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+            return redirect('inventario:agregarInventario')
 
 #Muestra una lista de 10 productos por pagina----------------------------------------#
 class ListarProductos(LoginRequiredMixin, View):
@@ -1916,180 +1919,7 @@ def agregarEntrega(request):
     contexto = complementarContexto(contexto, request.user)  # Complementamos el contexto con la info del usuario
     return render(request, 'inventario/entrega/agregarEntrega.html', contexto)
 # views.py
-from django.db.models import Q
-class ListarEmpleadosPendientes(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
 
-    def get(self, request):
-        # Obtener todos los movimientos pendientes
-        movimientos_pendientes = MovimientoProducto.objects.filter(
-            estado_producto__nombre='Pendiente'
-        ).select_related('producto', 'empleado')
-        
-        # Filtrar por nombre o apellido del empleado si se proporciona el parámetro "busqueda"
-        busqueda = request.GET.get('busqueda', '')
-        if busqueda:
-            movimientos_pendientes = movimientos_pendientes.filter(
-                Q(empleado__nombre__icontains=busqueda) |
-                Q(empleado__apellido__icontains=busqueda)
-            )
-        
-        # Organizar datos por empleado
-        empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
-        for movimiento in movimientos_pendientes:
-            empleado_id = movimiento.empleado.id
-            empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
-            empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
-            producto_id = movimiento.producto.id
-            if producto_id not in empleados[empleado_id]['productos']:
-                empleados[empleado_id]['productos'][producto_id] = {
-                    'descripcion': movimiento.producto.descripcion,
-                    'cantidad': movimiento.cantidad,
-                    'movimiento_id': movimiento.id
-                }
-        
-        # Obtener las bodegas disponibles
-        bodegas = Bodega.objects.all()
-        
-        contexto = {
-            'empleados': dict(empleados),
-            'bodegas': bodegas,
-            'busqueda': busqueda,  # Pasamos el término de búsqueda para conservarlo en el input
-        }
-        contexto = complementarContexto(contexto, request.user)
-        return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
-
-    # En el método POST se aplica la misma lógica (para actualizar vía AJAX, por ejemplo)
-    def post(self, request):
-        movimientos_pendientes = MovimientoProducto.objects.filter(
-            estado_producto__nombre='Pendiente'
-        ).select_related('producto', 'empleado')
-        
-        busqueda = request.POST.get('busqueda', '')
-        if busqueda:
-            movimientos_pendientes = movimientos_pendientes.filter(
-                Q(empleado__nombre__icontains=busqueda) |
-                Q(empleado__apellido__icontains=busqueda)
-            )
-        
-        empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': []})
-        for movimiento in movimientos_pendientes:
-            empleado_id = movimiento.empleado.id
-            empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
-            empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
-            empleados[empleado_id]['productos'].append({
-                'descripcion': movimiento.producto.descripcion,
-                'cantidad': movimiento.cantidad,
-            })
-        
-        contexto = {'empleados': empleados}
-        listado_html = render_to_string('inventario/recepcion/empleadosPendientes.html', contexto)
-        
-        contexto = complementarContexto(contexto, request.user)
-        return JsonResponse({'success': True, 'listado_html': listado_html})
-@require_POST
-@transaction.atomic
-def recepcion_producto(request):
-    try:
-        # Obtener datos del formulario
-        producto_id = request.POST.get('producto_id')
-        movimiento_id = request.POST.get('movimiento_id')
-        cantidad_vendida = request.POST.get('cantidad_vendida', '0')  # Usamos '0' como valor predeterminado
-        cantidad_recibida = request.POST.get('cantidad_recibida', '0')
-        cantidad_recibida = int(cantidad_recibida) if cantidad_recibida else 0
-        cantidad_vendida = int(cantidad_vendida) if cantidad_vendida else 0
-        bodega_id = request.POST.get('bodega_id', '1')
-
-        # Validaciones de cantidades
-        if cantidad_vendida < 0 or cantidad_recibida < 0:
-            raise ValueError("Las cantidades no pueden ser negativas.")
-
-        # Obtener movimiento pendiente
-        producto_pendiente = get_object_or_404(MovimientoProducto, id=movimiento_id, estado_producto__nombre='Pendiente')
-        total_pendiente = producto_pendiente.cantidad
-        
-        # Validar que la suma de cantidades no exceda la cantidad pendiente
-        if cantidad_vendida + cantidad_recibida > total_pendiente:
-            raise ValueError(f"La suma excede la cantidad pendiente ({total_pendiente}).")
-
-        # Procesar venta
-        if cantidad_vendida > 0:
-            MovimientoProducto.objects.create(
-                bodega=producto_pendiente.bodega,
-                producto=producto_pendiente.producto,
-                tipo_movimiento='venta',
-                cantidad=cantidad_vendida,
-                usuario=request.user,
-                empleado=producto_pendiente.empleado,
-                estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
-            )
-
-        # Procesar recepcion 
-        if cantidad_recibida > 0:
-            bodega = get_object_or_404(Bodega, id=int(bodega_id))
-            MovimientoProducto.objects.create(
-                bodega=bodega,
-                producto=producto_pendiente.producto,
-                tipo_movimiento='recepcion',
-                cantidad=cantidad_recibida,
-                usuario=request.user,
-                empleado=producto_pendiente.empleado,
-                estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
-            )
-
-            # Obtenemos el inventario o lo creamos si no existe
-            inventario, _ = Inventario.objects.get_or_create(
-                idbodega=bodega,
-                idproducto=producto_pendiente.producto,
-                defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
-            )
-
-            # Aumentamos el stock de inventario
-            inventario.aumentar_stock(cantidad_recibida)
-            inventario.save()
-
-            #inventario.ajustar_stock(cantidad_recibida)
-            # Mensaje de éxito
-            messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
-
-        # Actualizar o eliminar el movimiento pendiente
-        if cantidad_vendida + cantidad_recibida == total_pendiente:
-            producto_pendiente.delete()
-        else:
-            producto_pendiente.cantidad -= (cantidad_vendida + cantidad_recibida)
-            producto_pendiente.save()
-
-        messages.success(request, "Recepción procesada correctamente.")
-    except ValueError as ve:
-        messages.error(request, f"Error de validación: {ve}")
-    except Exception as e:
-        messages.error(request, f"Error inesperado: {e}")
-
-    return redirect('inventario:listarEmpleadosPendientes') 
-    # Volver a listar los empleados pendientes
-    # movimientos_pendientes = MovimientoProducto.objects.filter(
-    #     estado_producto__nombre='Pendiente'
-    # ).select_related('producto', 'empleado')
-
-    # empleados = defaultdict(lambda: {'nombre': '', 'apellido': '', 'productos': {}})
-    # for movimiento in movimientos_pendientes:
-    #     empleado_id = movimiento.empleado.id
-    #     empleados[empleado_id]['nombre'] = movimiento.empleado.nombre
-    #     empleados[empleado_id]['apellido'] = movimiento.empleado.apellido
-    #     producto_id = movimiento.producto.id
-    #     if producto_id not in empleados[empleado_id]['productos']:
-    #         empleados[empleado_id]['productos'][producto_id] = {
-    #             'descripcion': movimiento.producto.descripcion,
-    #             'cantidad': movimiento.cantidad,
-    #             'movimiento_id': movimiento.id
-    #         }
-    # bodegas = Bodega.objects.all()
-    # contexto = {'empleados': dict(empleados),
-    #         'bodegas': bodegas,  # Agregar bodegas al contexto
-    #             }
-    # contexto = complementarContexto(contexto, request.user)
-
-    # return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
 
 #Devoluciones
 #@method_decorator(nivel_requerido(1), name='dispatch')
@@ -2550,7 +2380,7 @@ def buscar_sugerencias_nombre(request):
     nombre = request.GET.get('nombre', '')
     if nombre:
         productos = Producto.objects.filter(descripcion__icontains=nombre)[:10]
-        productos_data = [{'id': producto.id, 'descripcion': producto.descripcion} for producto in productos]
+        productos_data = [{'id': producto.id, 'descripcion': producto.descripcion,'precio_unitario': f"{producto.precio_unitario:.2f}"} for producto in productos]
         return JsonResponse(productos_data, safe=False)
     return JsonResponse([], safe=False)
 
@@ -2576,25 +2406,22 @@ def buscar_producto(request):
     if codigo:
         try:
             producto = Producto.objects.get(id=codigo)
-            # Concatenamos la descripción con el precio unitario entre paréntesis
-            descripcion_con_precio = f"{producto.descripcion} ({producto.precio_unitario})"
-            return JsonResponse({'id': producto.id, 'descripcion': descripcion_con_precio})
+            return JsonResponse({'id': producto.id, 'descripcion': producto.descripcion})
         except Producto.DoesNotExist:
             return JsonResponse({'error': 'Producto no encontrado'})
     return JsonResponse({'error': 'Código no proporcionado'})
 
-
+class BuscarProductoPorNombre(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    redirect_field_name = "Inventario/listarProductos.html"
 def buscar_productoNom(request):
     nombre = request.GET.get('nombre', '')
     if nombre:
         productos = Producto.objects.filter(descripcion__icontains=nombre)[:10]  # Limitar a 10 resultados
-        # Para cada producto, se concatena la descripción y el precio_unitario
-        productos_data = [
-            {'id': producto.id, 'descripcion': f"{producto.descripcion} ({producto.precio_unitario})"}
-            for producto in productos
-        ]
+        productos_data = [{'id': producto.id, 'descripcion': producto.descripcion} for producto in productos]
         return JsonResponse({'productos': productos_data})
     return JsonResponse({'error': 'No se proporcionó nombre'}, status=400)
+
 
 from django.http import JsonResponse
 from .models import Producto
@@ -3251,3 +3078,304 @@ class TransferirStockView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f"Error durante la transferencia: {str(e)}")
             return redirect('inventario:transferir_stock')
+        
+
+
+
+from collections import defaultdict
+from django.db.models import Q
+
+# Vista para listar empleados con productos pendientes
+class ListarEmpleadosPendientes(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    
+    def get(self, request):
+        # Filtrar movimientos pendientes
+        movimientos_pendientes = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente'
+        ).select_related('producto', 'empleado')
+        
+        # Filtrar por búsqueda (nombre o apellido)
+        busqueda = request.GET.get('busqueda', '')
+        if busqueda:
+            movimientos_pendientes = movimientos_pendientes.filter(
+                Q(empleado__nombre__icontains=busqueda) |
+                Q(empleado__apellido__icontains=busqueda)
+            )
+        
+        # Agrupar por empleado: obtenemos el último movimiento pendiente para cada uno
+        empleados = {}
+        for mov in movimientos_pendientes:
+            emp_id = mov.empleado.id
+            if emp_id not in empleados:
+                empleados[emp_id] = {
+                    'nombre': mov.empleado.nombre,
+                    'apellido': mov.empleado.apellido,
+                    'fecha': mov.fecha_movimiento,
+                    # Construimos la URL de detalle (ajusta según tu configuración de URLs)
+                    'link': f"/inventario/empleados/{emp_id}/pendientes/"
+                }
+            else:
+                if mov.fecha_movimiento > empleados[emp_id]['fecha']:
+                    empleados[emp_id]['fecha'] = mov.fecha_movimiento
+        
+        # Obtén las bodegas, en caso de que se necesiten en el contexto (para el modal de recepción parcial)
+        bodegas = Bodega.objects.all()
+        
+        contexto = {
+            'empleados': empleados,
+            'busqueda': busqueda,
+            'bodegas': bodegas,
+        }
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+
+class DetalleEmpleadoPendientes(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+    
+    def get(self, request, empleado_id):
+        empleado = get_object_or_404(Empleado, id=empleado_id)
+        movimientos = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente',
+            empleado=empleado
+        ).select_related('producto')
+        
+        productos = {}
+        for mov in movimientos:
+            prod_id = mov.producto.id
+            if prod_id not in productos:
+                productos[prod_id] = {
+                    'descripcion': mov.producto.descripcion,
+                    'cantidad': mov.cantidad,
+                    'movimiento_id': mov.id,
+                }
+            else:
+                productos[prod_id]['cantidad'] += mov.cantidad
+        
+        # Get all employees except the current one for transfer options
+        empleados_transferencia = Empleado.objects.exclude(id=empleado_id)
+        bodegas = Bodega.objects.all()
+        
+        contexto = {
+            'empleado': empleado,
+            'productos': productos,
+            'empleados_transferencia': empleados_transferencia,
+            'bodegas': bodegas,
+        }
+        return render(request, 'inventario/recepcion/empleadoPendientesDetalle.html', contexto)
+
+@require_POST
+@transaction.atomic
+def recepcion_producto(request):
+    try:
+        # Obtener datos del formulario
+        producto_id = request.POST.get('producto_id')
+        movimiento_id = request.POST.get('movimiento_id')
+        cantidad_vendida = request.POST.get('cantidad_vendida', '0')  # Usamos '0' como valor predeterminado
+        cantidad_recibida = request.POST.get('cantidad_recibida', '0')
+        cantidad_recibida = int(cantidad_recibida) if cantidad_recibida else 0
+        cantidad_vendida = int(cantidad_vendida) if cantidad_vendida else 0
+        bodega_id = request.POST.get('bodega_id', '1')
+
+        # Validaciones de cantidades
+        if cantidad_vendida < 0 or cantidad_recibida < 0:
+            raise ValueError("Las cantidades no pueden ser negativas.")
+
+        # Obtener movimiento pendiente
+        producto_pendiente = get_object_or_404(MovimientoProducto, id=movimiento_id, estado_producto__nombre='Pendiente')
+        total_pendiente = producto_pendiente.cantidad
+        
+        # Validar que la suma de cantidades no exceda la cantidad pendiente
+        if cantidad_vendida + cantidad_recibida > total_pendiente:
+            raise ValueError(f"La suma excede la cantidad pendiente ({total_pendiente}).")
+
+        # Procesar venta
+        if cantidad_vendida > 0:
+            MovimientoProducto.objects.create(
+                bodega=producto_pendiente.bodega,
+                producto=producto_pendiente.producto,
+                tipo_movimiento='venta',
+                cantidad=cantidad_vendida,
+                usuario=request.user,
+                empleado=producto_pendiente.empleado,
+                estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
+            )
+
+        # Procesar recepcion 
+        if cantidad_recibida > 0:
+            bodega = get_object_or_404(Bodega, id=int(bodega_id))
+            MovimientoProducto.objects.create(
+                bodega=bodega,
+                producto=producto_pendiente.producto,
+                tipo_movimiento='recepcion',
+                cantidad=cantidad_recibida,
+                usuario=request.user,
+                empleado=producto_pendiente.empleado,
+                estado_producto=get_object_or_404(EstadoProducto, nombre='Disponible')
+            )
+
+            # Obtenemos el inventario o lo creamos si no existe
+            inventario, _ = Inventario.objects.get_or_create(
+                idbodega=bodega,
+                idproducto=producto_pendiente.producto,
+                defaults={'stock': 0, 'estado': EstadoProducto.objects.get(nombre='Disponible')}
+            )
+
+            # Aumentamos el stock de inventario
+            inventario.aumentar_stock(cantidad_recibida)
+            inventario.save()
+
+            # Mensaje de éxito
+            messages.success(request, 'Registro de inventario agregado exitosamente y stock actualizado.')
+
+        # Actualizar o eliminar el movimiento pendiente
+        if cantidad_vendida + cantidad_recibida == total_pendiente:
+            producto_pendiente.delete()
+        else:
+            producto_pendiente.cantidad -= (cantidad_vendida + cantidad_recibida)
+            producto_pendiente.save()
+
+        messages.success(request, "Recepción procesada correctamente.")
+        
+    except ValueError as ve:
+        messages.error(request, f"Error de validación: {ve}")
+    except Exception as e:
+        messages.error(request, f"Error inesperado: {e}")
+
+    # Redirigir al detalle de los pendientes del empleado
+    return redirect('inventario:detalle_empleado_pendientes', empleado_id=producto_pendiente.empleado.id)
+@require_POST
+@transaction.atomic
+def recepcion_todo_producto(request, empleado_id, producto_id):
+    try:
+        movimientos = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente',
+            empleado_id=empleado_id,
+            producto_id=producto_id
+        )
+        
+        if not movimientos.exists():
+            raise ValueError("No hay movimientos pendientes")
+        
+        total_pendiente = movimientos.aggregate(total=Sum('cantidad'))['total']
+        primer_movimiento = movimientos.first()
+        estado_disponible = get_object_or_404(EstadoProducto, nombre='Disponible')
+        
+        # Create reception movement
+        MovimientoProducto.objects.create(
+            bodega=primer_movimiento.bodega,
+            producto=primer_movimiento.producto,
+            tipo_movimiento='recepcion',
+            cantidad=total_pendiente,
+            usuario=request.user,
+            empleado=primer_movimiento.empleado,
+            estado_producto=estado_disponible
+        )
+        
+        # Update inventory
+        inventario, _ = Inventario.objects.get_or_create(
+            idbodega=primer_movimiento.bodega,
+            idproducto=primer_movimiento.producto,
+            defaults={'stock': 0, 'estado': estado_disponible}
+        )
+        inventario.stock += total_pendiente
+        inventario.save()
+        
+        # Delete pending movements
+        movimientos.delete()
+        
+        messages.success(request, "Recepción total procesada correctamente")
+    except Exception as e:
+        messages.error(request, f"Error al procesar la recepción total: {str(e)}")
+    
+    return redirect('inventario:detalle_empleado_pendientes', empleado_id=empleado_id)
+
+@require_POST
+@transaction.atomic
+def venta_total_producto(request, empleado_id, producto_id):
+    try:
+        movimientos = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente',
+            empleado_id=empleado_id,
+            producto_id=producto_id
+        )
+        
+        if not movimientos.exists():
+            raise ValueError("No hay movimientos pendientes")
+        
+        total_pendiente = movimientos.aggregate(total=Sum('cantidad'))['total']
+        primer_movimiento = movimientos.first()
+        estado_vendido = get_object_or_404(EstadoProducto, nombre='Vendido')
+        
+        # Create sale movement
+        MovimientoProducto.objects.create(
+            bodega=primer_movimiento.bodega,
+            producto=primer_movimiento.producto,
+            tipo_movimiento='venta',
+            cantidad=total_pendiente,
+            usuario=request.user,
+            empleado=primer_movimiento.empleado,
+            estado_producto=estado_vendido
+        )
+        
+        # Delete pending movements
+        movimientos.delete()
+        
+        messages.success(request, "Venta total procesada correctamente")
+    except Exception as e:
+        messages.error(request, f"Error al procesar la venta total: {str(e)}")
+    
+    return redirect('inventario:detalle_empleado_pendientes', empleado_id=empleado_id)
+
+@require_POST
+@transaction.atomic
+def transferir_producto(request):
+    try:
+        producto_id = request.POST.get('producto_id')
+        empleado_origen_id = request.POST.get('empleado_origen_id')
+        empleado_destino_id = request.POST.get('empleado_destino_id')
+        cantidad = int(request.POST.get('cantidad', 0))
+        
+        if cantidad <= 0:
+            raise ValueError("La cantidad debe ser mayor que cero")
+        
+        movimientos = MovimientoProducto.objects.filter(
+            estado_producto__nombre='Pendiente',
+            empleado_id=empleado_origen_id,
+            producto_id=producto_id
+        )
+        
+        if not movimientos.exists():
+            raise ValueError("No hay movimientos pendientes")
+        
+        total_pendiente = movimientos.aggregate(total=Sum('cantidad'))['total']
+        if cantidad > total_pendiente:
+            raise ValueError("La cantidad excede el pendiente")
+        
+        primer_movimiento = movimientos.first()
+        estado_pendiente = get_object_or_404(EstadoProducto, nombre='Pendiente')
+        empleado_destino = get_object_or_404(Empleado, id=empleado_destino_id)
+        
+        # Create transfer movement
+        MovimientoProducto.objects.create(
+            bodega=primer_movimiento.bodega,
+            producto=primer_movimiento.producto,
+            tipo_movimiento='transferencia',
+            cantidad=cantidad,
+            usuario=request.user,
+            empleado=empleado_destino,
+            estado_producto=estado_pendiente
+        )
+        
+        # Update or delete source movement
+        if primer_movimiento.cantidad == cantidad:
+            primer_movimiento.delete()
+        else:
+            primer_movimiento.cantidad -= cantidad
+            primer_movimiento.save()
+        
+        messages.success(request, "Transferencia procesada correctamente")
+    except Exception as e:
+        messages.error(request, f"Error al procesar la transferencia: {str(e)}")
+    
+    return redirect('inventario:detalle_empleado_pendientes', empleado_id=empleado_origen_id)
