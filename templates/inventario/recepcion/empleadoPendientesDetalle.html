@@ -2,91 +2,97 @@
 
 {% block content %}
 <article class="content responsive-tables-page">
-    <div class="container py-4">
-      <div class="text-center mb-4">
-        <h1 class="display-5 text-primary">Pendientes para {{ empleado.nombre }} {{ empleado.apellido }}</h1>
-        <p class="lead text-secondary">
-          Seleccione el producto para procesar la recepción, venta o transferencia.
-        </p>
-      </div>
-      <div class="text-center">
-        <a href="{% url 'inventario:listar_empleados_pendientes' %}" class="btn btn-secondary btn-lg">
-          <i class="fas fa-arrow-left me-2"></i> Volver
-        </a>
-      </div>
-      {% if messages %}
-      {% for message in messages %}
-          <div class="alert alert-success alert-dismissible fade show" role="alert">
-              <strong><i class="fa fa-check"></i></strong> {{ message }}
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-              </button>
-          </div>
-      {% endfor %}
-  {% endif %}
-      <!-- Lista de productos pendientes en formato de tabla responsive -->
-      <section class="mb-4">
-        <div class="table-responsive">
-          <table class="table table-striped table-bordered table-hover">
-            <thead class="table-dark">
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad Pendiente</th>
-                <th class="text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for prod_id, prod in productos.items %}
-              <tr>
-                <td>{{ prod.descripcion }}</td>
-                <td>{{ prod.cantidad }}</td>
-                <td class="text-center">
-                  <!-- Botón para recepción parcial (modal) -->
-                  <button class="btn btn-info btn-lg me-2" 
-                          onclick="abrirModal('{{ prod_id }}', {{ prod.cantidad }}, {{ prod.movimiento_id }}, false)">
-                    <i class="fas fa-check-circle me-1"></i> Parcial
-                  </button>
-                  
-                  <form method="post" action="{% url 'inventario:recepcion_todo_producto' empleado.id prod_id %}" class="d-inline" 
-                            onsubmit="return mostrarConfirmacion('recepcionTotal')">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-box-open me-1"></i> Recepción Total
-                            </button>
-                        </form>
-
-                        <form method="post" action="{% url 'inventario:venta_total_producto' empleado.id prod_id %}" class="d-inline" 
-                            onsubmit="return mostrarConfirmacion('ventaTotal')">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger btn-lg">
-                            <i class="fas fa-dollar-sign me-1"></i> Venta Total
-                            </button>
-                        </form>
-
-                  <!-- Botón para transferir (abre modal de transferencia) -->
-                  <button class="btn btn-warning btn-lg ms-2" 
-                          onclick="abrirTransferenciaModal('{{ prod_id }}', {{ prod.cantidad }}, {{ prod.movimiento_id }}, '{{ empleado.id }}')">
-                    <i class="fas fa-exchange-alt me-1"></i> Transferir
-                  </button>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="3" class="text-center">No hay productos pendientes para este empleado.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      
-      <div class="text-center">
-        <a href="{% url 'inventario:listar_empleados_pendientes' %}" class="btn btn-secondary btn-lg">
-          <i class="fas fa-arrow-left me-2"></i> Volver
-        </a>
-      </div>
+  <div class="container py-4">
+    <div class="text-center mb-4">
+      <h1 class="display-5 text-primary">Pendientes para {{ empleado.nombre }} {{ empleado.apellido }}</h1>
+      <p class="lead text-secondary">
+        Seleccione el producto para procesar la recepción, venta o transferencia.
+      </p>
     </div>
-  </article>
+    <div class="text-center">
+      <a href="{% url 'inventario:listar_empleados_pendientes' %}" class="btn btn-secondary btn-lg">
+        <i class="fas fa-arrow-left me-2"></i> Volver
+      </a>
+    </div>
+    
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong><i class="fa fa-check"></i></strong> {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+    
+    <!-- Tabla de movimientos pendientes agrupados por fecha -->
+    <section class="mb-4">
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad Pendiente</th>
+              <th>Fecha</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fecha, movimientos in pendientes_por_fecha.items %}
+              <!-- Fila con la fecha (puedes optar por mostrarla en una fila separada o en cada registro) -->
+              {% for mov in movimientos %}
+                <tr>
+                  <td>{{ mov.descripcion }}</td>
+                  <td>{{ mov.cantidad }}</td>
+                  <td>{{ fecha }}</td>
+                  <td class="text-center">
+                    <!-- Botón para recepción parcial (modal) -->
+                    <button class="btn btn-info btn-lg me-2" 
+                            onclick="abrirModal('{{ mov.producto_id }}', {{ mov.cantidad }}, {{ mov.movimiento_id }}, false)">
+                      <i class="fas fa-check-circle me-1"></i> Parcial
+                    </button>
+                    
+                    <form method="post" action="{% url 'inventario:recepcion_todo_producto' empleado.id mov.movimiento_id %}" class="d-inline"
+                          onsubmit="return mostrarConfirmacion('recepcionTotal')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-box-open me-1"></i> Recepción Total
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'inventario:venta_total_producto' empleado.id mov.movimiento_id %}" class="d-inline" 
+                          onsubmit="return mostrarConfirmacion('ventaTotal')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="fas fa-dollar-sign me-1"></i> Venta Total
+                      </button>
+                    </form>
+
+                    <button class="btn btn-warning btn-lg ms-2" 
+                            onclick="abrirTransferenciaModal('{{ mov.producto_id }}', {{ mov.cantidad }}, {{ mov.movimiento_id }}, '{{ empleado.id }}')">
+                      <i class="fas fa-exchange-alt me-1"></i> Transferir
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% empty %}
+              <tr>
+                <td colspan="4" class="text-center">No hay productos pendientes para este empleado.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+    <div class="text-center">
+      <a href="{% url 'inventario:listar_empleados_pendientes' %}" class="btn btn-secondary btn-lg">
+        <i class="fas fa-arrow-left me-2"></i> Volver
+      </a>
+    </div>
+  </div>
+</article>
   
  <!-- Toast de confirmación -->
 <div class="toast-container position-fixed top-0 end-0 p-3">
@@ -132,12 +138,14 @@
                 </div>
               </div>
               <select class="form-select mt-2 d-none" id="bodegaSelect">
-                <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
-                {% for bodega in bodegas %}
-                  {% if bodega.id != 1 %}
-                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
-                  {% endif %}
-                {% endfor %}
+                <div class="form-group">
+                  <label for="idbodega">Bodega</label>
+                  <select id="idbodega" name="idbodega" class="form-control">
+                    {% for bodega in bodegas %}
+                      <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
               </select>
               <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
             </div>
@@ -267,6 +275,8 @@
         document.getElementById("cantidadVendida").value = '';
         document.getElementById("cantidadRecibida").value = '';
         document.getElementById("errorMensaje").innerText = '';
+        document.getElementById("movimientoId").value = movimientoId;
+       document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
         var modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
         modal.show();
       }

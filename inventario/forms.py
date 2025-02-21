@@ -422,12 +422,7 @@ class MarcaFormulario(forms.ModelForm):
 
 class BuscarInventarioFormulario(forms.Form):
     bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
-    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
-    estado = forms.ChoiceField(choices=[('Disponible', 'Disponible'), ('Dañado', 'Dañado'), ('En reparación', 'En reparación'), ('Vendido', 'Vendido'), ('Pendiente', 'Pendiente')], required=False, label='Estado', widget=forms.Select(attrs={'class': 'form-control'}))
-
-
-# Formulario Registro Inventario
-
+    
 class RegistroInventarioFormulario(forms.ModelForm):
     class Meta:
         model = RegistroInventario

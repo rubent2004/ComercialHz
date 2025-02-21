@@ -1,385 +1,582 @@
 {% extends "inventario/comun/base.html" %}
-
-{% block content %}
 {% load static %}
-
+{% block content %}
 <article class="content responsive-tables-page">
-    <div class="title-block text-center">
-        <h1 class="title">Registrar Entrega</h1>
-        <p class="title-description">Registra los productos entregados al empleado</p>
+  <div class="container py-4">
+    <div class="text-center mb-4">
+      <h1 class="display-4">Registrar Entrega</h1>
+      <p class="lead">Registra los productos entregados al empleado</p>
     </div>
+
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+    {% endfor %}
+
+    <form method="post" id="entrega-form">
+      {% csrf_token %}
     
-    <section class="section">
-        <div class="row">
-            <div class="col-md-12">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                {% endfor %}
-                
-                <div class="card">
-                    <div class="card-block">
-                        <div class="card-title-block">
-                            <h3 class="title">Formulario de Entrega</h3>
-                            <a href="{% url 'inventario:listarMovimientoProducto' %}" class="btn btn-info btn-sm float-right">
-                                <i class="fa fa-list"></i> Ver Historial
-                            </a>
-                        </div>
-                        
-                        <form method="post" id="entrega-form">
-                            {% csrf_token %}
-                           
-                            <!-- Selección de Empleado -->
-                            <div class="form-group">
-                                <label for="empleado">Empleado Receptor:</label>
-                                 <!-- Campo para buscar por nombre de empleado -->
-                            <div class="col-md-4">
-                                <input type="text" id="nombre-empleado-input" class="form-control" placeholder="Nombre del Empleado">
-                                <div id="sugerencias-empleado" class="list-group mt-1"></div> <!-- Div para las sugerencias -->
-                            </div>
-                            <!-- Botón para buscar empleado por nombre -->
-                            <div class="col-md-2">
-                                <button type="button" id="buscar-empleado" class="btn btn-info btn-block">
-                                    <i class="fa fa-search"></i> Buscar por Nombre
-                                </button>
-                            </div>
-                                <select name="empleado" id="empleado" class="form-control" required>
-                                    <option value="">Seleccione un empleado</option>
-                                    {% for empleado in empleados %}
-                                        <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-    
-                            <!-- Búsqueda de Producto -->
-                            <div class="card my-3">
-                                <div class="card-body">
-                                    <h4 class="card-title">Agregar Productos</h4>
-                                    <div class="row">
-                                         <!-- Campo para buscar por nombre -->
-                                         <div class="col-md-4">
-                                            <input type="text" id="nombre-input" class="form-control" placeholder="Nombre del Producto">
-                                            <div id="sugerencias-nombre" class="list-group mt-1"></div> <!-- Div para las sugerencias -->
-                                        </div>
-                                        <!-- Botón para buscar producto por nombre -->
-                                        <div class="col-md-2">
-                                            <button type="button" id="buscar-nombre" class="btn btn-info btn-block">
-                                                <i class="fa fa-search"></i> Buscar por Nombre
-                                            </button>
-                                        </div>
-                                        <!-- Campo para buscar por código -->
-                                        <div class="col-md-4">
-                                            <input type="text" id="codigo-input" class="form-control" placeholder="Código del Producto">
-                                        </div>
-                                        <!-- Botón para buscar producto por código -->
-                                        <div class="col-md-2">
-                                            <button type="button" id="buscar-codigo" class="btn btn-info btn-block">
-                                                <i class="fa fa-search"></i> Buscar por Código
-                                            </button>
-                                        </div>
-                                       
-                                        
-                                        <!-- Campo para seleccionar producto -->
-                                        <div class="col-md-4">
-                                            <select class="form-control" id="producto-select">
-                                                <option value="">Producto</option>
-                                                {% for producto in productos %}
-                                                    <option value="{{ producto.id }}">{{ producto.descripcion }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-    
-                                        <!-- Campo para seleccionar bodega -->
-                                        <div class="col-md-4">
-                                            <select class="form-control" id="bodega-select">
-                                                <option value="">Bodega</option>
-                                                {% for bodega in bodegas %}
-                                                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-    
-                                        <!-- Campo para cantidad -->
-                                        <div class="col-md-2">
-                                            <input type="number" id="cantidad-input" class="form-control" min="1" value="1" placeholder="Cantidad">
-                                        </div>
-    
-                                        <!-- Botón para agregar el producto -->
-                                        <div class="col-md-2">
-                                            <button type="button" id="agregar-producto" class="btn btn-success btn-block">
-                                                <i class="fa fa-cart-plus"></i> Agregar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-    
-                            <!-- Lista de Productos Seleccionados -->
-                            <div class="card">
-                                <div class="card-body">
-                                    <h4 class="card-title">Productos Seleccionados</h4>
-                                    <div id="stock-alert" class="alert alert-danger d-none"></div>
-                                    <ul id="lista-productos" class="list-group mb-3"></ul>
-                                    <input type="hidden" name="detalles" id="detalles-json">
-                                    
-                                    <button type="submit" class="btn btn-primary btn-lg btn-block">
-                                        <i class="fa fa-check-circle"></i> Registrar Entrega
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+      <!-- Sección 1: Selección de Empleado -->
+      <section id="employee-section" class="card mb-4" style="background-color: #f0f8ff;">
+        <div class="card-body">
+          <h4 class="card-title">Empleado Receptor</h4>
+          <div class="form-group">
+            <label for="nombre-empleado-input">Buscar Empleado</label>
+            <div class="row">
+              <div class="col-12 col-md-8 mb-2">
+                <input type="text" id="nombre-empleado-input" class="form-control" placeholder="Nombre del Empleado">
+                <div id="sugerencias-empleado" class="list-group mt-1"></div>
+              </div>
+              <div class="col-12 col-md-4 mb-2">
+                <button type="button" id="buscar-empleado" class="btn btn-info btn-block">
+                  <i class="fa fa-search"></i> Buscar
+                </button>
+              </div>
             </div>
+            <label for="empleado">Empleado Seleccionado</label>
+            <select name="empleado" id="empleado" class="form-control" required>
+              <option value="">Seleccione un empleado</option>
+              {% for empleado in empleados %}
+                <option value="{{ empleado.id }}">{{ empleado.nombre }} {{ empleado.apellido }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
-    </section>
+      </section>
     
+      <!-- Sección 2: Filtros y Selección de Producto -->
+      <section id="product-selection" class="card mb-4" style="background-color: #f9f9f9;">
+        <div class="card-body">
+          <h4 class="card-title">Agregar Productos</h4>
+          <div class="row">
+            <!-- Filtro de Bodega -->
+            <div class="col-12 col-md-4 mb-3">
+              <label for="bodega-select">Filtrar por Bodega:</label>
+              <select class="form-control" id="bodega-select">
+                <option value="">Todas las bodegas</option>
+                {% for bodega in bodegas %}
+                  <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+    
+            <!-- Búsqueda por Nombre -->
+            <div class="col-12 col-md-4 mb-2">
+              <label for="nombre-input">Producto (Nombre)</label>
+              <input type="text" id="nombre-input" class="form-control" placeholder="Nombre del Producto">
+              <div id="sugerencias-nombre" class="list-group mt-1"></div>
+            </div>
+            
+            <!-- Campo para buscar por código -->
+            <div class="col-12 col-md-4 mb-2">
+              <div class="input-group">
+                <input type="text" id="codigo-input" class="form-control" placeholder="Código del Producto">
+                <div class="input-group-append">
+                  <button type="button" id="buscar-codigo" class="btn btn-info">
+                    <i class="fa fa-search"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+    
+            <!-- Selección de Producto -->
+            <div class="col-12 col-md-6 mb-2">
+              <label for="producto-select">Producto</label>
+              <select class="form-control" id="producto-select">
+                <option value="">Seleccione Producto</option>
+                {% for inventario in inventarios %}
+                  <option value="{{ inventario.idproducto.id }}"
+                          data-precio="{{ inventario.idproducto.precio_unitario }}"
+                          data-bodega="{{ inventario.idbodega.id }}">
+                    {{ inventario.idproducto.descripcion }} - {{ inventario.idbodega.nombre }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+    
+            <!-- Bodega Asociada -->
+            <div class="col-12 col-md-6 mb-2">
+              <label for="producto-bodega-select">Bodega Asociada</label>
+              <select class="form-control" id="producto-bodega-select" disabled>
+                <option value="">Bodega</option>
+                {% for bodega in bodegas %}
+                  <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+    
+            <!-- Precio y Cantidad -->
+            <div class="col-12 col-md-6 mb-2">
+              <div id="precio-visual" class="alert alert-success" style="display: none;">
+                Precio: $<span id="precio-valor"></span>
+              </div>
+            </div>
+            <div class="col-12 col-md-3 mb-2">
+              <label for="cantidad-input">Cantidad</label>
+              <input type="number" id="cantidad-input" class="form-control" min="1" value="1">
+            </div>
+            <div class="col-12 col-md-3 mb-2 align-self-end">
+              <button type="button" id="agregar-producto" class="btn btn-success btn-block">
+                <i class="fa fa-cart-plus"></i> Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    
+      <!-- Sección 3: Carrito de Productos -->
+      <section id="cart-section" class="card mb-4" style="background-color: #fffaf0;">
+        <div class="card-body">
+          <h4 class="card-title">Productos Seleccionados</h4>
+          <div id="stock-alert" class="alert alert-danger d-none"></div>
+          <ul id="lista-productos" class="list-group mb-3"></ul>
+          <input type="hidden" name="detalles" id="detalles-json">
+          <button type="submit" class="btn btn-primary btn-lg btn-block">
+            <i class="fa fa-check-circle"></i> Registrar Entrega
+          </button>
+        </div>
+      </section>
+    </form>
 </article>
 
+<!-- JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    // Variables para productos
     const productos = [];
     const productoSelect = document.getElementById('producto-select');
     const bodegaSelect = document.getElementById('bodega-select');
+    const bodegaProductoSelect = document.getElementById('producto-bodega-select');
     const cantidadInput = document.getElementById('cantidad-input');
     const listaProductos = document.getElementById('lista-productos');
-    const stockAlert = document.getElementById('stock-alert');
-    const codigoInput = document.getElementById('codigo-input');
-    const buscarCodigoBtn = document.getElementById('buscar-codigo');
     const nombreInput = document.getElementById('nombre-input');
     const sugerenciasNombre = document.getElementById('sugerencias-nombre');
-    const buscarNombreBtn = document.getElementById('buscar-nombre');
+    const precioVisual = document.getElementById('precio-visual');
+    const precioValor = document.getElementById('precio-valor');
+    const codigoInput = document.getElementById('codigo-input');
+    const buscarCodigoBtn = document.getElementById('buscar-codigo');
+    // Variables para empleados
     const nombreEmpleadoInput = document.getElementById('nombre-empleado-input');
     const sugerenciasEmpleado = document.getElementById('sugerencias-empleado');
     const buscarEmpleadoBtn = document.getElementById('buscar-empleado');
-    // Función para obtener sugerencias de empleados por nombre
-async function obtenerSugerenciasEmpleado(nombre) {
-    try {
+    
+    document.getElementById('entrega-form').addEventListener('submit', function(event) {
+      if (productos.length === 0) {
+        event.preventDefault();
+        alert("Debe agregar al menos un producto antes de registrar la entrega.");
+        return;
+      }
+      document.getElementById('detalles-json').value = JSON.stringify(
+        productos.map(p => ({
+          producto: p.producto,
+          bodega: p.bodega_id,
+          cantidad: p.cantidad
+        }))
+      );
+    });
+    
+    // Función para buscar producto por código
+    async function buscarProductoPorCodigoId(codigo) {
+      try {
+        const response = await fetch(`/inventario/buscar-producto2/?codigo=${codigo}`);
+        const data = await response.json();
+    
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+    
+        // No se actualiza el filtro de bodega para que no se modifique el select.
+        
+        // Esperar a que se rendericen las opciones
+        setTimeout(() => {
+          // Buscar la opción correspondiente en el select de producto
+          const option = Array.from(productoSelect.options).find(opt => 
+              opt.value == data.id && opt.dataset.bodega == data.bodega_id
+          );
+          
+          if (option) {
+            option.selected = true;
+            productoSelect.dispatchEvent(new Event('change'));
+            codigoInput.value = ''; // Limpiar el input
+          } else {
+            alert('Producto no disponible en la bodega seleccionada');
+          }
+        }, 100);
+    
+      } catch (error) {
+        console.error('Error buscando el producto:', error);
+        alert('Error al buscar el producto');
+      }
+    }
+   // Evento para buscar producto por código
+   buscarCodigoBtn.addEventListener('click', function() {
+      const codigo = codigoInput.value.trim();
+      if (codigo) {
+          buscarProductoPorCodigoId(codigo);
+      } else {
+          alert('Por favor ingresa un código de producto');
+      }
+  });
+  function filtrarProductos() {
+    const bodegaId = bodegaSelect.value;
+    
+    Array.from(productoSelect.options).forEach(option => {
+        if (option.value === "") return;
+        const shouldShow = bodegaId === "" || option.dataset.bodega === bodegaId;
+        option.hidden = !shouldShow;
+    });
+    
+    // Solo resetear si el usuario cambia manualmente el filtro
+    if (!this?.programaticChange) {
+        productoSelect.value = '';
+        bodegaProductoSelect.value = '';
+        precioVisual.style.display = 'none';
+          }
+      }
+
+      // Modificar el event listener para permitir cambios programáticos
+      bodegaSelect.addEventListener('change', function() {
+          this.programaticChange = true;
+          filtrarProductos.call(this);
+          delete this.programaticChange;
+      });
+        
+    // Event Listeners para productos
+    bodegaSelect.addEventListener('change', filtrarProductos);
+  
+    productoSelect.addEventListener('change', function() {
+      const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+      if (selectedOption.value) {
+        bodegaProductoSelect.value = selectedOption.dataset.bodega;
+        precioValor.textContent = parseFloat(selectedOption.dataset.precio).toFixed(2);
+        precioVisual.style.display = 'block';
+      } else {
+        precioVisual.style.display = 'none';
+      }
+    });
+  
+    // Funciones para empleados
+    async function obtenerSugerenciasEmpleado(nombre) {
+      try {
         const response = await fetch(`/inventario/buscar-sugerencias-empleado/?nombre=${nombre}`);
         const data = await response.json();
         if (data.length > 0) {
-            sugerenciasEmpleado.innerHTML = data.map(empleado => `
-                <a href="#" class="list-group-item list-group-item-action" onclick="seleccionarSugerenciaEmpleado('${empleado.id}', '${empleado.nombre} ${empleado.apellido}')">
-                    ${empleado.nombre} ${empleado.apellido}
-                </a>
-            `).join('');
+          sugerenciasEmpleado.innerHTML = data.map(empleado => `
+            <a href="#" class="list-group-item list-group-item-action" 
+               onclick="seleccionarSugerenciaEmpleado('${empleado.id}', '${empleado.nombre} ${empleado.apellido}' )">
+              ${empleado.nombre} ${empleado.apellido}
+            </a>
+          `).join('');
         } else {
-            sugerenciasEmpleado.innerHTML = '';
+          sugerenciasEmpleado.innerHTML = '';
         }
-    } catch (error) {
+      } catch (error) {
         console.error('Error obteniendo sugerencias de empleados:', error);
+      }
     }
-}
-
-        // Función para seleccionar un empleado de las sugerencias
-        window.seleccionarSugerenciaEmpleado = function(id, nombreCompleto) {
-            document.getElementById('empleado').value = id; // Asigna el ID del empleado al campo oculto
-            nombreEmpleadoInput.value = nombreCompleto;  // Muestra el nombre completo en el campo de texto
-            sugerenciasEmpleado.innerHTML = ''; // Limpiar las sugerencias
-        };
-
-        // Evento para buscar empleado por nombre
-        buscarEmpleadoBtn.addEventListener('click', function() {
-            const nombre = nombreEmpleadoInput.value.trim();
-            if (nombre) {
-                obtenerSugerenciasEmpleado(nombre);
-            } else {
-                alert('Por favor ingresa un nombre de empleado');
-            }
-        });
-
-        // Evento para sugerir nombres mientras escribe
-        nombreEmpleadoInput.addEventListener('input', function() {
-            const nombre = nombreEmpleadoInput.value.trim();
-            if (nombre.length > 2) {
-                obtenerSugerenciasEmpleado(nombre);
-            } else {
-                sugerenciasEmpleado.innerHTML = '';
-            }
-        });
-    async function verificarStock(productoId, bodegaId, cantidad) {
-        try {
-            const response = await fetch(
-                `/inventario/verificar-stock/?bodega=${bodegaId}&producto=${productoId}&cantidad=${cantidad}`
-            );
-            return await response.json();
-        } catch(error) {
-            console.error('Error:', error);
-            return { disponible: false };
-        }
-    }
-
-    // Función para buscar producto por código
-    async function buscarProductoPorCodigoId(codigo) {
-        try {
-            const response = await fetch(`/inventario/buscar-producto/?codigo=${codigo}`);
-            const data = await response.json();
-            if (data.error) {
-                alert(data.error);
-            } else {
-                productoSelect.value = data.id;
-            }
-        } catch (error) {
-            console.error('Error buscando el producto:', error);
-        }
-    }
-
-    // Función para buscar producto por nombre
-    async function buscarProductoPorNombre(nombre) {
-        try {
-            const response = await fetch(`/inventario/buscar-productoNom/?nombre=${nombre}`);
-            const data = await response.json();
-            if (data.error) {
-                alert(data.error);
-            } else {
-                productoSelect.value = data.id;
-            }
-        } catch (error) {
-            console.error('Error buscando el producto:', error);
-        }
-    }
-
-    // Función para autocompletar sugerencias de nombre
-    async function obtenerSugerenciasNombre(nombre) {
-        try {
-            const response = await fetch(`/inventario/buscar-sugerencias-nombre/?nombre=${nombre}`);
-            const data = await response.json();
-            if (data.length > 0) {
-                sugerenciasNombre.innerHTML = data.map(producto => `
-                    <a href="#" class="list-group-item list-group-item-action" onclick="seleccionarSugerencia('${producto.id}', '${producto.descripcion}')">
-                        ${producto.descripcion}
-                    </a>
-                `).join('');
-            } else {
-                sugerenciasNombre.innerHTML = '';
-            }
-        } catch (error) {
-            console.error('Error obteniendo sugerencias:', error);
-        }
-    }
-
-    // Función para seleccionar una sugerencia
-    window.seleccionarSugerencia = function(id, descripcion) {
-        productoSelect.value = id;
-        nombreInput.value = descripcion;
-        sugerenciasNombre.innerHTML = '';
+  
+    window.seleccionarSugerenciaEmpleado = function(id, nombreCompleto) {
+      document.getElementById('empleado').value = id;
+      nombreEmpleadoInput.value = nombreCompleto;
+      sugerenciasEmpleado.innerHTML = '';
     };
-
-    // Evento para buscar producto por código
-    buscarCodigoBtn.addEventListener('click', function() {
-        const codigo = codigoInput.value.trim();
-        if (codigo) {
-            buscarProductoPorCodigoId(codigo);
-        } else {
-            alert('Por favor ingresa un código de producto');
-        }
+  
+    // Event Listeners para empleados
+    nombreEmpleadoInput.addEventListener('input', function() {
+      const nombre = this.value.trim();
+      if (nombre.length > 2) {
+        obtenerSugerenciasEmpleado(nombre);
+      } else {
+        sugerenciasEmpleado.innerHTML = '';
+      }
     });
-
-    // Evento para buscar producto por nombre
-    buscarNombreBtn.addEventListener('click', function() {
-        const nombre = nombreInput.value.trim();
-        if (nombre) {
-            buscarProductoPorNombre(nombre);
-        } else {
-            alert('Por favor ingresa un nombre de producto');
-        }
+  
+    buscarEmpleadoBtn.addEventListener('click', function() {
+      const nombre = nombreEmpleadoInput.value.trim();
+      if (nombre) {
+        obtenerSugerenciasEmpleado(nombre);
+      } else {
+        alert('Por favor ingresa un nombre de empleado');
+      }
     });
-
-    // Evento para sugerir nombres mientras escribe
+  
+    // Funciones para sugerencias de productos
+    async function obtenerSugerenciasNombre(nombre) {
+      const bodegaId = bodegaSelect.value;
+      try {
+        const response = await fetch(`/inventario/buscar-sugerencias-nombre2/?nombre=${nombre}&bodega=${bodegaId}`);
+        const data = await response.json();
+        if (data.length > 0) {
+          sugerenciasNombre.innerHTML = data.map(producto => `
+            <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+              onclick="seleccionarSugerencia('${producto.id}', '${producto.descripcion.replace(/'/g, "\\'")}', '${producto.bodega}')">
+              <div>
+                <div class="font-weight-bold">${producto.descripcion}</div>
+                <small class="text-muted">${producto.bodega_nombre}</small>
+              </div>
+              <span class="precio-sugerencia">$${parseFloat(producto.precio_unitario).toFixed(2)}</span>
+            </a>
+          `).join('');
+        } else {
+          sugerenciasNombre.innerHTML = '<div class="list-group-item">No se encontraron productos</div>';
+        }
+      } catch (error) {
+        console.error('Error obteniendo sugerencias:', error);
+      }
+    }
+  
+    window.seleccionarSugerencia = function(id, descripcion, bodegaId) {
+      productoSelect.value = id;
+      nombreInput.value = descripcion;
+      const option = Array.from(productoSelect.options).find(opt => 
+        opt.value === id && opt.dataset.bodega === bodegaId
+      );
+      if (option) {
+        option.selected = true;
+        bodegaProductoSelect.value = bodegaId;
+        precioValor.textContent = parseFloat(option.dataset.precio).toFixed(2);
+        precioVisual.style.display = 'block';
+      }
+      sugerenciasNombre.innerHTML = '';
+    };
+  
+    // Event listener para input de producto
     nombreInput.addEventListener('input', function() {
-        const nombre = nombreInput.value.trim();
-        if (nombre.length > 2) {
-            obtenerSugerenciasNombre(nombre);
-        } else {
-            sugerenciasNombre.innerHTML = '';
-        }
+      const nombre = this.value.trim();
+      if (nombre.length > 2) {
+        obtenerSugerenciasNombre(nombre);
+      } else {
+        sugerenciasNombre.innerHTML = '';
+      }
     });
-
-    // Limpiar los campos después de agregar un producto
-    function limpiarCampos() {
-        productoSelect.value = '';
-        bodegaSelect.value = '';
-        cantidadInput.value = 1;
-        codigoInput.value = '';
-    }
-
-    // Actualizar la lista de productos agregados
-    function actualizarLista() {
-        listaProductos.innerHTML = productos.map((item, index) => `
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${item.nombre}</strong><br>
-                    <small class="text-muted">
-                        Bodega: ${item.bodega_nombre} | 
-                        Cantidad: ${item.cantidad}
-                    </small>
-                </div>
-                <button type="button" class="btn btn-danger btn-sm" 
-                        onclick="eliminarProducto(${index})">
-                    <i class="fa fa-trash"></i>
-                </button>
-            </li>
-        `).join('');
-        
-        document.getElementById('detalles-json').value = JSON.stringify(
-            productos.map(p => ({
-                producto: p.producto,
-                bodega: p.bodega_id,
-                cantidad: p.cantidad
-            }))
+  
+    // Función para verificar stock
+    async function verificarStock(productoId, bodegaId, cantidad) {
+      try {
+        const response = await fetch(
+          `/inventario/verificar-stock/?bodega=${bodegaId}&producto=${productoId}&cantidad=${cantidad}`
         );
+        return await response.json();
+      } catch (error) {
+        console.error('Error:', error);
+        return { disponible: false };
+      }
     }
-
-    // Agregar producto a la lista
+  
+    // Funciones para el carrito
+    function limpiarCampos() {
+      productoSelect.value = '';
+      bodegaProductoSelect.value = '';
+      nombreInput.value = '';
+      cantidadInput.value = '1';
+      precioVisual.style.display = 'none';
+    }
+  
+    function actualizarLista() {
+      listaProductos.innerHTML = productos.map((item, index) => `
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>${item.nombre}</strong><br>
+            <small class="text-muted">
+              Bodega: ${item.bodega_nombre} | Cantidad: ${item.cantidad}
+            </small>
+          </div>
+          <button type="button" class="btn btn-danger btn-sm" onclick="eliminarProducto(${index})">
+            <i class="fa fa-trash"></i>
+          </button>
+        </li>
+      `).join('');
+  
+      document.getElementById('detalles-json').value = JSON.stringify(
+        productos.map(p => ({
+          producto: p.producto,
+          bodega: p.bodega_id,
+          cantidad: p.cantidad
+        }))
+      );
+    }
+  
+    // Event listener para agregar producto
     document.getElementById('agregar-producto').addEventListener('click', async function() {
-        const productoId = productoSelect.value;
-        const bodegaId = bodegaSelect.value;
-        const cantidad = parseInt(cantidadInput.value, 10);
-
-        if (!productoId || !bodegaId || cantidad < 1) {
-            alert('Por favor complete todos los campos.');
-            return;
+      const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+      if (!selectedOption || selectedOption.value === "") {
+        alert('Por favor seleccione un producto');
+        return;
+      }
+  
+      const productoId = selectedOption.value;
+      const bodegaId = selectedOption.dataset.bodega;
+      const cantidad = parseInt(cantidadInput.value, 10);
+      if (!productoId || !bodegaId || cantidad < 1) {
+        alert('Por favor complete todos los campos.');
+        return;
+      }
+  
+      try {
+        const stock = await verificarStock(productoId, bodegaId, cantidad);
+        if (!stock.disponible) {
+          alert(stock.mensaje || 'No hay suficiente stock disponible.');
+          return;
         }
-
-        const stockVerificado = await verificarStock(productoId, bodegaId, cantidad);
-
-        if (!stockVerificado.disponible) {
-            stockAlert.textContent = 'No hay suficiente stock disponible.';
-            stockAlert.classList.remove('d-none');
-            return;
-        }
-
-        stockAlert.classList.add('d-none');
-
-        // Agregar el producto a la lista
-        const producto = productos.find(p => p.producto === productoId);
-        if (producto) {
-            producto.cantidad += cantidad;
+  
+        const productoExistente = productos.find(p => 
+          p.producto === productoId && p.bodega_id === bodegaId
+        );
+        if (productoExistente) {
+          productoExistente.cantidad += cantidad;
         } else {
-            productos.push({
-                producto: productoId,
-                nombre: productoSelect.options[productoSelect.selectedIndex].text,
-                bodega_id: bodegaId,
-                bodega_nombre: bodegaSelect.options[bodegaSelect.selectedIndex].text,
-                cantidad: cantidad
-            });
+          productos.push({
+            producto: productoId,
+            nombre: selectedOption.text,
+            bodega_id: bodegaId,
+            bodega_nombre: Array.from(bodegaProductoSelect.options)
+                              .find(opt => opt.value === bodegaId)?.text || 'Desconocida',
+            cantidad: cantidad
+          });
         }
-
-        // Limpiar campos y actualizar lista
-        limpiarCampos();
         actualizarLista();
+        limpiarCampos();
+      } catch (error) {
+        console.error('Error al agregar producto:', error);
+        alert('Ocurrió un error al agregar el producto');
+      }
     });
-
-    // Eliminar producto de la lista
+  
+    // Función para eliminar producto
     window.eliminarProducto = function(index) {
+      if (confirm('¿Está seguro de eliminar este producto?')) {
         productos.splice(index, 1);
         actualizarLista();
+      }
     };
-});
+  });
+  
 </script>
+
+<!-- Estilos personalizados para mejorar la experiencia móvil y modernizar la interfaz -->
+<style>/* Estilo general */
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: #f4f6f9;
+  color: #333;
+}
+
+/* Tarjetas */
+.card {
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  background: #fff;
+}
+
+.card-title {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+/* Botones */
+.btn {
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+/* Inputs y Select */
+.form-control {
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 16px;
+  transition: box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  border-color: #007bff;
+}
+
+/* Sugerencias */
+.list-group-item {
+  cursor: pointer;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: background-color 0.2s, transform 0.1s ease;
+}
+
+.list-group-item:hover {
+  background-color: #e9ecef;
+  transform: translateX(5px);
+}
+
+/* Precio en sugerencias */
+.precio-sugerencia {
+  color: #28a745;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+/* Carrito */
+#lista-productos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+#lista-productos .btn {
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  .form-control {
+    height: 45px;
+  }
+
+  .btn-block {
+    width: 100%;
+  }
+
+  .row > [class*='col-'] {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  #lista-productos li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 576px) {
+  .row > [class*='col-'] {
+    margin-bottom: 1rem;
+  }
+}
+
+</style>
 
 {% endblock %}

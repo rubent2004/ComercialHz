@@ -35,6 +35,11 @@ path('buscar-producto-por-id/', views.BuscarProductoPorId.as_view(), name='busca
 path('buscar-sugerencias-nombre/', views.buscar_sugerencias_nombre, name='buscar_sugerencias_nombre'),
  path('buscar-sugerencias-empleado/', views.buscar_sugerencias_empleado, name='buscar_sugerencias_empleado'),
 
+#con bodega filtro
+path('buscar-producto2/', views.buscar_producto2, name='buscar_producto2'),
+path('buscar-productoNom2/', views.buscar_productoNom2, name='buscar_productoNom2'),
+path('buscar-sugerencias-nombre2/', views.buscar_sugerencias_nombre2, name='buscar_sugerencias_nombre2'),
+
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
 path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),
 path('importarProveedores', views.ImportarProveedores.as_view(), name='importarProveedores'),
@@ -79,7 +84,7 @@ path('editarMarca/<int:pk>', views.EditarMarca.as_view(), name='editarMarca'),
 path('listarBodega', views.ListarBodega.as_view(), name='listarBodega'),
 path('agregarBodega', views.AgregarBodega.as_view(), name='agregarBodega'),
 path('editarBodega/<int:pk>', views.EditarBodega.as_view(), name='editarBodega'),
-
+path('verificar-stock2/', views.verificar_stock2, name='verificar_stock2'),
 path('listarEstado', views.ListarEstado.as_view(), name='listarEstado'),
 path('agregarEstado', views.AgregarEstado.as_view(), name='agregarEstado'),
 path('editarEstado/<int:pk>', views.EditarEstado.as_view(), name='editarEstado'),
@@ -129,12 +134,11 @@ path('listarEmpleadosPendientes/', views.ListarEmpleadosPendientes.as_view(), na
 # Detalle de pendientes de un empleado (la URL incluye el id del empleado)
 path('empleados/<int:empleado_id>/pendientes/', views.DetalleEmpleadoPendientes.as_view(), name='detalle_empleado_pendientes'),
 
-# Procesar recepción total para un producto específico de un empleado
-path('empleados/<int:empleado_id>/producto/<int:producto_id>/recepcion-todo/', views.recepcion_todo_producto, name='recepcion_todo_producto'),
+# Recepción total de un producto en un movimiento
+path('empleados/<int:empleado_id>/movimientos/<int:movimiento_id>/recepcion/', views.recepcion_todo_producto, name='recepcion_todo_producto'),
 
-# Procesar venta total para un producto específico de un empleado
-path('empleados/<int:empleado_id>/producto/<int:producto_id>/venta-total/', views.venta_total_producto, name='venta_total_producto'),
-
+# Venta total de un producto en un movimiento
+path('empleados/<int:empleado_id>/movimientos/<int:movimiento_id>/venta/', views.venta_total_producto, name='venta_total_producto'),
 # Transferir producto
 path('productos/transferir/', views.transferir_producto, name='transferir_producto'),
 

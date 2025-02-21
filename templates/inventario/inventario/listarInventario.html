@@ -15,81 +15,79 @@
     <section class="section">
         <div class="row">
             <div class="col-md-12">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <strong><i class="fa fa-check"></i></strong> {{ message }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                <div class="card shadow-lg border-0 rounded p-4">
+                    <!-- Formulario de búsqueda -->
+                    <div class="row mb-4">
+                        <div class="col-md-4 col-sm-12 text-md-left text-center mb-2 mb-md-0">
+                            <a href="{% url 'inventario:agregarInventario' %}" class="btn btn-lg btn-success w-100">
+                                <i class="fa fa-plus-circle"></i> Agregar Stock
+                            </a>
                         </div>
-                    {% endfor %}
-                {% endif %}
-
-                <div class="col-md-12">
-                    <div class="card shadow-lg border-0 rounded p-4">
-                        <div class="row mb-4">
-                            <div class="col-md-4 col-sm-12 text-md-left text-center mb-2 mb-md-0">
-                                <a href="{% url 'inventario:agregarInventario' %}" class="btn btn-lg btn-success w-100">
-                                    <i class="fa fa-plus-circle"></i> Agregar Stock
-                                </a>
-                            </div>
-                            <div class="col-md-8 col-sm-12">
-                                <form method="get" class="d-flex flex-wrap justify-content-center">
-                                    <div class="w-100">
-                                        {{ form.as_p }}
-                                        <div class="d-flex w-100 justify-content-center">
-                                            <button type="submit" class="btn btn-lg btn-primary mt-2 mx-1 w-50">
-                                                <i class="fa fa-search"></i> Buscar
-                                            </button>
-                                            <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg btn-danger mt-2 mx-1 w-50">
-                                                <i class="fa fa-times"></i> Limpiar
-                                            </a>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        
-                        <div class="card-body">
-                            <div class="card-title-block">
-                                <h3 class="title text-info">Inventario</h3>
-                            </div>
-                            <section class="example">
-                                <div class="row">
-                                    {% for fila in tabla %}
-                                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                                        <div class="card shadow-sm product-card">
-                                            <div class="position-relative">
-                                                <i class="fa fa-cube position-absolute" style="top: 10px; right: 10px; font-size: 24px; color: #007bff;"></i>
-                                            </div>
-                                            <div class="card-body">
-                                                <h5 class="card-title text-center">{{ fila.idproducto.descripcion }}</h5>
-                                                <p class="card-text"><strong>Bodega:</strong> {{ fila.idbodega.nombre }}</p>
-                                                <p class="card-text"><strong>Stock:</strong> {{ fila.stock }}</p>
-                                                <p class="card-text"><strong>Fecha de Actualización:</strong> {{ fila.fecha_actualizacion }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
+                        <div class="col-md-8 col-sm-12">
+                            <form method="get" class="d-flex flex-wrap justify-content-center">
+                                <div class="w-100 mb-3">
+                                    {{ form.as_p }}
                                 </div>
-
-                                <div class="row">
-                                    <div class="col-md-12 mb-4">
-                                        <div class="card shadow-sm" style="border: 2px solid #28a745; border-radius: 8px; background-color: #f8f9fa;">
-                                            <div class="card-body text-center">
-                                                <h5 class="card-title text-success">Total de Productos en Inventario</h5>
-                                                <p class="card-text"><strong>{{ total_stock }}</strong></p>
-
-                                            </div>
+                                <div class="d-flex w-100 justify-content-center">
+                                    <button type="submit" class="btn btn-lg btn-primary mt-2 mx-1 w-50">
+                                        <i class="fa fa-search"></i> Buscar
+                                    </button>
+                                    <a href="{% url 'inventario:listarInventario' %}" class="btn btn-lg btn-danger mt-2 mx-1 w-50">
+                                        <i class="fa fa-times"></i> Limpiar
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+            
+                    <!-- Buscador de productos -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h2 class="text-center mb-3">Buscar por producto:</h2>
+                            <input type="text" id="buscador" class="form-control w-100" placeholder="Buscar producto...">
+                        </div>
+                    </div>
+            
+                    <!-- Sección de inventario -->
+                    <div class="card-body">
+                        <div class="card-title-block">
+                            <h3 class="title text-info">Inventario</h3>
+                        </div>
+                        <section class="example" id="inventario-lista">
+                            <div class="row" id="productos">
+                                {% for fila in tabla %}
+                                <div class="col-lg-3 col-md-4 col-sm-6 mb-4 producto-item">
+                                    <div class="card shadow-sm product-card">
+                                        <div class="position-relative">
+                                            <i class="fa fa-cube position-absolute" style="top: 10px; right: 10px; font-size: 24px; color: #007bff;"></i>
+                                        </div>
+                                        <div class="card-body">
+                                            <h5 class="card-title text-center">{{ fila.idproducto.descripcion }}</h5>
+                                            <p class="card-text"><strong>Bodega:</strong> {{ fila.idbodega.nombre }}</p>
+                                            <p class="card-text"><strong>Stock:</strong> {{ fila.stock }}</p>
+                                            <p class="card-text"><strong>Fecha de Actualización:</strong> {{ fila.fecha_actualizacion }}</p>
                                         </div>
                                     </div>
                                 </div>
-                            </section>
-                        </div>
+                                {% endfor %}
+                            </div>
+            
+                            <!-- Total de productos -->
+                            <div class="row">
+                                <div class="col-md-12 mb-4">
+                                    <div class="card shadow-sm" style="border: 2px solid #28a745; border-radius: 8px; background-color: #f8f9fa;">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title text-success">Total de Productos en Inventario</h5>
+                                            <p class="card-text"><strong>{{ total_stock }}</strong></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </div>
+            
         </div>
     </section>
 </article>
@@ -126,19 +124,36 @@
     .product-card:hover .card-title {
         color: #007bff;
     }
-</style>
-<script>
-    function imprimirInventario() {
-        var originalBody = document.body.innerHTML;
-        var printContent = document.getElementById('content-to-print').innerHTML;
-        var filteredContent = document.getElementById('tabla-filtrada');
-        if (filteredContent) {
-            printContent = filteredContent.innerHTML;
+
+    @media (max-width: 768px) {
+        .product-card {
+            margin-bottom: 15px;
         }
-        document.body.innerHTML = "<html><head><title>Imprimir Inventario</title></head><body>" + printContent + "</body></html>";
-        window.print();
-        document.body.innerHTML = originalBody;
+
+        .col-md-4, .col-md-12, .col-sm-12 {
+            text-align: center;
+        }
+
+        .btn {
+            margin: 5px 0;
+        }
     }
+</style>
+
+<script>
+    document.getElementById('buscador').addEventListener('input', function () {
+        let filtro = this.value.toLowerCase();
+        let productos = document.querySelectorAll('.producto-item');
+        
+        productos.forEach(producto => {
+            let descripcion = producto.querySelector('.card-title').textContent.toLowerCase();
+            if (descripcion.includes(filtro)) {
+                producto.style.display = "block";
+            } else {
+                producto.style.display = "none";
+            }
+        });
+    });
 </script>
 
 {% endblock %}
