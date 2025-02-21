@@ -105,125 +105,64 @@
       <div class="toast-body" id="toastMessage"></div>
     </div>
   </div>
-  
-  <!-- Modal para recepción parcial -->
-  <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
-      <div class="modal-content">
-        <form method="POST" action="{% url 'inventario:recepcion_producto' %}">
-          {% csrf_token %}
-          <div class="modal-header bg-info text-white">
-            <h5 class="modal-title" id="recepcionModalLabel">Recepción Parcial de Producto</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaxima"></span></p>
-            <div class="mb-3">
-              <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
-              <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" min="0" 
-                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-            </div>
-            <div class="mb-3">
-              <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
-              <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" min="0" 
-                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Bodega para devolución</label>
-              <div class="input-group">
-                <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
-                <div class="input-group-text">
-                  <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
-                  <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
-                </div>
-              </div>
-              <select class="form-select mt-2 d-none" id="bodegaSelect">
-                <div class="form-group">
-                  <label for="idbodega">Bodega</label>
-                  <select id="idbodega" name="idbodega" class="form-control">
-                    {% for bodega in bodegas %}
-                      <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </select>
-              <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
-            </div>
-            
-            <input type="hidden" name="movimiento_id" id="movimientoId">
-            <input type="hidden" name="producto_id" id="productoId">
-            <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
-            <p id="errorMensaje" class="text-danger"></p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
-              <i class="fas fa-save me-1"></i> Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
 <!-- Modal para recepción parcial -->
 <div class="modal fade" id="recepcionModal" tabindex="-1" aria-labelledby="recepcionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
-      <div class="modal-content">
-        <form method="POST" action="{% url 'inventario:recepcion_producto' %}">
-          {% csrf_token %}
-          <div class="modal-header bg-info text-white">
-            <h5 class="modal-title" id="recepcionModalLabel">Recepción Parcial de Producto</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+  <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'inventario:recepcion_producto' %}">
+        {% csrf_token %}
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title" id="recepcionModalLabel">Recepción Parcial de Producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaxima"></span></p>
+          <div class="mb-3">
+            <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
+            <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" min="0" 
+                   oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
           </div>
-          <div class="modal-body">
-            <p><strong>Cantidad máxima pendiente:</strong> <span id="cantidadMaxima"></span></p>
-            <div class="mb-3">
-              <label for="cantidadVendida" class="form-label">Cantidad Vendida</label>
-              <input type="number" class="form-control" name="cantidad_vendida" id="cantidadVendida" min="0" 
-                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-            </div>
-            <div class="mb-3">
-              <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
-              <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" min="0" 
-                     oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Bodega para devolución</label>
-              <div class="input-group">
-                <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
-                <div class="input-group-text">
-                  <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
-                  <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
-                </div>
+          <div class="mb-3">
+            <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
+            <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" min="0" 
+                   oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Bodega para devolución</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="bodegaDisplay" value="Bodega Principal: {{ bodegas.0.nombre }}" readonly>
+              <div class="input-group-text">
+                <input class="form-check-input" type="checkbox" id="cambiarBodegaCheckbox">
+                <label class="form-check-label ms-2" for="cambiarBodegaCheckbox">Cambiar Bodega</label>
               </div>
-              <select class="form-select mt-2 d-none" id="bodegaSelect">
-                <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
-                {% for bodega in bodegas %}
-                  {% if bodega.id != 1 %}
-                    <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
-                  {% endif %}
-                {% endfor %}
-              </select>
-              <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
             </div>
-            
-            <input type="hidden" name="movimiento_id" id="movimientoId">
-            <input type="hidden" name="producto_id" id="productoId">
-            <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
-            <p id="errorMensaje" class="text-danger"></p>
+            <select class="form-select mt-2 d-none" id="bodegaSelect">
+              <option value="1" selected>Bodega Principal: {{ bodegas.0.nombre }}</option>
+              {% for bodega in bodegas %}
+                {% if bodega.id != 1 %}
+                  <option value="{{ bodega.id }}">{{ bodega.nombre }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            <input type="hidden" name="bodega_id" id="bodegaIdHidden" value="1">
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
-              <i class="fas fa-save me-1"></i> Guardar
-            </button>
-          </div>
-        </form>
-      </div>
+          
+          <input type="hidden" name="movimiento_id" id="movimientoId">
+          <input type="hidden" name="producto_id" id="productoId">
+          <input type="hidden" name="es_devuelto" id="esDevuelto" value="false">
+          <p id="errorMensaje" class="text-danger"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
+            <i class="fas fa-save me-1"></i> Guardar
+          </button>
+      
+        </div>
+      </form>
     </div>
+  </div>
 </div>
-
 <!-- Modal para transferencia de producto -->
 <div class="modal fade" id="transferenciaModal" tabindex="-1" aria-labelledby="transferenciaModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-fullscreen-sm-down modal-md">
@@ -267,41 +206,42 @@
 </div>
 
 <script>
-    function abrirModal(productoId, cantidadMaxima, movimientoId) {
-        document.getElementById("productoId").value = productoId;
-        document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
-        document.getElementById("movimientoId").value = movimientoId;
-        document.getElementById("guardarBtn").disabled = true;
-        document.getElementById("cantidadVendida").value = '';
-        document.getElementById("cantidadRecibida").value = '';
-        document.getElementById("errorMensaje").innerText = '';
-        document.getElementById("movimientoId").value = movimientoId;
-       document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
-        var modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
-        modal.show();
-      }
-    
-      function validarSuma(cantidadMaxima) {
-        const cantidadVendida = parseInt(document.getElementById('cantidadVendida').value) || 0;
-        const cantidadRecibida = parseInt(document.getElementById('cantidadRecibida').value) || 0;
-        const total = cantidadVendida + cantidadRecibida;
-        const errorMensaje = document.getElementById('errorMensaje');
-        
-        if (cantidadVendida < 0 || cantidadRecibida < 0) {
-          errorMensaje.innerText = 'Las cantidades no pueden ser negativas.';
-          document.getElementById('guardarBtn').disabled = true;
-        } else if (total > cantidadMaxima) {
-          errorMensaje.innerText = 'La suma de la cantidad vendida y devuelta no puede exceder la cantidad máxima pendiente.';
-          document.getElementById('guardarBtn').disabled = true;
-        } else if (total === 0) {
-          errorMensaje.innerText = 'Debe ingresar al menos una cantidad en venta o devolución.';
-          document.getElementById('guardarBtn').disabled = true;
-        } else {
-          errorMensaje.innerText = '';
-          document.getElementById('guardarBtn').disabled = false;
-        }
-      }
+  function abrirModal(productoId, cantidadMaxima, movimientoId) {
+    document.getElementById("productoId").value = productoId;
+    document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
+    document.getElementById("movimientoId").value = movimientoId;
+    document.getElementById("guardarBtn").disabled = true;
+    document.getElementById("cantidadVendida").value = '';
+    document.getElementById("cantidadRecibida").value = '';
+    document.getElementById("errorMensaje").innerText = '';
+    document.getElementById("movimientoId").value = movimientoId;
+   document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
+    var modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
+    modal.show();
+  }
 
+  function validarSuma(cantidadMaxima) {
+    const cantidadVendida = parseInt(document.getElementById('cantidadVendida').value) || 0;
+    const cantidadRecibida = parseInt(document.getElementById('cantidadRecibida').value) || 0;
+    const total = cantidadVendida + cantidadRecibida;
+    const errorMensaje = document.getElementById('errorMensaje');
+    
+    if (cantidadVendida < 0 || cantidadRecibida < 0) {
+      errorMensaje.innerText = 'Las cantidades no pueden ser negativas.';
+      document.getElementById('guardarBtn').disabled = true;
+    } else if (total > cantidadMaxima) {
+      errorMensaje.innerText = 'La suma de la cantidad vendida y devuelta no puede exceder la cantidad máxima pendiente.';
+      document.getElementById('guardarBtn').disabled = true;
+    } else if (total === 0) {
+      errorMensaje.innerText = 'Debe ingresar al menos una cantidad en venta o devolución.';
+      document.getElementById('guardarBtn').disabled = true;
+    } else {
+      errorMensaje.innerText = '';
+      document.getElementById('guardarBtn').disabled = false;
+    }
+  }
+  
+  
   function abrirTransferenciaModal(productoId, cantidadMaxima, movimientoId, empleadoId) {
     document.getElementById("productoIdTransferencia").value = productoId;
     document.getElementById("cantidadMaximaTransferencia").innerText = cantidadMaxima;
@@ -411,44 +351,154 @@ document.getElementById('formTransferencia').onsubmit = function(e) {
 </script>
 
 <style>
-/* Estilos adicionales */
-.table-responsive {
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-}
+  /* Estilos generales */
+  body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
+  }
+  
+  /* Contenedor de la tabla */
+  .table-responsive {
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      background-color: #ffffff;
+      overflow-x: auto;
+      margin-bottom: 2rem;
+  }
+  
+  /* Botones */
+  .btn {
+      min-width: 120px;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: 0.375rem;
+      transition: all 0.3s ease;
+      background-color: #013d7e;
+      color: white;
+      border: none;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+  }
+  
+  .btn:hover {
+      transform: translateY(-2px);
+      background-color: #0b2f56;
+  }
+  
+  .btn i {
+      margin-right: 0.5rem;
+      transition: transform 0.3s ease;
+  }
+  
+  .btn:hover i {
+      transform: scale(1.2);
+  }
+  
+  /* Media Query para dispositivos pequeños */
+  @media (max-width: 768px) {
+      .btn {
+          width: 100%;
+          margin-bottom: 0.5rem;
+          font-size: 1.1rem;
+      }
+      
+      .table td {
+          white-space: normal;
+      }
+  
+      .d-flex.flex-wrap {
+          flex-direction: column;
+      }
+  }
+  
+  /* Estilos de las tablas */
+  .table {
+      width: 100%;
+      margin-bottom: 0;
+      border-collapse: collapse;
+  }
+  
+  .table th, .table td {
+      padding: 1rem;
+      text-align: left;
+      vertical-align: middle;
+      border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .table th {
+      background-color: #003a53;
+      color: white;
+      font-weight: bold;
+  }
+  
+  .table tbody tr {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .table tbody tr:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Estilos para los modales */
+  .modal-content {
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      border: none;
+      background-color: #ffffff;
+  }
+  
+  .modal-header {
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 1rem;
+  }
+  
+  .modal-title {
+      font-size: 1.5rem;
+      color: #333333;
+  }
+  
+  .modal-body {
+      padding: 1rem 0;
+  }
+  
+  .modal-footer {
+      padding-top: 1rem;
+      display: flex;
+      justify-content: flex-end;
+  }
+  
+  .badge {
+      padding: 0.5em 1em;
+      border-radius: 0.25rem;
+      background-color: #f1f1f1;
+      color: #333333;
+      font-weight: 500;
+  }
+  
+  /* Estilo para los íconos */
+  i {
+      font-size: 1.2rem;
+      margin-right: 0.5rem;
+  }
+  
+  /* Animación para el modal */
+  .modal.fade {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+  }
+  
+  .modal.show {
+      opacity: 1;
+  }
+  
+  </style>
+  
 
-.btn {
-    transition: all 0.2s;
-    min-width: 120px;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-@media (max-width: 768px) {
-    .btn {
-        width: 100%;
-        margin-bottom: 0.5rem;
-    }
-    
-    .table td {
-        white-space: normal;
-    }
-    
-    .d-flex.flex-wrap {
-        flex-direction: column;
-    }
-}
-
-.modal-content {
-    border-radius: 0.5rem;
-}
-
-.badge {
-    padding: 0.5em 1em;
-    border-radius: 0.25rem;
-}
-</style>
 
 {% endblock %}

@@ -282,4 +282,112 @@
         {% endif %}
     </section>
 </article>
+<style>
+
+    /* Animación para los botones al pasar el ratón */
+.btn {
+    transition: all 0.3s ease;
+    transform: scale(1);
+}
+
+/* Efecto de escala y cambio de color para los botones */
+.btn:hover {
+    transform: scale(1.05);  /* Hace que el botón crezca un poco */
+    background-color: #00fffb; /* Cambia el color del botón */
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);  /* Sombra para el botón */
+}
+
+/* Animación de los botones al hacer clic */
+.btn:active {
+    transform: scale(0.95);  /* Hace que el botón se encoja un poco */
+}
+
+/* Animación para las tarjetas (los divs con la clase .card) */
+.card {
+    transition: all 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Efecto de levantar la tarjeta */
+.card:hover {
+    transform: translateY(-10px);  /* Eleva la tarjeta */
+    box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.1);  /* Sombra de la tarjeta */
+    opacity: 1.05;  /* Da un pequeño efecto de brillo */
+}
+
+/* Animación de las barras de progreso */
+.progress-bar {
+    transition: width 1s ease;
+}
+
+/* Efecto de aumento en la barra de progreso */
+.progress-bar:hover {
+    background-color: #2196f3;  /* Cambia el color al pasar el ratón */
+}
+
+/* Animación de los contenedores (stat-cols) al hacer scroll */
+.stat-col {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Cuando el contenedor entra en la vista, aparecerá con un efecto de deslizamiento */
+.stat-col.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Animación de aparición para las tarjetas */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Aplica la animación de aparición a las tarjetas */
+.card, .stat-col {
+    animation: fadeIn 1s ease-out;
+}
+
+/* Animación para el título de las tarjetas */
+.card-header h3 {
+    transition: all 0.3s ease;
+}
+
+/* Efecto de cambio de color y tamaño para los títulos */
+.card-header:hover h3 {
+    color: #ff9800;  /* Cambia el color del título */
+    font-size: 1.2em;  /* Aumenta el tamaño del título */
+}
+
+
+</style>
+<script>
+    // Detecta cuando un elemento entra en la vista y aplica la clase 'visible'
+document.addEventListener('DOMContentLoaded', function () {
+    const statsCols = document.querySelectorAll('.stat-col');
+    const windowHeight = window.innerHeight;
+
+    function checkVisibility() {
+        statsCols.forEach(col => {
+            const colTop = col.getBoundingClientRect().top;
+            if (colTop < windowHeight - 50) {
+                col.classList.add('visible');
+            }
+        });
+    }
+
+    // Verifica la visibilidad al cargar la página y al hacer scroll
+    window.addEventListener('scroll', checkVisibility);
+    checkVisibility();
+});
+
+</script>
 {% endblock %}
