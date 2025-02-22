@@ -43,7 +43,7 @@
               <!-- Fila con la fecha (puedes optar por mostrarla en una fila separada o en cada registro) -->
               {% for mov in movimientos %}
                 <tr>
-                  <td>{{ mov.descripcion }}</td>
+                  <td>{{ mov.descripcion }} ${{ mov.precio_unitario}}</td>
                   <td>{{ mov.cantidad }}</td>
                   <td>{{ fecha }}</td>
                   <td class="text-center">
@@ -61,13 +61,10 @@
                         </button>
                     </form>
 
-                    <form method="post" action="{% url 'inventario:venta_total_producto' empleado.id mov.movimiento_id %}" class="d-inline" 
-                          onsubmit="return mostrarConfirmacion('ventaTotal')">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-danger btn-lg">
+                    <button class="btn btn-danger btn-lg" 
+                            onclick="abrirVentaTotalModal('{{ empleado.id }}', '{{ mov.movimiento_id }}')">
                         <i class="fas fa-dollar-sign me-1"></i> Venta Total
-                      </button>
-                    </form>
+                    </button>
 
                     <button class="btn btn-warning btn-lg ms-2" 
                             onclick="abrirTransferenciaModal('{{ mov.producto_id }}', {{ mov.cantidad }}, {{ mov.movimiento_id }}, '{{ empleado.id }}')">
@@ -123,6 +120,12 @@
                    oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
           </div>
           <div class="mb-3">
+            <label for="fechaMovimiento" class="form-label">Fecha del Movimiento</label>
+            <input type="date" class="form-control" name="fecha_movimiento" 
+                   id="fechaMovimiento" required
+                   value="{{ today|date:'Y-m-d' }}">
+          </div>
+          <div class="mb-3">
             <label for="cantidadRecibida" class="form-label">Cantidad Devuelta</label>
             <input type="number" class="form-control" name="cantidad_recibida" id="cantidadRecibida" min="0" 
                    oninput="validarSuma(parseInt(document.getElementById('cantidadMaxima').innerText))">
@@ -158,6 +161,32 @@
             <i class="fas fa-save me-1"></i> Guardar
           </button>
       
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Nuevo modal para venta total -->
+<div class="modal fade" id="ventaTotalModal" tabindex="-1" aria-labelledby="ventaTotalModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="ventaTotalForm">
+        {% csrf_token %}
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmar Venta Total</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="fechaVenta" class="form-label">Fecha de Venta</label>
+            <input type="date" class="form-control" name="fecha_movimiento" 
+                   id="fechaVenta" required
+                   value="{{ today|date:'Y-m-d' }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar</button>
         </div>
       </form>
     </div>
@@ -215,8 +244,9 @@
     document.getElementById("cantidadRecibida").value = '';
     document.getElementById("errorMensaje").innerText = '';
     document.getElementById("movimientoId").value = movimientoId;
-   document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
-    var modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
+    document.getElementById("cantidadMaxima").innerText = cantidadMaxima;
+    document.getElementById('fechaMovimiento').value = new Date().toISOString().split('T')[0];
+   var modal = new bootstrap.Modal(document.getElementById('recepcionModal'));
     modal.show();
   }
 
@@ -252,6 +282,15 @@
     var modal = new bootstrap.Modal(document.getElementById('transferenciaModal'));
     modal.show();
   }
+
+  function abrirVentaTotalModal(empleadoId, movimientoId) {
+    const form = document.getElementById('ventaTotalForm');
+    // URL CORREGIDA (eliminar "inventario:" y usar la ruta correcta)
+    form.action = `/inventario/venta-total-producto/${empleadoId}/${movimientoId}/`; 
+    document.getElementById('fechaVenta').value = new Date().toISOString().split('T')[0];
+    new bootstrap.Modal(document.getElementById('ventaTotalModal')).show();
+}
+
 
   function validarTransferencia(cantidadMaxima) {
     const cantidadTransferir = parseInt(document.getElementById('cantidadTransferir').value) || 0;

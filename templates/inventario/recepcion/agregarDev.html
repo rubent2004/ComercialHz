@@ -42,45 +42,7 @@
                             <section class="example">
                                 <form method="post">
                                     {% csrf_token %}
-                                    
-                                    <!-- Campo Producto con Autocompletar -->
-                                    <div class="form-group">
-                                        <label for="idproducto">Producto</label>
-                                        <input type="text" name="idproducto" id="producto_input" class="form-control" value="{{ form.idproducto.value }}" autocomplete="off">
-                                        <ul id="producto_suggestions" class="suggestions-list"></ul>
-                                    </div>
-
-                                    <!-- Campo Bodega (ComboBox) -->
-                                    <div class="form-group">
-                                        <label for="idbodega">Bodega</label>
-                                        {{ form.idbodega }}
-                                    </div>
-
-                                    <!-- Campo Empleado con Autocompletar -->
-                                    <div class="form-group">
-                                        <label for="idempleado">Empleado</label>
-                                        <input type="text" name="idempleado" id="empleado_input" class="form-control" value="{{ form.idempleado.value }}" autocomplete="off">
-                                        <ul id="empleado_suggestions" class="suggestions-list"></ul>
-                                    </div>
-
-                                    <!-- Campo Cantidad -->
-                                    <div class="form-group">
-                                        <label for="cantidad">Cantidad</label>
-                                        {{ form.cantidad }}
-                                    </div>
-
-                                    <!-- Campo Motivo -->
-                                    <div class="form-group">
-                                        <label for="motivo">Motivo de la Devolución</label>
-                                        {{ form.motivo }}
-                                    </div>
-
-                                    <!-- Campo Dañado -->
-                                    <div class="form-group">
-                                        <label for="dañado">Dañado</label>
-                                        {{ form.dañado }}
-                                    </div>
-
+                                    {{ form.as_p }}
                                     <div class="d-flex justify-content-between">
                                         <!-- Botón para registrar devolución -->
                                         <button type="submit" class="btn btn-lg" style="background-color: #28a745; color: white; border: 2px solid #28a745; border-radius: 25px; padding: 10px 20px; font-size: 16px; font-weight: 600; text-transform: uppercase; transition: background-color 0.3s ease, transform 0.2s ease;">
@@ -96,74 +58,5 @@
         </div>
     </section>
 </article>
-
-{% block extra_scripts %}
-<script type="text/javascript">
-    $(document).ready(function() {
-        // Autocompletar para Producto
-        $('#producto_input').on('input', function() {
-            var query = $(this).val();
-            if (query.length >= 2) {  // Solo buscar si se escriben 2 o más caracteres
-                $.ajax({
-                    url: '{% url "inventario:buscar_sugerencias_nombre" %}',  // URL para la búsqueda de productos
-                    data: { 'nombre': query },
-                    success: function(data) {
-                        var suggestions = data;
-                        $('#producto_suggestions').empty();
-                        if (suggestions.length > 0) {
-                            suggestions.forEach(function(suggestion) {
-                                $('#producto_suggestions').append('<li data-id="' + suggestion.id + '">' + suggestion.descripcion + ' - $' + suggestion.precio_unitario + '</li>');
-                            });
-                        } else {
-                            $('#producto_suggestions').append('<li>No se encontraron productos.</li>');
-                        }
-                    }
-                });
-            } else {
-                $('#producto_suggestions').empty();
-            }
-        });
-
-        // Autocompletar para Empleado
-        $('#empleado_input').on('input', function() {
-            var query = $(this).val();
-            if (query.length >= 2) {  // Solo buscar si se escriben 2 o más caracteres
-                $.ajax({
-                    url: '{% url "inventario:buscar_sugerencias_empleado" %}',  // URL para la búsqueda de empleados
-                    data: { 'nombre': query },
-                    success: function(data) {
-                        var suggestions = data;
-                        $('#empleado_suggestions').empty();
-                        if (suggestions.length > 0) {
-                            suggestions.forEach(function(suggestion) {
-                                $('#empleado_suggestions').append('<li data-id="' + suggestion.id + '">' + suggestion.nombre + ' ' + suggestion.apellido + '</li>');
-                            });
-                        } else {
-                            $('#empleado_suggestions').append('<li>No se encontraron empleados.</li>');
-                        }
-                    }
-                });
-            } else {
-                $('#empleado_suggestions').empty();
-            }
-        });
-
-        // Manejo de selección de sugerencia
-        $('#producto_suggestions').on('click', 'li', function() {
-            var selectedId = $(this).data('id');
-            var selectedText = $(this).text();
-            $('#producto_input').val(selectedText);  // Rellenar el input con el texto de la sugerencia
-            $('#producto_suggestions').empty();  // Vaciar las sugerencias
-        });
-
-        $('#empleado_suggestions').on('click', 'li', function() {
-            var selectedId = $(this).data('id');
-            var selectedText = $(this).text();
-            $('#empleado_input').val(selectedText);  // Rellenar el input con el texto de la sugerencia
-            $('#empleado_suggestions').empty();  // Vaciar las sugerencias
-        });
-    });
-</script>
-{% endblock %}
 
 {% endblock %}

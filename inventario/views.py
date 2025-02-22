@@ -3213,6 +3213,7 @@ class DetalleEmpleadoPendientes(LoginRequiredMixin, View):
             pendientes_por_fecha[fecha_str].append({
                 'producto_id': mov.producto.id,
                 'descripcion': mov.producto.descripcion,
+                'precio_unitario': mov.producto.precio_unitario,
                 'cantidad': mov.cantidad,
                 'movimiento_id': mov.id,
             })
@@ -3230,7 +3231,8 @@ class DetalleEmpleadoPendientes(LoginRequiredMixin, View):
             'bodegas': bodegas,
         }
         return render(request, 'inventario/recepcion/empleadoPendientesDetalle.html', contexto)
-
+from django.utils.timezone import make_aware
+from datetime import datetime
 @require_POST
 @transaction.atomic
 def recepcion_producto(request):
@@ -3243,7 +3245,10 @@ def recepcion_producto(request):
         cantidad_recibida = int(cantidad_recibida) if cantidad_recibida else 0
         cantidad_vendida = int(cantidad_vendida) if cantidad_vendida else 0
         bodega_id = request.POST.get('bodega_id', '1')
-
+        fecha_movimiento = make_aware(datetime.strptime(
+                    request.POST.get('fecha_movimiento'), 
+                    '%Y-%m-%d'
+                ))
         # Validaciones de cantidades
         if cantidad_vendida < 0 or cantidad_recibida < 0:
             raise ValueError("Las cantidades no pueden ser negativas.")
@@ -3258,7 +3263,7 @@ def recepcion_producto(request):
 
         # Procesar venta
         if cantidad_vendida > 0:
-            MovimientoProducto.objects.create(
+            venta = MovimientoProducto.objects.create(
                 bodega=producto_pendiente.bodega,
                 producto=producto_pendiente.producto,
                 tipo_movimiento='venta',
@@ -3267,6 +3272,8 @@ def recepcion_producto(request):
                 empleado=producto_pendiente.empleado,
                 estado_producto=get_object_or_404(EstadoProducto, nombre='Vendido')
             )
+            venta.fecha_movimiento = fecha_movimiento
+            venta.save()
 
         # Procesar recepcion 
         if cantidad_recibida > 0:
@@ -3355,6 +3362,11 @@ def recepcion_todo_producto(request, empleado_id, movimiento_id):
 @transaction.atomic
 def venta_total_producto(request, empleado_id, movimiento_id):
     try:
+
+        fecha_movimiento = make_aware(datetime.strptime(
+            request.POST.get('fecha_movimiento'), 
+            '%Y-%m-%d'
+        ))
         # Obtenemos el movimiento pendiente a procesar
         movimiento = get_object_or_404(
             MovimientoProducto,
@@ -3365,7 +3377,7 @@ def venta_total_producto(request, empleado_id, movimiento_id):
         estado_vendido = get_object_or_404(EstadoProducto, nombre='Vendido')
         
         # Crear el movimiento de venta usando la totalidad del movimiento pendiente
-        MovimientoProducto.objects.create(
+        venta = MovimientoProducto.objects.create(
             bodega=movimiento.bodega,
             producto=movimiento.producto,
             tipo_movimiento='venta',
@@ -3374,7 +3386,8 @@ def venta_total_producto(request, empleado_id, movimiento_id):
             empleado=movimiento.empleado,
             estado_producto=estado_vendido
         )
-        
+        venta.fecha_movimiento = fecha_movimiento
+        venta.save()
         # Eliminar el movimiento pendiente ya procesado
         movimiento.delete()
         

@@ -138,8 +138,7 @@ path('empleados/<int:empleado_id>/pendientes/', views.DetalleEmpleadoPendientes.
 path('empleados/<int:empleado_id>/movimientos/<int:movimiento_id>/recepcion/', views.recepcion_todo_producto, name='recepcion_todo_producto'),
 
 # Venta total de un producto en un movimiento
-path('empleados/<int:empleado_id>/movimientos/<int:movimiento_id>/venta/', views.venta_total_producto, name='venta_total_producto'),
-# Transferir producto
+path('venta-total-producto/<int:empleado_id>/<int:movimiento_id>/', views.venta_total_producto, name='venta_total_producto'),# Transferir producto
 path('productos/transferir/', views.transferir_producto, name='transferir_producto'),
 
 # Procesar recepción parcial (maneja la recepción según la lógica del modal)
