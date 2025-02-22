@@ -24,6 +24,7 @@ path('perfil/<str:modo>/<int:pk>', views.Perfil.as_view(), name='perfil'),
 path('eliminar/<str:modo>/<int:pk>', views.Eliminar.as_view(), name='eliminar'),
 
 path('listarProductos', views.ListarProductos.as_view(), name='listarProductos'),
+
 path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto'),
 path('importarProductos', views.ImportarProductos.as_view(), name='importarProductos'),
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),

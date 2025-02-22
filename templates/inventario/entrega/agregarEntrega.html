@@ -135,9 +135,13 @@
           <div id="stock-alert" class="alert alert-danger d-none"></div>
           <ul id="lista-productos" class="list-group mb-3"></ul>
           <input type="hidden" name="detalles" id="detalles-json">
-          <button type="submit" class="btn btn-primary btn-lg btn-block">
-            <i class="fa fa-check-circle"></i> Registrar Entrega
+          <button type="submit" class="btn btn-primary btn-lg btn-block btn-registrar-entrega">
+            <i class="fa fa-check ml-2"></i> Registrar Entrega
           </button>
+          
+          
+          
+          
         </div>
       </section>
     </form>
@@ -178,6 +182,15 @@
         }))
       );
     });
+
+    //CONTRACCION DEL CODIGO PARA EMPLEADO
+    
+
+
+    //fIN DE CONTRACCION
+
+    
+    
     
     // Función para buscar producto por código
     async function buscarProductoPorCodigoId(codigo) {
@@ -354,6 +367,7 @@
         sugerenciasNombre.innerHTML = '';
       }
     });
+    
   
     // Función para verificar stock
     async function verificarStock(productoId, bodegaId, cantidad) {
@@ -458,124 +472,218 @@
   
 </script>
 
-<!-- Estilos personalizados para mejorar la experiencia móvil y modernizar la interfaz -->
-<style>/* Estilo general */
+<style>
+/* Estilo general */
 body {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Arial', sans-serif;
   background-color: #f4f6f9;
-  color: #333;
+  margin: 0;
+  padding: 0;
+  color: #34495e;
+  transition: background-color 0.3s ease;
 }
 
 /* Tarjetas */
 .card {
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 1rem;
-  background: #fff;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  animation: cardFadeIn 0.4s ease-in-out;
+  padding: 20px;
 }
 
-.card-title {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 1.2rem;
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Botones */
+.card:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Efecto de colapso en la tarjeta */
+.card.collapsed {
+  height: 60px;  /* Reducimos la altura */
+  padding: 10px;
+  overflow: hidden;
+  transition: height 0.4s ease, padding 0.4s ease;
+}
+
+/* Botones AQUI ES DONDE HACE LA TRANSICION DE CAMBIO NO BORRAR*/
 .btn {
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 12px 20px;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.btn-info, .btn-success, .btn-primary {
+  font-size: 16px;
+}
+
+.btn-info:hover, .btn-success:hover, .btn-primary:hover {
+  background-color: #2980b9;  /* Color para hover */
+  transform: scale(1.05);  /* Agranda el botón un poco */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);  /* Agrega sombra */
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+  transition: background-color 0.3s ease;
+}
+
+/* Animación de carrito (cuando se agrega un item) */
+.cart {
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
+}
+
+.cart:hover {
+  transform: translateY(-5px);  /* Sube ligeramente el carrito */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);  /* Agrega sombra */
+}
+
+.cart.added {
+  animation: cartBounce 0.5s ease-in-out;  /* Animación de rebote */
+}
+
+@keyframes cartBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Inputs y Selects */
+input[type="text"], input[type="number"], select {
+  border-radius: 8px;
   padding: 12px;
   font-size: 16px;
-  border-radius: 6px;
-  transition: all 0.2s ease-in-out;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.btn:hover {
-  transform: scale(1.05);
-  opacity: 0.9;
+input[type="text"]:focus, input[type="number"]:focus, select:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 8px rgba(52, 152, 219, 0.4);
+  outline: none;
 }
 
-/* Inputs y Select */
-.form-control {
-  border-radius: 6px;
-  padding: 0.75rem;
+/* Animación de alerta */
+.alert {
+  border-radius: 8px;
   font-size: 16px;
-  transition: box-shadow 0.2s ease;
+  margin-top: 10px;
+  padding: 12px;
+  animation: alertFadeIn 0.5s ease-in-out;
+  opacity: 0;
+  animation-fill-mode: forwards;
 }
 
-.form-control:focus {
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-  border-color: #007bff;
+@keyframes alertFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-/* Sugerencias */
+/* Lista de items */
 .list-group-item {
   cursor: pointer;
-  padding: 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  transition: background-color 0.2s, transform 0.1s ease;
+  padding: 12px 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .list-group-item:hover {
-  background-color: #e9ecef;
-  transform: translateX(5px);
+  background-color: #ecf0f1;
+  transform: translateX(2px);
 }
 
-/* Precio en sugerencias */
-.precio-sugerencia {
-  color: #28a745;
-  font-weight: 500;
-  margin-left: 8px;
+.list-group-item-action {
+  padding: 12px 15px;
+  transition: background-color 0.3s ease;
 }
 
-/* Carrito */
-#lista-productos li {
+.list-group-item-action:hover {
+  background-color: #ecf0f1;
+  transform: scale(1.01);
+}
+
+/* Diseño responsive */
+@media (max-width: 767px) {
+  .col-md-4, .col-md-6 {
+    margin-bottom: 15px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .card-body {
+    padding: 15px;
+  }
+
+  .btn {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+}
+/* Estilo general para el botón "Registrar Entrega" */
+.btn-registrar-entrega {
+  padding: 12px 24px;  /* Botón un poco más grande */
+  font-size: 18px;     /* Un tamaño de fuente más grande para hacerlo más visible */
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+  align-items: center; /* Alinea el texto y el ícono */
+  justify-content: center; /* Centra el contenido */
+  border-radius: 8px;   /* Bordes redondeados */
+  width: auto;           /* No ocupa el 100% */
+  margin: 0 auto;        /* Centra el botón en su contenedor */
 }
 
-#lista-productos .btn {
-  margin-top: 8px;
-  width: 100%;
-}
-
-/* Ajustes responsivos */
-@media (max-width: 768px) {
-  .container {
-    padding: 0 15px;
+/* Diseño responsive para móviles */
+@media (max-width: 767px) {
+  .btn-registrar-entrega {
+    padding: 10px 20px;  /* Tamaño ajustado para un botón más grande pero cómodo */
+    font-size: 16px;     /* Tamaño de la fuente moderadamente grande */
   }
-
-  .card {
-    margin-bottom: 1rem;
-  }
-
-  .form-control {
-    height: 45px;
-  }
-
-  .btn-block {
-    width: 100%;
-  }
-
-  .row > [class*='col-'] {
-    flex: 0 0 100%;
-    max-width: 100%;
-    margin-bottom: 1rem;
-  }
-
-  #lista-productos li {
-    flex-direction: column;
-    align-items: flex-start;
+  
+  .btn-registrar-entrega i {
+    font-size: 20px;  /* Ajusta el tamaño del ícono */
+    margin-right: 12px; /* Aumenta la separación entre el ícono y el texto */
   }
 }
-
-@media (max-width: 576px) {
-  .row > [class*='col-'] {
-    margin-bottom: 1rem;
-  }
+.btn-registrar-entrega i {
+  margin-right: 8px; /* Ajusta el valor según lo que necesites */
 }
+
+
+
 
 </style>
 
