@@ -496,8 +496,6 @@ class EntregaForm(forms.ModelForm ):
         }
 class MovimientoProductoFormulario(forms.Form):
     bodega = forms.ModelChoiceField(queryset=Bodega.objects.all(), required=False, label='Bodega', widget=forms.Select(attrs={'class': 'form-control'}))
-    producto = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto', widget=forms.Select(attrs={'class': 'form-control'}))
-    empleado = forms.ModelChoiceField(queryset=Empleado.objects.all(), required=False, label='Empleado', widget=forms.Select(attrs={'class': 'form-control'}))
     estado_producto = forms.ModelChoiceField(queryset=EstadoProducto.objects.all(), required=False, label='Estado del Producto', widget=forms.Select(attrs={'class': 'form-control'}))
     tipo_movimiento = forms.ChoiceField(
     choices=[('', 'Seleccione...')] + MovimientoProducto.TIPO_MOVIMIENTO_CHOICES,  # Opción en blanco

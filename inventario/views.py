@@ -7,7 +7,7 @@ from .services import EntregaService
 from django.shortcuts import render
 from django.views import View
 
-from time import timezone
+from time import localtime, timezone
 from urllib import request
 from venv import logger
 from django.shortcuts import get_object_or_404, redirect, render
@@ -39,6 +39,7 @@ from django.core import serializers
 #permite acceder de manera mas facil a los ficheros
 from django.core.files.storage import FileSystemStorage
 from django.views.decorators.http import require_POST
+from django.views.decorators.cache import cache_page
 from django.db import transaction
 from django.db.models.functions import TruncDate
 from django.template.loader import render_to_string
@@ -81,7 +82,7 @@ class Login(View):
 
 
 
-from datetime import date
+from datetime import date, time
 
 # Panel de inicio y vista principal
 from django.shortcuts import render
@@ -1786,38 +1787,77 @@ class AgregarInventario(LoginRequiredMixin, View):
 
 from django.utils.dateparse import parse_date
 
+from django.utils import timezone
+import pytz
+from collections import defaultdict
+from datetime import datetime
+from django.core.paginator import Paginator
+from django.utils.decorators import method_decorator
+#@method_decorator(cache_page(60 * 15), name='dispatch')
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     template_name = 'inventario/movimientoProducto/listarMovimientoProducto.html'
 
     def get(self, request):
         form = MovimientoProductoFormulario(request.GET)
-        movimientos = MovimientoProducto.objects.all().order_by('-fecha_movimiento')
-        
-        # Manejo de fechas
-        fecha_inicio = request.GET.get('fecha_inicio')
-        fecha_fin = request.GET.get('fecha_fin')
-        
-        if fecha_inicio:
-            fecha_inicio = parse_date(fecha_inicio)
-            if fecha_inicio:
-                movimientos = movimientos.filter(fecha_movimiento__date__gte=fecha_inicio)
-        
-        if fecha_fin:
-            fecha_fin = parse_date(fecha_fin)
-            if fecha_fin:
-                movimientos = movimientos.filter(fecha_movimiento__date__lte=fecha_fin)
+        movimientos = MovimientoProducto.objects.select_related(
+            'bodega', 'producto', 'empleado', 'estado_producto', 'usuario'
+        ).only(
+            'bodega__nombre', 'producto__descripcion', 'empleado__nombre',
+            'estado_producto__nombre', 'usuario__username', 'cantidad',
+            'fecha_movimiento', 'tipo_movimiento'
+        )
 
-        # Aplicar filtros
+        # Filtros de fechas
+        fecha_inicio_str = request.GET.get('fecha_inicio')
+        fecha_fin_str = request.GET.get('fecha_fin')
+        fecha_inicio = parse_date(fecha_inicio_str) if fecha_inicio_str else None
+        fecha_fin = parse_date(fecha_fin_str) if fecha_fin_str else None
+
+        if fecha_inicio and fecha_fin:
+            movimientos = movimientos.filter(fecha_movimiento__date__range=[fecha_inicio, fecha_fin])
+        elif fecha_inicio:
+            movimientos = movimientos.filter(fecha_movimiento__date__gte=fecha_inicio)
+        elif fecha_fin:
+            movimientos = movimientos.filter(fecha_movimiento__date__lte=fecha_fin)
+
+        # Filtros adicionales
         if form.is_valid():
             data = form.cleaned_data
-            if data['bodega']: movimientos = movimientos.filter(bodega=data['bodega'])
-            if data['producto']: movimientos = movimientos.filter(producto=data['producto'])
-            if data['empleado']: movimientos = movimientos.filter(empleado=data['empleado'])
-            if data['estado_producto']: movimientos = movimientos.filter(estado_producto=data['estado_producto'])
-            if data['tipo_movimiento']: movimientos = movimientos.filter(tipo_movimiento=data['tipo_movimiento'])
+            if data.get('bodega'):
+                movimientos = movimientos.filter(bodega=data['bodega'])
+            if data.get('estado_producto'):
+                movimientos = movimientos.filter(estado_producto=data['estado_producto'])
+            if data.get('tipo_movimiento'):
+                movimientos = movimientos.filter(tipo_movimiento=data['tipo_movimiento'])
 
-        # Nuevo agrupamiento por empleado y fecha
+        # Búsqueda por producto y empleado
+        producto_search = request.GET.get('producto', '').strip()
+        if producto_search:
+            movimientos = movimientos.filter(producto__descripcion__icontains=producto_search)
+        empleado_search = request.GET.get('empleado', '').strip()
+        if empleado_search:
+            movimientos = movimientos.filter(empleado__nombre__icontains=empleado_search)
+
+        # Verificar si hay resultados
+        if not movimientos.exists():
+            mensaje = "No hay movimientos para la fecha seleccionada."
+        else:
+            mensaje = None
+
+        # Paginación cuando se aplica un filtro: mostrar todos los resultados en una sola página
+        if set(request.GET.keys()) - {'page'}:
+            total = movimientos.count() or 1
+            paginator = Paginator(movimientos, total)  # Todos los resultados en una sola página
+            page_obj = paginator.page(1)
+        else:
+            # Paginación normal de 20 por página cuando no se aplican filtros
+            movimientos = movimientos.order_by('-fecha_movimiento__date')  # Ordenar solo por fecha
+            paginator = Paginator(movimientos, 40)  # Paginación de 20 por página cuando no hay filtros
+            page_number = request.GET.get('page')
+            page_obj = paginator.get_page(page_number)
+
+        # Agrupar movimientos por empleado y fecha
         grupos = defaultdict(lambda: {
             'empleado': None,
             'fecha': None,
@@ -1829,31 +1869,39 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
             }
         })
 
-        for movimiento in movimientos:
-            clave = (movimiento.empleado, movimiento.fecha_movimiento.date())
+        for movimiento in page_obj.object_list:
+            # Asegurarse de que solo se utiliza la fecha sin la hora
+            fecha_local = timezone.localtime(movimiento.fecha_movimiento).date()
+            clave = (movimiento.empleado, fecha_local)
             grupo = grupos[clave]
-            
             if not grupo['empleado']:
                 grupo['empleado'] = movimiento.empleado
-                grupo['fecha'] = movimiento.fecha_movimiento.date()
-            
+                grupo['fecha'] = fecha_local
             grupo['detalles'].append(movimiento)
             grupo['resumen']['total_movimientos'] += 1
             grupo['resumen']['total_cantidad'] += movimiento.cantidad
             grupo['resumen']['tipos_movimiento'].add(movimiento.get_tipo_movimiento_display())
 
-        # Preparar datos para template
+        # Ordenar los grupos por fecha
         grupos_ordenados = sorted(grupos.values(), key=lambda x: x['fecha'], reverse=True)
-        
+
+        # Construir los parámetros de la query string para la paginación
+        query_params = request.GET.copy()
+        query_params.pop('page', None)
+        query_string = query_params.urlencode()
+
         context = {
             'grupos_movimientos': grupos_ordenados,
+            'page_obj': page_obj,
             'form': form,
             'fecha_inicio': fecha_inicio,
-            'fecha_fin': fecha_fin
+            'fecha_fin': fecha_fin,
+            'query_string': query_string,
+            'mensaje': mensaje,
+            'request': request,
         }
         context = complementarContexto(context, request.user)
         return render(request, self.template_name, context)
-    
     
 def verificar_stock(request):
     bodega_id = request.GET.get('bodega')
@@ -1899,7 +1947,6 @@ def agregarEntrega(request):
                 ]
                 DetalleEntrega.objects.bulk_create(detalles_a_crear)
                 entrega.procesar_entrega()
-                
             messages.success(request, 'Entrega registrada exitosamente!')
             return redirect('inventario:agregarEntrega')
         except Exception as e:
@@ -3193,6 +3240,10 @@ class ListarEmpleadosPendientes(LoginRequiredMixin, View):
         }
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/recepcion/empleadosPendientes.html', contexto)
+from django.utils import timezone
+import pytz
+from datetime import datetime
+
 class DetalleEmpleadoPendientes(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     
@@ -3203,11 +3254,17 @@ class DetalleEmpleadoPendientes(LoginRequiredMixin, View):
             empleado=empleado
         ).select_related('producto')
         
+        # Zona horaria a la que deseas mostrar las fechas
+        salvador_tz = pytz.timezone('America/El_Salvador')
+        
         # Agrupar los movimientos pendientes por fecha (formateada)
         pendientes_por_fecha = {}
         for mov in movimientos:
-            # Se obtiene la fecha (sin la hora) y se formatea
-            fecha_str = mov.fecha_movimiento.strftime('%d/%m/%Y')
+            # Convertir la fecha del movimiento a la zona horaria de El Salvador
+            fecha_movimiento = mov.fecha_movimiento.astimezone(salvador_tz)
+            
+            # Se obtiene la fecha (sin la hora) y se formatea en la zona horaria correcta
+            fecha_str = fecha_movimiento.strftime('%d/%m/%Y')
             if fecha_str not in pendientes_por_fecha:
                 pendientes_por_fecha[fecha_str] = []
             pendientes_por_fecha[fecha_str].append({
@@ -3231,6 +3288,7 @@ class DetalleEmpleadoPendientes(LoginRequiredMixin, View):
             'bodegas': bodegas,
         }
         return render(request, 'inventario/recepcion/empleadoPendientesDetalle.html', contexto)
+
 from django.utils.timezone import make_aware
 from datetime import datetime
 @require_POST

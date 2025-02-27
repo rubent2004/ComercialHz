@@ -9,6 +9,7 @@ from django.db.models import Sum, Count
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.db.models.signals import post_migrate
+import pytz
 
 
 
@@ -435,6 +436,10 @@ class Notificaciones(models.Model):
     autor = models.ForeignKey(Usuario,to_field='username', on_delete=models.CASCADE)
     mensaje = models.TextField()
 #---------------------------------------------------------------------------------------class MovimientoProducto(models.Model):class MovimientoProducto(models.Model):
+def obtener_fecha_local_naive():
+    # Obtiene la fecha local y remueve la información de tzinfo para obtener un objeto naive
+    return timezone.localtime(timezone.now()).replace(tzinfo=None)
+
 class MovimientoProducto(models.Model):    
     TIPO_MOVIMIENTO_CHOICES = [
         ('entrada', 'Entrada'),
@@ -457,9 +462,8 @@ class MovimientoProducto(models.Model):
     fecha_movimiento = models.DateTimeField(auto_now_add=True)
     estado_producto = models.ForeignKey(EstadoProducto, on_delete=models.CASCADE)
 
-    class Meta:
-        unique_together = ('bodega', 'producto', 'fecha_movimiento')
 
+   
     @classmethod
     def movimientos_por_fecha(cls, fecha_inicial, fecha_final):
         return cls.objects.filter(fecha_movimiento__range=[fecha_inicial, fecha_final])
@@ -478,16 +482,19 @@ class MovimientoProducto(models.Model):
     @classmethod
     def productos_mas_vendidos(cls):
         """
-        Retorna una lista de productos más vendidos, con la cantidad de ventas para cada uno.
+        Retorna una lista de los primeros 10 productos más vendidos, con la cantidad de ventas para cada uno.
         """
         productos = MovimientoProducto.objects.filter(estado_producto__nombre=EstadoProducto.VENDIDO) \
             .select_related('producto') \
             .values('producto') \
             .annotate(total_vendidos=Count('producto')) \
-            .order_by('-total_vendidos')
+            .order_by('-total_vendidos')[:10]  # Limitar a los primeros 10 productos
 
         productos_vendidos = [
-            {'nombre': Producto.objects.get(id=producto['producto']).descripcion, 'cantidadVendida': producto['total_vendidos']}
+            {
+                'nombre': Producto.objects.filter(id=producto['producto']).first().descripcion if Producto.objects.filter(id=producto['producto']).exists() else 'Producto no encontrado',
+                'cantidadVendida': producto['total_vendidos']
+            }
             for producto in productos
         ]
         return productos_vendidos
@@ -500,6 +507,22 @@ class MovimientoProducto(models.Model):
         total = MovimientoProducto.objects.filter(estado_producto__nombre=EstadoProducto.VENDIDO) \
             .aggregate(total=Sum('cantidad'))['total']
         return total if total is not None else 0
+    
+    def save(self, *args, **kwargs):
+        # Obtener la hora local y el nombre de la zona horaria
+        current_time = timezone.localtime(timezone.now())
+        timezone_name = str(current_time.tzinfo)  # Obtener el nombre de la zona horaria como string
+        
+        # Imprimir varias veces la fecha, hora y zona horaria antes de guardar
+        print(f"Movimiento creado a las: {current_time}")
+        print(f"Hora exacta en formato UTC: {timezone.now()}")
+        print(f"Hora local antes de guardar: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Zona horaria local antes de guardar: {timezone_name}")
+        
+        super().save(*args, **kwargs)
+        
+
+
 #--------------------------------REGISTRO INVENTARIO------------------------------------
 class RegistroInventario(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
@@ -657,6 +680,7 @@ class Entrega(models.Model):
                 empleado=self.id_empleado_recibio,
                 estado_producto=estado_pendiente
             )
+            
             MovimientoPendiente.objects.create(
                 producto=detalle.producto,
                 cantidad=detalle.cantidad,

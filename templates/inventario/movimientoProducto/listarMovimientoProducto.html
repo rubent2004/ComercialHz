@@ -1,500 +1,467 @@
 {% extends "inventario/comun/base.html" %}
 {% load static %}
-
+{% load custom_tags %}
 {% block content %}
-
 <style>
-    /* Estilos generales */
-    .movimiento-card {
-        border-radius: 10px;
-        margin-bottom: 12px;
-        background: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-    }
+/* Estilos para las sugerencias */
+.sugerencias-dropdown {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.sugerencia-producto, .sugerencia-empleado {
+    cursor: pointer;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+    background: white;
+}
+.sugerencia-producto:hover, .sugerencia-empleado:hover {
+    background-color: #f8f9fa;
+}
 
+/* Estilos generales */
+.movimiento-card {
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+.movimiento-header {
+    padding: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 10px 10px 0 0;
+}
+.movimiento-badge {
+    font-size: 0.85rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: white; /* Texto blanco en badges */
+}
+.detalle-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #333;
+}
+
+/* Pagination styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.pagination .btn-group {
+    margin: 0 2px;
+}
+.pagination .btn {
+    margin: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pagination .btn:disabled {
+    opacity: 0.5;
+}
+.pagination .current {
+    font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
     .movimiento-header {
-        padding: 15px;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f8f9fa;
-        border-radius: 10px 10px 0 0;
+        flex-direction: column;
+        align-items: flex-start;
     }
+}
 
-    .movimiento-badge {
-        font-size: 0.85rem;
-        padding: 5px 10px;
-        border-radius: 20px;
-    }
+/* Forzar texto blanco en fondos coloreados */
+.bg-primary, .bg-info, .bg-success, .bg-warning, .bg-danger, .bg-secondary, .bg-dark {
+    color: white !important;
+}
 
-    .detalle-item {
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    /* Estilos para la tabla */
-    .table {
-        font-size: 0.95rem;
-        border-collapse: separate;
-        border-spacing: 0 3px;
-    }
-
-    .group-header td {
-        background-color: #f8f9fa !important;
-        border-bottom: 2px solid #dee2e6;
-        padding: 1rem !important;
-    }
-
-    .movement-detail td {
-        background-color: white;
-        border-top: none;
-        vertical-align: middle;
-        padding: 0.75rem !important;
-    }
-
-    .movement-detail:hover td {
-        background-color: #fbfcfd;
-    }
-
-    .movement-detail:not(:last-child) td {
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .table-hover tbody tr:hover td {
-        background-color: #f8f9fa;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .movimiento-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .resumen-container {
-            margin-top: 10px;
-            width: 100%;
-            justify-content: space-between;
-        }
-
-        .filter-group {
-            margin-bottom: 10px;
-            width: 100%;
-        }
-
-        .table-responsive {
-            border: none;
-        }
-
-        .group-header td {
-            padding: 0.75rem !important;
-        }
-    }
-
-    .btn-filter {
-        min-width: 100px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .btn-filter.active {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .btn-entrada {
-        background: #28a745;
-        border-color: #28a745;
-        color: white;
-    }
-
-    .btn-entrada:hover {
-        background: #218838;
-        border-color: #1e7e34;
-    }
-
-    .btn-salida {
-        background: #dc3545;
-        border-color: #fefefe;
-        color: white;
-    }
-
-    .btn-salida:hover {
-        background: #c82333;
-        border-color: #bd2130;
-    }
-
-    /* Estilos personalizados para los tipos de movimiento */
-    .badge-venta {
-        background-color: #28a745; /* Fondo verde */
-        color: white; /* Letra blanca */
-    }
-
-    .badge-recepcion {
-        background-color: #6aff00; /* Fondo verde claro */
-        color: white; /* Letra blanca */
-    }
-
-    .badge-salida {
-        background-color: #dc3545; /* Fondo rojo */
-        color: white; /* Letra blanca */
-    }
-
-    .badge-pendiente {
-        background-color: #ffc107; /* Fondo amarillo */
-        color: white; /* Letra blanca */
-    }
-
-    /* Efectos de hover en las tarjetas */
-    .movimiento-card:hover {
-        transform: scale(1.03);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .movimiento-card .movimiento-header:hover {
-        background: #e9ecef;
-    }
-
-    .movimiento-header .badge {
-        transition: background-color 0.3s ease;
-    }
-
-    /* Badge Animations */
-    .movimiento-badge {
-        font-weight: bold;
-        transition: background-color 0.3s ease;
-    }
-
-     /* Animación para desplegar detalles */
-     .movimiento-card .movimiento-body {
-        max-height: 0; /* Inicialmente colapsado */
-        overflow: hidden;
-        transition: max-height 0.5s ease-out; /* Animación suave */
-    }
-
-    /* Clase para mostrar el contenido con animación */
-    .movimiento-card.open .movimiento-body {
-        max-height: 500px; /* Limite a la altura máxima del contenido */
-    }
-
-    /* Efectos de hover en las tarjetas */
-    .movimiento-card:hover {
-        transform: scale(1.03);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .movimiento-card .movimiento-header:hover {
-        background: #e9ecef;
-    }
-
-    /* Badge Animations */
-    .movimiento-badge {
-        font-weight: bold;
-        transition: background-color 0.3s ease;
-    }
+/* Animaciones */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-10px); }
+}
 </style>
 
-
-
 <article class="content responsive-tables-page">
-    <!-- Encabezado Principal -->
     <div class="title-block text-center mb-4">
         <h1 class="title display-4"><i class="fas fa-boxes"></i> Movimientos de Producto</h1>
         <p class="title-description lead">Gestión y seguimiento de inventario</p>
     </div>
     
     <section class="section">
-        <!-- Sección de Filtros -->
-        <span class="badge 
-           {% if movimiento.tipo_movimiento == 'venta' %}badge-venta
-           {% elif movimiento.tipo_movimiento == 'recepcion' %}badge-recepcion
-           {% elif movimiento.tipo_movimiento == 'pendiente' %}badge-pendiente
-           {% elif movimiento.tipo_movimiento == 'salida' %}badge-salida
-           {% endif %}">
-           {{ movimiento.get_tipo_movimiento_display }}
-        </span>
-    
-    
+        <!-- Filtros Avanzados -->
         <div class="card filter-card mb-4">
             <div class="card-header">
                 <h3 class="mb-0"><i class="fas fa-filter"></i> Filtros Avanzados</h3>
             </div>
             <div class="card-body">
                 <form method="get" class="row g-3 align-items-center">
-                    <!-- Filtros en línea -->
-                    <div class="col-12 col-md-6 col-lg-3 filter-group">
-                        <label class="form-label"><i class="fas fa-warehouse"></i> Bodega</label>
-                        {{ form.bodega }}
-                    </div>
-    
-                    <div class="col-12 col-md-6 col-lg-3 filter-group">
-                        <label class="form-label"><i class="fas fa-cube"></i> Producto</label>
-                        {{ form.producto }}
-                    </div>
-    
-                    <div class="col-12 col-md-6 col-lg-3 filter-group">
-                        <label class="form-label"><i class="fas fa-user-tie"></i> Empleado</label>
-                        {{ form.empleado }}
-                    </div>
-    
-                    <div class="col-12 col-md-6 col-lg-3 filter-group">
-                        <label class="form-label"><i class="fas fa-calendar-day"></i> Fechas</label>
-                        <div class="input-daterange input-group">
-                            <input type="date" name="fecha_inicio" class="form-control" 
-                                   value="{{ request.GET.fecha_inicio }}" placeholder="Inicio">
-                            <span class="input-group-text">a</span>
-                            <input type="date" name="fecha_fin" class="form-control" 
-                                   value="{{ request.GET.fecha_fin }}" placeholder="Fin">
+                    <div class="row g-3">
+                        <!-- Fechas -->
+                        <div class="col-md-3">
+                            <label for="fecha_inicio" class="form-label">Fecha inicio</label>
+                            <input type="date" class="form-control" name="fecha_inicio" value="{{ fecha_inicio|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_fin" class="form-label">Fecha fin</label>
+                            <input type="date" class="form-control" name="fecha_fin" value="{{ fecha_fin|date:'Y-m-d' }}">
+                        </div>
+                        <!-- Producto -->
+                        <div class="col-md-3">
+                            <label class="form-label">Producto</label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="producto" name="producto" value="{{ request.GET.producto }}" autocomplete="off">
+                                <div id="sugerencias-producto" class="sugerencias-dropdown"></div>
+                            </div>
+                        </div>
+                        {% comment %} <!-- Código Producto -->
+                        <div class="col-md-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control" id="codigo_producto" name="codigo_producto" value="{{ request.GET.codigo_producto }}">
+                        </div> {% endcomment %}
+                        <!-- Empleado -->
+                        <div class="col-md-3">
+                            <label class="form-label">Empleado</label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="empleado" name="empleado" value="{{ request.GET.empleado }}" autocomplete="off">
+                                <div id="sugerencias-empleado" class="sugerencias-dropdown"></div>
+                            </div>
+                        </div>
+                        <!-- Bodega -->
+                        <div class="col-md-3">
+                            <label class="form-label">Bodega</label>
+                            <select class="form-select" name="bodega">
+                                <option value="">Todas</option>
+                                {% for bodega in form.fields.bodega.queryset %}
+                                    <option value="{{ bodega.id }}" {% if request.GET.bodega == bodega.id|stringformat:"s" %}selected{% endif %}>{{ bodega.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- Tipo de Movimiento -->
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Movimiento</label>
+                            <select class="form-select" name="tipo_movimiento">
+                                <option value="">Todos</option>
+                                {% for tipo in form.tipo_movimiento.field.choices %}
+                                    <option value="{{ tipo.0 }}" {% if request.GET.tipo_movimiento == tipo.0|stringformat:"s" %}selected{% endif %}>{{ tipo.1 }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
                     
-                    <!-- Filtros por tipo de movimiento -->
-                    <div class="col-12">
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            <a href="?tipo_movimiento=entrada{% if request.GET.fecha_inicio %}&fecha_inicio={{ request.GET.fecha_inicio }}{% endif %}{% if request.GET.fecha_fin %}&fecha_fin={{ request.GET.fecha_fin }}{% endif %}" 
-                               class="btn btn-filter btn-entrada {% if request.GET.tipo_movimiento == 'entrada' %}active{% endif %}">
-                                <i class="fas fa-arrow-down"></i> Entradas
-                            </a>
-                            
-                            <a href="?tipo_movimiento=salida{% if request.GET.fecha_inicio %}&fecha_inicio={{ request.GET.fecha_inicio }}{% endif %}{% if request.GET.fecha_fin %}&fecha_fin={{ request.GET.fecha_fin }}{% endif %}" 
-                               class="btn btn-filter btn-salida {% if request.GET.tipo_movimiento == 'salida' %}active{% endif %}">
-                                <i class="fas fa-arrow-up"></i> Salidas
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <!-- Botones de Acción -->
-                    <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                    <div class="col-12 mt-4 d-flex justify-content-end gap-2">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="fas fa-search"></i> Filtrar
                         </button>
-                        <a href="{% url 'inventario:listarMovimientoProducto' %}" 
-                           class="btn btn-outline-secondary btn-lg">
+                        <a href="{% url 'inventario:listarMovimientoProducto' %}" class="btn btn-outline-secondary btn-lg">
                             <i class="fas fa-eraser"></i> Limpiar
                         </a>
-                         <!-- 
-
-                        <button type="button" class="btn btn-dark btn-lg" id="toggleViewBtn">
-                            <i class="fas fa-table"></i> Vista Tabla
-                        </button>
-                    -->
                     </div>
-
                 </form>
             </div>
         </div>
-    
-        <!-- Vista de Tarjetas -->
-        <div id="cardView">
-            <div class="container-fluid">
-                {% for grupo in grupos_movimientos %}
-                <div class="movimiento-card">
-                    <div class="movimiento-header" onclick="toggleDetalle(this)">
-                        <div>
-                            <h5 class="mb-1">
-                                <i class="fas fa-user-tie"></i> 
-                                {% if grupo.empleado %}
-                                    {{ grupo.empleado.nombre }}
-                                {% else %}
-                                    {{ movimiento.usuario.username }}
-                                {% endif %}
-                            </h5>
-                            
-                            <small class="text-muted">
-                                <i class="fas fa-calendar-day"></i> {{ grupo.fecha|date:"d M Y" }}
-                            </small>
-                        </div>
-                        
-                        <div class="d-flex gap-2 resumen-container">
-                            <span class="movimiento-badge bg-primary text-white">
-                                {{ grupo.resumen.total_movimientos }} movimientos
-                            </span>
-                            <span class="movimiento-badge bg-info text-white">
-                                {{ grupo.resumen.tipos_movimiento|join:", " }}
-                            </span>
-                            <span class="movimiento-badge bg-success text-white">
-                                <i class="fas fa-boxes"></i> {{ grupo.resumen.total_cantidad }} total
-                            </span>
-                        </div>
+
+        <!-- Resultados -->
+<div id="cardView">
+    {% if mensaje %}
+        <div class="alert alert-info text-center py-4">
+            <i class="fas fa-info-circle fa-2x mb-3"></i>
+            <h4>{{ mensaje }}</h4>
+        </div>
+    {% else %}
+        {% for grupo in grupos_movimientos %}
+        <div class="movimiento-card mb-3">
+            <div class="movimiento-header d-flex justify-content-between align-items-center" onclick="toggleDetalle(this)">
+                <div>
+                    <h5 class="mb-1">
+                        <i class="fas fa-user-tie"></i> {{ grupo.empleado.nombre|default:"USUARIOS" }}
+                    </h5>
+                    <small class="text-muted">
+                        <i class="fas fa-calendar-day"></i> {{ grupo.fecha|date:"d M Y" }}
+                    </small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <span class="movimiento-badge bg-primary">
+                            {{ grupo.resumen.total_movimientos }} movimientos
+                        </span>
                     </div>
-    
-                    <div class="detalles-container" style="display: none;">
-                        {% for movimiento in grupo.detalles %}
-                        <div class="detalle-item">
-                            <div class="w-100">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="badge 
-                                            {% if movimiento.tipo_movimiento == 'venta' %}badge-venta
-                                            {% elif movimiento.tipo_movimiento == 'pendiente' %}badge-pendiente
-                                            {% elif movimiento.tipo_movimiento == 'salida' %}badge-salida
-                                            {% endif %}">
-                                            {{ movimiento.get_tipo_movimiento_display }}
-                                        </span>
-                                        <strong class="ml-2">{{ movimiento.producto.descripcion }}</strong>
-                                    </div>
-                                    <span class="badge bg-warning text-dark">
-                                        {{ movimiento.cantidad }} unidades
+                    <div class="me-3">
+                        <span class="movimiento-badge bg-success">
+                            <i class="fas fa-boxes"></i> {{ grupo.resumen.total_cantidad }}
+                        </span>
+                    </div>
+                    <!-- Icono indicador que rota -->
+                    <i class="fas fa-chevron-down ms-2 transition" style="transition: transform 0.3s;"></i>
+                </div>
+            </div>
+            <div class="detalles-container" style="display: none;">
+                {% for movimiento in grupo.detalles %}
+                <div class="detalle-item border-bottom py-2">
+                    <div class="w-100">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center">
+                            <div class="mb-1">
+                                {# Tipo movimiento + producto #}
+                                {% if movimiento.tipo_movimiento == 'entrada' %}
+                                    <span class="badge bg-success me-2">
+                                        <i class="fas fa-plus-circle"></i> Entrada – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
                                     </span>
-                                </div>
-                                <div class="text-muted small mt-1">
-                                    <i class="fas fa-warehouse"></i> {{ movimiento.bodega.nombre }} •
-                                    <i class="fas fa-tag"></i> {{ movimiento.estado_producto.nombre }} •
-                                    <i class="fas fa-user"></i> {{ movimiento.usuario.username }}
-                                </div>
+                                {% elif movimiento.tipo_movimiento == 'venta' %}
+                                    <span class="badge bg-success me-2">
+                                        <i class="fas fa-shopping-cart"></i> Venta – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'salida' %}
+                                    <span class="badge bg-danger me-2">
+                                        <i class="fas fa-minus-circle"></i> Salida – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'pendiente' %}
+                                    <span class="badge bg-danger me-2">
+                                        <i class="fas fa-hourglass-half"></i> Pendiente – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'reparacion' %}
+                                    <span class="badge bg-primary me-2">
+                                        <i class="fas fa-wrench"></i> Reparación – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'devolucion' %}
+                                    <span class="badge bg-warning me-2">
+                                        <i class="fas fa-undo"></i> Devolución – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'entrega' %}
+                                    <span class="badge bg-secondary me-2">
+                                        <i class="fas fa-truck"></i> Entrega – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'recepcion' %}
+                                    <span class="badge bg-info me-2">
+                                        <i class="fas fa-check-circle"></i> Recepción – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% elif movimiento.tipo_movimiento == 'transferencia' %}
+                                    <span class="badge bg-dark me-2">
+                                        <i class="fas fa-exchange-alt"></i> Transferencia – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark me-2">
+                                        {{ movimiento.get_tipo_movimiento_display }} – {{ movimiento.producto.descripcion }} Cod={{ movimiento.producto.id }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="badge bg-secondary">
+                                    {{ movimiento.cantidad }} unidades
+                                </span>
                             </div>
                         </div>
-                        {% endfor %}
+                        <div class="text-muted small">
+                            <i class="fas fa-warehouse"></i> {{ movimiento.bodega.nombre }} •
+                            <i class="fa-solid fa-dollar-sign"></i> {{ movimiento.producto.precio_unitario }} •
+                            <i class="fas fa-tag"></i> {{ movimiento.estado_producto.nombre }} •
+                            <i class="fas fa-user"></i> {{ movimiento.usuario.username }}
+                        </div>
                     </div>
-                </div>
-                {% empty %}
-                <div class="alert alert-info text-center py-4">
-                    <i class="fas fa-info-circle fa-2x mb-3"></i>
-                    <h4>No se encontraron movimientos</h4>
                 </div>
                 {% endfor %}
             </div>
         </div>
-    
-        <!-- Vista de Tabla (Oculta inicialmente) 
-        <div id="tableView" style="display: none;">
-            <div class="card border-0">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th style="width: 25%">Empleado/Fecha</th>
-                                    <th>Tipo Movimiento</th>
-                                    <th>Productos</th>
-                                    <th>Total Unidades</th>
-                                    <th>Detalles</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for grupo in grupos_movimientos %}
-                                    <tr class="group-header">
-                                        <td colspan="5" class="bg-light">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong class="text-primary">{{ grupo.empleado.nombre }}</strong>
-                                                    <div class="text-muted small">
-                                                        <i class="fas fa-calendar-day"></i> 
-                                                        {{ grupo.fecha|date:"d M Y" }}
-                                                    </div>
-                                                </div>
-                                                <div class="text-muted">
-                                                    <i class="fas fa-cubes"></i> {{ grupo.resumen.total_productos }} productos
-                                                    <span class="mx-2">|</span>
-                                                    <i class="fas fa-boxes"></i> {{ grupo.resumen.total_cantidad }} unidades
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    
-                                    {% for movimiento in grupo.detalles %}
-                                    <tr class="movement-detail">
-                                        <td>
-                                            <span class="badge 
-                                                {% if movimiento.tipo_movimiento == 'entrada' %}bg-success
-                                                {% else %}bg-secondary{% endif %}">
-                                                {{ movimiento.get_tipo_movimiento_display }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="text-dark">{{ movimiento.producto.descripcion }}</div>
-                                            <small class="text-muted">{{ movimiento.bodega.nombre }}</small>
-                                        </td>
-                                        <td>{{ movimiento.cantidad }}</td>
-                                        <td>
-                                            <small class="text-muted">
-                                                <i class="fas fa-user"></i> {{ movimiento.usuario.username }}<br>
-                                                <i class="fas fa-tag"></i> {{ movimiento.estado_producto.nombre }}
-                                            </small>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="5" class="text-center py-5">
-                                            <i class="fas fa-database fa-3x text-muted mb-3"></i>
-                                            <h4 class="text-muted">No se encontraron registros</h4>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        {% endfor %}
+               <!-- Paginación Mejorada -->
+<div class="pagination d-flex flex-wrap justify-content-center mt-4">
+    <!-- Grupo: Primera y Anterior -->
+    <div class="btn-group me-2">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-primary">
+          <i class="fas fa-angle-double-left"></i> Primera
+        </a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-primary">
+          <i class="fas fa-angle-left"></i> Anterior
+        </a>
+      {% else %}
+        <button class="btn btn-sm btn-secondary" disabled>
+          <i class="fas fa-angle-double-left"></i> Primera
+        </button>
+        <button class="btn btn-sm btn-secondary" disabled>
+          <i class="fas fa-angle-left"></i> Anterior
+        </button>
+      {% endif %}
+    </div>
+  
+    <!-- Grupo: Bloque de números (páginas cercanas) -->
+    <div class="btn-group me-2">
+      {% comment %} 
+        Aquí mostramos un bloque de páginas: mostramos las 2 páginas anteriores y 2 posteriores a la actual.
+        Siempre mostramos la primera y última página con "..." si es necesario.
+      {% endcomment %}
+      {% for i in page_obj.paginator.page_range %}
+        {% if i == 1 %}
+          <a href="?page=1{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-outline-primary">
+            1
+          </a>
+          {% if page_obj.number > 4 %}
+            <span class="btn btn-sm btn-outline-secondary" disabled>...</span>
+          {% endif %}
+        {% elif i == page_obj.paginator.num_pages %}
+          {% if page_obj.number < page_obj.paginator.num_pages|add:'-3' %}
+            <span class="btn btn-sm btn-outline-secondary" disabled>...</span>
+          {% endif %}
+          <a href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-outline-primary">
+            {{ page_obj.paginator.num_pages }}
+          </a>
+        {% elif i >= page_obj.number|add:'-2' and i <= page_obj.number|add:'2' %}
+          {% if i == page_obj.number %}
+            <a href="?page={{ i }}{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-primary">
+              {{ i }}
+            </a>
+          {% else %}
+            <a href="?page={{ i }}{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-outline-primary">
+              {{ i }}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  
+    <!-- Grupo: Siguiente y Última -->
+    <div class="btn-group me-2">
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-primary">
+          Siguiente <i class="fas fa-angle-right"></i>
+        </a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-sm btn-primary">
+          Última <i class="fas fa-angle-double-right"></i>
+        </a>
+      {% else %}
+        <button class="btn btn-sm btn-secondary" disabled>
+          Siguiente <i class="fas fa-angle-right"></i>
+        </button>
+        <button class="btn btn-sm btn-secondary" disabled>
+          Última <i class="fas fa-angle-double-right"></i>
+        </button>
+      {% endif %}
+    </div>
+
+  </div>
+  
+            {% endif %}
         </div>
-        -->
     </section>
-    
 </article>
 
 <script>
-    // Toggle entre vistas
-    document.getElementById('toggleViewBtn').addEventListener('click', function() {
-        var cardView = document.getElementById('cardView');
-        var tableView = document.getElementById('tableView');
-        
-        // Cambiar la visibilidad entre las vistas
-        cardView.style.display = (cardView.style.display === 'none') ? 'block' : 'none';
-        tableView.style.display = (tableView.style.display === 'none') ? 'block' : 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    // Autocompletado Productos
+    const productoInput = document.getElementById('producto');
+    const sugerenciasProducto = document.getElementById('sugerencias-producto');
+    
+    productoInput.addEventListener('input', async function(e) {
+        const term = e.target.value.trim();
+        if(term.length > 1) {
+            try {
+                const response = await fetch(`/inventario/buscar-sugerencias-nombre/?term=${term}`);
+                const data = await response.json();
+                
+                sugerenciasProducto.innerHTML = data.map(p => `
+                    <div class="sugerencia-producto" 
+                         data-descripcion="${p.descripcion}"
+                         data-codigo="${p.codigo}">
+                        <div class="small">
+                            <strong>${p.descripcion}</strong><br>
+                            <span class="text-muted">Código: ${p.codigo}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                sugerenciasProducto.style.display = 'block';
+                
+                document.querySelectorAll('.sugerencia-producto').forEach(item => {
+                    item.addEventListener('click', () => {
+                        productoInput.value = item.dataset.descripcion;
+                        document.getElementById('codigo_producto').value = item.dataset.codigo;
+                        sugerenciasProducto.style.display = 'none';
+                    });
+                });
+                
+            } catch(error) { console.error('Error:', error); }
+        } else { 
+            sugerenciasProducto.style.display = 'none'; 
+        }
     });
-     // Función para abrir/cerrar las tarjetas con animación
-     document.querySelectorAll('.movimiento-header').forEach(header => {
-        header.addEventListener('click', function() {
-            const card = this.closest('.movimiento-card');  // Encuentra la tarjeta correspondiente
-            const body = card.querySelector('.movimiento-body'); // Encuentra el cuerpo de la tarjeta
 
-            // Alterna la clase 'open' para animar la apertura/cierre
-            card.classList.toggle('open');
-        });
+    // Autocompletado Empleados
+    const empleadoInput = document.getElementById('empleado');
+    const sugerenciasEmpleado = document.getElementById('sugerencias-empleado');
+    
+    empleadoInput.addEventListener('input', async function(e) {
+        const term = e.target.value.trim();
+        if(term.length > 1) {
+            try {
+                const response = await fetch(`/inventario/buscar-sugerencias-empleado/?term=${term}`);
+                const data = await response.json();
+                
+                sugerenciasEmpleado.innerHTML = data.map(e => `
+                    <div class="sugerencia-empleado" data-nombre="${e.nombre} ${e.apellido}">
+                        <div class="small">
+                            <strong>${e.nombre} ${e.apellido}</strong><br>
+                            <span class="text-muted">${e.cargo}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                sugerenciasEmpleado.style.display = 'block';
+                
+                document.querySelectorAll('.sugerencia-empleado').forEach(item => {
+                    item.addEventListener('click', () => {
+                        empleadoInput.value = item.dataset.nombre;
+                        sugerenciasEmpleado.style.display = 'none';
+                    });
+                });
+                
+            } catch(error) { console.error('Error:', error); }
+        } else { 
+            sugerenciasEmpleado.style.display = 'none'; 
+        }
     });
-    // Función para mostrar/ocultar detalles con animación
-    function toggleDetalle(element) {
-        const detalles = element.nextElementSibling;
-        const isVisible = detalles.style.display === 'block';
-        
-        // Cerrar todos los detalles
-        document.querySelectorAll('.detalles-container').forEach(d => d.style.display = 'none');
-        
-        // Alternar el estado de visibilidad con animación
-        if (!isVisible) {
-            detalles.style.display = 'block';
-            detalles.style.animation = 'slideDown 0.3s ease';
-            
-            // Desplazar automáticamente a la vista en móviles si el detalle se abre
-            if(window.innerWidth < 768) {
-                detalles.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        } else {
-            detalles.style.animation = 'slideUp 0.3s ease';
-            setTimeout(() => detalles.style.display = 'none', 300);  // Ajustado el tiempo para que coincida con la animación
+
+    // Cerrar sugerencias al hacer click fuera
+    document.addEventListener('click', (e) => {
+        if(!e.target.closest('.position-relative')) {
+            sugerenciasProducto.style.display = 'none';
+            sugerenciasEmpleado.style.display = 'none';
         }
+    });
+});
+
+function toggleDetalle(element) {
+    const detalles = element.nextElementSibling;
+    const isVisible = detalles.style.display === 'block';
+    
+    document.querySelectorAll('.detalles-container').forEach(d => d.style.display = 'none');
+    
+    if (!isVisible) {
+        detalles.style.display = 'block';
+        detalles.style.animation = 'slideDown 0.3s ease';
+        if(window.innerWidth < 768) detalles.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        detalles.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => detalles.style.display = 'none', 300);
     }
-    
-    // Animaciones CSS para el deslizamiento de los detalles
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-10px); }
-        }
-    `;
-    document.head.appendChild(style);
-    </script>
-    {% endblock %}
-    
+}
+</script>
+{% endblock %}

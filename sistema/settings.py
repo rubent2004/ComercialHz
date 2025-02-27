@@ -76,12 +76,12 @@ WSGI_APPLICATION = 'sistema.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
-     'default':{
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'BDD.sqlite3'),
-    }
-}
+# DATABASES = {
+#      'default':{
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'BDD.sqlite3'),
+#     }
+# }
 # = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
@@ -93,16 +93,16 @@ DATABASES = {
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'comercialHz',
-#         'USER': 'comercialHz',
-#         'PASSWORD': 'banakai123',
-#         'HOST': 'localhost',  # O el IP de tu servidor de base de datos
-#         'PORT': '5432',  # Por defecto para PostgreSQL
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'comercialhz',  # Nombre de la base de datos
+        'USER': 'postgres',     # Usuario de PostgreSQL
+        'PASSWORD': '6JvZYCklBgs+',  # Contraseña del usuario
+        'HOST': 'localhost',    # Dirección del servidor de la base de datos
+        'PORT': '5432',         # Puerto de conexión de PostgreSQL
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
 
@@ -125,15 +125,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
-LANGUAGE_CODE = 'es-MX'
+LANGUAGE_CODE = 'es-SV'
+TIME_ZONE = 'America/El_Salvador'
 
-TIME_ZONE = 'America/Mexico_City'
+
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/

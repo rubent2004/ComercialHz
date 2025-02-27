@@ -186,7 +186,7 @@
             <label for="fechaMovimiento" class="form-label">Fecha de la venta</label>
             <input type="date" class="form-control" name="fecha_movimiento" 
                    id="fechaMovimiento" required
-                   value="{{ today|date:'Y-m-d' }}" disabled>
+                   value="{{ today|date:'Y-m-d' }}">
           </div>
         </div>
         <div class="modal-footer">
@@ -297,11 +297,10 @@
 
   function abrirVentaTotalModal(empleadoId, movimientoId) {
     const form = document.getElementById('ventaTotalForm');
-    // URL CORREGIDA (eliminar "inventario:" y usar la ruta correcta)
     form.action = `/inventario/venta-total-producto/${empleadoId}/${movimientoId}/`; 
-    document.getElementById('fechaVenta').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fechaMovimiento').value = new Date().toISOString().split('T')[0];
     new bootstrap.Modal(document.getElementById('ventaTotalModal')).show();
-}
+}1
 
 
   function validarTransferencia(cantidadMaxima) {
