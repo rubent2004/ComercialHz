@@ -118,6 +118,8 @@ path('reporte_ventas/', views.ProductosMasVendidosPDF.as_view(), name='reporte_v
 
 
 
+
+
 #devoluciones
 path('listarDev', views.ListarDev.as_view(), name='listarDev'),
 path('agregarDev', views.AgregarDev.as_view(), name='agregarDev'),
@@ -145,7 +147,7 @@ path('productos/transferir/', views.transferir_producto, name='transferir_produc
 # Procesar recepción parcial (maneja la recepción según la lógica del modal)
 path('productos/recepcion/', views.recepcion_producto, name='recepcion_producto'),
 
-
+path('productos-entregados/', views.ProductosEntregadosView.as_view(), name='productos_entregados'),
 ]
 
 

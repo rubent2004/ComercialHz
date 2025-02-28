@@ -3,6 +3,7 @@ import calendar
 from collections import defaultdict
 import datetime
 import json
+from multiprocessing import Value
 from .services import EntregaService
 from django.shortcuts import render
 from django.views import View
@@ -1793,6 +1794,7 @@ from collections import defaultdict
 from datetime import datetime
 from django.core.paginator import Paginator
 from django.utils.decorators import method_decorator
+from django.db.models.functions import Concat
 #@method_decorator(cache_page(60 * 15), name='dispatch')
 class ListarMovimientoProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -1837,8 +1839,11 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
             movimientos = movimientos.filter(producto__descripcion__icontains=producto_search)
         empleado_search = request.GET.get('empleado', '').strip()
         if empleado_search:
-            movimientos = movimientos.filter(empleado__nombre__icontains=empleado_search)
-
+            terms = empleado_search.split()
+            for term in terms:
+                movimientos = movimientos.filter(
+                    Q(empleado__nombre__icontains=term) | Q(empleado__apellido__icontains=term)
+                )
         # Verificar si hay resultados
         if not movimientos.exists():
             mensaje = "No hay movimientos para la fecha seleccionada."
@@ -1875,7 +1880,7 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
             clave = (movimiento.empleado, fecha_local)
             grupo = grupos[clave]
             if not grupo['empleado']:
-                grupo['empleado'] = movimiento.empleado
+                grupo['empleado'] = movimiento.empleado 
                 grupo['fecha'] = fecha_local
             grupo['detalles'].append(movimiento)
             grupo['resumen']['total_movimientos'] += 1
@@ -1902,7 +1907,45 @@ class ListarMovimientoProducto(LoginRequiredMixin, View):
         }
         context = complementarContexto(context, request.user)
         return render(request, self.template_name, context)
-    
+
+
+class ProductosEntregadosView(LoginRequiredMixin, View):
+    login_url = '/inventario/login'
+
+    def get(self, request):
+        try:
+            empleado_id = request.GET.get('empleado_id')
+            fecha_str = request.GET.get('fecha')
+            
+            if not empleado_id or not fecha_str:
+                return JsonResponse({'error': 'Parámetros faltantes'}, status=400)
+
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            
+            # Consultamos directamente la tabla de movimientos pendientes históricos
+            productos = MovimientoPendiente.objects.filter(
+                empleado_recibio_id=empleado_id,  # Asumiendo que empleado_recibio es el que aparece en el grupo
+                fecha__date=fecha
+            ).select_related('producto', 'bodega', 'empleado_entrego')
+
+            productos_data = [{
+                'producto_id': p.producto.id,
+                'producto_descripcion': p.producto.descripcion,
+                'cantidad': p.cantidad,
+                'bodega_nombre': p.bodega.nombre,
+                'empleado_entrego_username': p.empleado_entrego.username,
+                'empleado_recibio_nombre': p.empleado_recibio.nombre,
+                'fecha': p.fecha.strftime('%d %b %Y %H:%M'),
+                'estado_original': p.estado  # Mostramos el estado original del registro
+            } for p in productos]
+
+            return JsonResponse({'productos': productos_data})
+            
+        except ValueError:
+            return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
 def verificar_stock(request):
     bodega_id = request.GET.get('bodega')
     producto_id = request.GET.get('producto')
@@ -2494,20 +2537,28 @@ def buscar_sugerencias_nombre(request):
         productos_data = [{'id': producto.id, 'descripcion': producto.descripcion,'precio_unitario': f"{producto.precio_unitario:.2f}"} for producto in productos]
         return JsonResponse(productos_data, safe=False)
     return JsonResponse([], safe=False)
-
 def buscar_sugerencias_empleado(request):
-    nombre = request.GET.get('nombre', '')
-    if nombre:
-        empleados = Empleado.objects.filter(nombre__icontains=nombre)[:10]
-        empleados_data = [{'id': empleado.id, 'nombre': empleado.nombre, 'apellido': empleado.apellido} for empleado in empleados]
+    termino = request.GET.get('nombre', '')
+    if termino:
+        empleados = Empleado.objects.filter(
+            Q(nombre__icontains=termino) | Q(apellido__icontains=termino)
+        ).order_by('nombre')[:10]
+        empleados_data = [
+            {'id': empleado.id, 'nombre': empleado.nombre, 'apellido': empleado.apellido}
+            for empleado in empleados
+        ]
         return JsonResponse(empleados_data, safe=False)
     return JsonResponse([], safe=False)
 
 def buscar_empleado(request):
-
-    nombre = request.GET.get('nombre', '')
-    empleados = Empleado.objects.filter(nombre__icontains=nombre)[:10]  # Limita a 10 resultados
-    resultados = [{'id': empleado.id, 'nombre': empleado.nombre, 'apellido': empleado.apellido} for empleado in empleados]
+    termino = request.GET.get('nombre', '')
+    empleados = Empleado.objects.filter(
+        Q(nombre__icontains=termino) | Q(apellido__icontains=termino)
+    ).order_by('nombre')[:10]
+    resultados = [
+        {'id': empleado.id, 'nombre': empleado.nombre, 'apellido': empleado.apellido}
+        for empleado in empleados
+    ]
     return JsonResponse(resultados, safe=False)
 class BuscarProductoPorCodigoId(LoginRequiredMixin, View):
     login_url = '/inventario/login'

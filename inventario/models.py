@@ -698,6 +698,7 @@ class DetalleEntrega(models.Model):
     class Meta:
         unique_together = ('entrega', 'producto', 'bodega')
 
+#Como en la recepcion se pasa el estado pendiente del movimiento del producto del empleado a vendido o recepcion, esta tabla es para tener un registro fijo de las entregas de producto
 class MovimientoPendiente(models.Model):
     producto = models.ForeignKey('Producto', on_delete=models.CASCADE)
     cantidad = models.IntegerField()

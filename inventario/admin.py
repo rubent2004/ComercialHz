@@ -5,14 +5,20 @@ from django.contrib.auth.admin import UserAdmin
 from .forms import LoginFormulario
 from .models import  DetalleEntrega, Devolucion, Empleado, Entrega, EstadoProducto, Marca, MovimientoProducto, Proveedor, Reparacion, Usuario, Producto,Inventario,RegistroInventario,MovimientoPendiente
 
-class UsuarioAdmin(UserAdmin):
-    add_form = LoginFormulario
-    #form = CustomUserChangeForm
-    model = Usuario
-    list_display = ['email', 'username','nivel']
+class UsuarioAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'first_name', 'last_name', 'nivel')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_filter = ('nivel', 'is_superuser')
 
+    def save_model(self, request, obj, form, change):
+        if obj.nivel == 1:
+            obj.is_superuser = True
+        else:
+            obj.is_superuser = False
+        super().save_model(request, obj, form, change)
+
+# Registra el modelo y su configuración en el administrador
 admin.site.register(Usuario, UsuarioAdmin)
-
  #ver productos
 class ProductoAdmin(admin.ModelAdmin):
      list_display = ['descripcion', 'marca', 'precio_unitario', 'precio_cash', 'proveedor']
